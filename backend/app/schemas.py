@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -50,6 +52,31 @@ class PracticeOut(BaseModel):
     status: str
     verified: bool
     page_json: dict[str, object]
+
+
+class TherapistProfileIn(BaseModel):
+    practice_id: int
+    bio: str = ""
+    approaches: list[str] = Field(default_factory=list)
+    languages: list[str] = Field(default_factory=list)
+    fee: int = Field(gt=0)
+
+
+class AvailabilitySlotIn(BaseModel):
+    starts_at: datetime
+    ends_at: datetime
+
+
+class BookingIn(BaseModel):
+    availability_slot_id: int
+
+
+class IntakeFormIn(BaseModel):
+    fields: list[dict[str, object]] = Field(min_length=1)
+
+
+class IntakeResponseIn(BaseModel):
+    answers: dict[str, object]
 
 
 class MessageResponse(BaseModel):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Integer, JSON, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.app.db import Base
@@ -40,6 +40,62 @@ class Practice(Base):
     status: Mapped[str] = mapped_column(String(50), default="draft", nullable=False)
     verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     page_json: Mapped[str] = mapped_column(Text, default="{}", nullable=False)
+
+
+class TherapistProfile(Base):
+    __tablename__ = "therapist_profiles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
+    practice_id: Mapped[int] = mapped_column(ForeignKey("practices.id", ondelete="CASCADE"), nullable=False, index=True)
+    bio: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    approaches: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    languages: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    fee: Mapped[int] = mapped_column(Integer, nullable=False)
+    verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+
+class AvailabilitySlot(Base):
+    __tablename__ = "availability_slots"
+    __table_args__ = (UniqueConstraint("therapist_id", "starts_at", "ends_at", name="uq_availability_therapist_time"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    therapist_id: Mapped[int] = mapped_column(ForeignKey("therapist_profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class Booking(Base):
+    __tablename__ = "bookings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    client_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    availability_slot_id: Mapped[int] = mapped_column(
+        ForeignKey("availability_slots.id", ondelete="CASCADE"), unique=True, nullable=False
+    )
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="confirmed")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+
+class IntakeForm(Base):
+    __tablename__ = "intake_forms"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    therapist_id: Mapped[int] = mapped_column(
+        ForeignKey("therapist_profiles.id", ondelete="CASCADE"), unique=True, nullable=False
+    )
+    fields_json: Mapped[list[dict]] = mapped_column(JSON, nullable=False, default=list)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+
+class IntakeResponse(Base):
+    __tablename__ = "intake_responses"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    booking_id: Mapped[int] = mapped_column(ForeignKey("bookings.id", ondelete="CASCADE"), unique=True, nullable=False)
+    client_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    answers_json: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
 
 
 class PendingAction(Base):

@@ -5,12 +5,13 @@ import os
 import re
 import smtplib
 from email.message import EmailMessage
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from backend.app.agents.launch import run_launch_agent
@@ -22,13 +23,30 @@ from backend.app.auth import (
     verify_password,
 )
 from backend.app.db import engine, get_db
-from backend.app.models import AgentRun, AuditLog, PendingAction, Practice, User, UserRole
+from backend.app.models import (
+    AgentRun,
+    AuditLog,
+    AvailabilitySlot,
+    Booking,
+    IntakeForm,
+    IntakeResponse,
+    PendingAction,
+    Practice,
+    TherapistProfile,
+    User,
+    UserRole,
+)
 from backend.app.safety import check_claims, render_prompt_data, risk_check, validate_ai_output
 from backend.app.schemas import (
     MessageResponse,
+    AvailabilitySlotIn,
+    BookingIn,
+    IntakeFormIn,
+    IntakeResponseIn,
     PracticeContact,
     PracticeDraft,
     PracticeOut,
+    TherapistProfileIn,
     UserCreate,
     UserLogin,
     UserOut,
@@ -129,6 +147,79 @@ def _build_practice_page(payload: PracticeDraft) -> dict[str, object]:
         "fee_range": payload.fee_range,
         "session_type": payload.session_type,
     }
+
+
+def _public_therapist_query(db: Session, therapist_id: int | None = None):
+    query = (
+        db.query(TherapistProfile, User, Practice)
+        .join(User, User.id == TherapistProfile.user_id)
+        .join(Practice, Practice.id == TherapistProfile.practice_id)
+        .filter(
+            TherapistProfile.verified.is_(True),
+            Practice.status == "published",
+            Practice.verified.is_(True),
+        )
+    )
+    if therapist_id is not None:
+        query = query.filter(TherapistProfile.id == therapist_id)
+    return query
+
+
+def _therapist_payload(profile: TherapistProfile, user: User, practice: Practice) -> dict[str, object]:
+    return {
+        "id": profile.id,
+        "name": user.name,
+        "bio": profile.bio,
+        "approaches": profile.approaches,
+        "languages": profile.languages,
+        "fee": profile.fee,
+        "practice": {"id": practice.id, "name": practice.name, "slug": practice.slug},
+    }
+
+
+def _booking_for_participant(db: Session, booking_id: int, user: User) -> tuple[Booking, AvailabilitySlot, TherapistProfile]:
+    booking = db.query(Booking).filter(Booking.id == booking_id).first()
+    if booking is None:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    slot = db.query(AvailabilitySlot).filter(AvailabilitySlot.id == booking.availability_slot_id).first()
+    profile = db.query(TherapistProfile).filter(TherapistProfile.id == slot.therapist_id).first() if slot else None
+    allowed = (
+        user.role == UserRole.admin
+        or (user.role == UserRole.client and booking.client_id == user.id)
+        or (user.role == UserRole.therapist and profile is not None and profile.user_id == user.id)
+    )
+    if not allowed:
+        raise HTTPException(status_code=403, detail="Access denied")
+    if slot is None or profile is None:
+        raise HTTPException(status_code=404, detail="Booking details not found")
+    return booking, slot, profile
+
+
+def _send_booking_confirmation(client: User, therapist: User, practice: Practice, slot: AvailabilitySlot) -> str:
+    smtp_host = os.getenv("SMTP_HOST")
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_pass = os.getenv("SMTP_PASS")
+    if not smtp_host or not smtp_user or not smtp_pass:
+        return "not_configured"
+
+    starts_at = slot.starts_at.isoformat()
+    recipients = [(client.email, "Your counselling session is confirmed"), (therapist.email, "A client booked a session")]
+    try:
+        with smtplib.SMTP(smtp_host, int(os.getenv("SMTP_PORT", "1025"))) as connection:
+            connection.login(smtp_user, smtp_pass)
+            for recipient, subject in recipients:
+                message = EmailMessage()
+                message["Subject"] = subject
+                message["From"] = os.getenv("SMTP_FROM", smtp_user)
+                message["To"] = recipient
+                message.set_content(
+                    f"Practice: {practice.name}\nSession time: {starts_at}\n"
+                    "Demo: use fictional information only."
+                )
+                connection.send_message(message)
+    except (OSError, smtplib.SMTPException):
+        return "failed"
+    return "sent"
 
 
 @app.get("/")
@@ -292,6 +383,285 @@ def public_practice_detail(slug: str, db: Session = Depends(get_db)) -> dict[str
     page = json.loads(record.page_json or "{}")
     payload = {"banner": "Demo: use fictional information only.", "practice": {"id": record.id, "name": record.name, "slug": record.slug, "verified": record.verified, "page": page}}
     return payload
+
+
+@app.post("/therapists/me/profile")
+def save_therapist_profile(
+    payload: TherapistProfileIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.therapist)),
+) -> dict[str, object]:
+    practice = db.query(Practice).filter(Practice.id == payload.practice_id).first()
+    if practice is None:
+        raise HTTPException(status_code=404, detail="Practice not found")
+    profile = db.query(TherapistProfile).filter(TherapistProfile.user_id == current_user.id).first()
+    if profile is None:
+        profile = TherapistProfile(user_id=current_user.id, practice_id=payload.practice_id, verified=False)
+        db.add(profile)
+    profile.practice_id = payload.practice_id
+    profile.bio = payload.bio
+    profile.approaches = payload.approaches
+    profile.languages = payload.languages
+    profile.fee = payload.fee
+    db.commit()
+    db.refresh(profile)
+    return {"id": profile.id, "practice_id": profile.practice_id, "bio": profile.bio,
+            "approaches": profile.approaches, "languages": profile.languages, "fee": profile.fee,
+            "verified": profile.verified}
+
+
+@app.get("/therapists/me/profile")
+def get_therapist_profile(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.therapist)),
+) -> dict[str, object]:
+    profile = db.query(TherapistProfile).filter(TherapistProfile.user_id == current_user.id).first()
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Therapist profile not found")
+    return {"id": profile.id, "practice_id": profile.practice_id, "bio": profile.bio,
+            "approaches": profile.approaches, "languages": profile.languages, "fee": profile.fee,
+            "verified": profile.verified}
+
+
+@app.get("/therapists/public")
+def public_therapists(
+    practice_id: int | None = Query(default=None),
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    query = _public_therapist_query(db)
+    if practice_id is not None:
+        query = query.filter(TherapistProfile.practice_id == practice_id)
+    rows = query.order_by(TherapistProfile.id.asc()).all()
+    return {"items": [_therapist_payload(profile, user, practice) for profile, user, practice in rows]}
+
+
+@app.get("/therapists/{therapist_id}/availability")
+def public_therapist_availability(therapist_id: int, db: Session = Depends(get_db)) -> dict[str, object]:
+    if _public_therapist_query(db, therapist_id).first() is None:
+        raise HTTPException(status_code=404, detail="Therapist not found")
+    booked_slot_ids = db.query(Booking.availability_slot_id)
+    slots = (
+        db.query(AvailabilitySlot)
+        .filter(
+            AvailabilitySlot.therapist_id == therapist_id,
+            AvailabilitySlot.starts_at > datetime.now(timezone.utc),
+            ~AvailabilitySlot.id.in_(booked_slot_ids),
+        )
+        .order_by(AvailabilitySlot.starts_at.asc())
+        .all()
+    )
+    return {"items": [{"id": slot.id, "starts_at": slot.starts_at.isoformat(), "ends_at": slot.ends_at.isoformat()} for slot in slots]}
+
+
+@app.post("/therapists/me/availability")
+def create_availability_slot(
+    payload: AvailabilitySlotIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.therapist)),
+) -> dict[str, object]:
+    profile = db.query(TherapistProfile).filter(TherapistProfile.user_id == current_user.id).first()
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Therapist profile not found")
+    if payload.starts_at.tzinfo is None or payload.ends_at.tzinfo is None:
+        raise HTTPException(status_code=422, detail="Availability times must include a timezone")
+    if payload.starts_at <= datetime.now(timezone.utc) or payload.ends_at <= payload.starts_at:
+        raise HTTPException(status_code=422, detail="Availability must be a future, positive-duration slot")
+    slot = AvailabilitySlot(therapist_id=profile.id, starts_at=payload.starts_at, ends_at=payload.ends_at)
+    db.add(slot)
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Availability slot already exists") from exc
+    db.refresh(slot)
+    return {"id": slot.id, "therapist_id": profile.id, "starts_at": slot.starts_at.isoformat(), "ends_at": slot.ends_at.isoformat()}
+
+
+@app.get("/therapists/me/bookings")
+def therapist_bookings(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.therapist)),
+) -> dict[str, object]:
+    profile = db.query(TherapistProfile).filter(TherapistProfile.user_id == current_user.id).first()
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Therapist profile not found")
+    rows = (
+        db.query(Booking, AvailabilitySlot, User)
+        .join(AvailabilitySlot, AvailabilitySlot.id == Booking.availability_slot_id)
+        .join(User, User.id == Booking.client_id)
+        .filter(AvailabilitySlot.therapist_id == profile.id)
+        .order_by(AvailabilitySlot.starts_at.asc())
+        .all()
+    )
+    return {"items": [{"id": booking.id, "status": booking.status,
+                       "starts_at": slot.starts_at.isoformat(), "ends_at": slot.ends_at.isoformat(),
+                       "client": {"id": client.id, "name": client.name}}
+                      for booking, slot, client in rows]}
+
+
+@app.post("/bookings")
+def create_booking(
+    payload: BookingIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.client)),
+) -> dict[str, object]:
+    slot = db.query(AvailabilitySlot).filter(AvailabilitySlot.id == payload.availability_slot_id).first()
+    if slot is None:
+        raise HTTPException(status_code=404, detail="Availability slot not found")
+    public_row = _public_therapist_query(db, slot.therapist_id).first()
+    if public_row is None:
+        raise HTTPException(status_code=404, detail="Therapist not found")
+    if slot.starts_at <= datetime.now(timezone.utc):
+        raise HTTPException(status_code=409, detail="Availability slot is no longer bookable")
+    if db.query(Booking).filter(Booking.availability_slot_id == slot.id).first() is not None:
+        raise HTTPException(status_code=409, detail="Availability slot is already booked")
+
+    booking = Booking(client_id=current_user.id, availability_slot_id=slot.id, status="confirmed")
+    db.add(booking)
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Availability slot is already booked") from exc
+    profile, therapist, practice = public_row
+    email_status = _send_booking_confirmation(current_user, therapist, practice, slot)
+    return {"id": booking.id, "status": booking.status, "therapist_id": profile.id,
+            "starts_at": slot.starts_at.isoformat(), "ends_at": slot.ends_at.isoformat(),
+            "confirmation_email": email_status}
+
+
+@app.put("/therapists/me/intake-form")
+def save_intake_form(
+    payload: IntakeFormIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.therapist)),
+) -> dict[str, object]:
+    field_ids: set[str] = set()
+    for field in payload.fields:
+        field_id = field.get("id")
+        label = field.get("label")
+        if not isinstance(field_id, str) or not field_id or not isinstance(label, str) or not label.strip():
+            raise HTTPException(status_code=422, detail="Each intake field needs a non-empty id and label")
+        if field_id in field_ids:
+            raise HTTPException(status_code=422, detail="Intake field ids must be unique")
+        field_ids.add(field_id)
+
+    profile = db.query(TherapistProfile).filter(TherapistProfile.user_id == current_user.id).first()
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Therapist profile not found")
+    form = db.query(IntakeForm).filter(IntakeForm.therapist_id == profile.id).first()
+    if form is None:
+        form = IntakeForm(therapist_id=profile.id, fields_json=payload.fields)
+        db.add(form)
+    else:
+        form.fields_json = payload.fields
+        form.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(form)
+    return {"id": form.id, "therapist_id": profile.id, "fields": form.fields_json}
+
+
+@app.get("/bookings/{booking_id}/intake-form")
+def get_booking_intake_form(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, object]:
+    booking, _, profile = _booking_for_participant(db, booking_id, current_user)
+    form = db.query(IntakeForm).filter(IntakeForm.therapist_id == profile.id).first()
+    if form is None:
+        raise HTTPException(status_code=404, detail="Intake form not found")
+    return {"booking_id": booking.id, "fields": form.fields_json}
+
+
+@app.post("/bookings/{booking_id}/intake-response")
+def submit_booking_intake_response(
+    booking_id: int,
+    payload: IntakeResponseIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.client)),
+) -> dict[str, object]:
+    booking, _, profile = _booking_for_participant(db, booking_id, current_user)
+    form = db.query(IntakeForm).filter(IntakeForm.therapist_id == profile.id).first()
+    if form is None:
+        raise HTTPException(status_code=404, detail="Intake form not found")
+    fields = {field["id"]: field for field in form.fields_json}
+    unknown_answers = set(payload.answers) - set(fields)
+    missing_answers = {field_id for field_id, field in fields.items() if field.get("required", False)} - set(payload.answers)
+    if unknown_answers or missing_answers:
+        raise HTTPException(status_code=422, detail="Answers must match the intake form fields")
+    if db.query(IntakeResponse).filter(IntakeResponse.booking_id == booking.id).first() is not None:
+        raise HTTPException(status_code=409, detail="Intake response already submitted")
+    response = IntakeResponse(booking_id=booking.id, client_id=current_user.id, answers_json=payload.answers)
+    db.add(response)
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Intake response already submitted") from exc
+    db.refresh(response)
+    return {"id": response.id, "booking_id": response.booking_id, "answers": response.answers_json,
+            "submitted_at": response.submitted_at.isoformat()}
+
+
+@app.get("/bookings/{booking_id}/intake-response")
+def get_booking_intake_response(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, object]:
+    booking, _, _ = _booking_for_participant(db, booking_id, current_user)
+    response = db.query(IntakeResponse).filter(IntakeResponse.booking_id == booking.id).first()
+    if response is None:
+        raise HTTPException(status_code=404, detail="Intake response not found")
+    return {"id": response.id, "booking_id": response.booking_id, "client_id": response.client_id,
+            "answers": response.answers_json, "submitted_at": response.submitted_at.isoformat()}
+
+
+@app.get("/client/dashboard")
+def client_dashboard(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.client)),
+) -> dict[str, object]:
+    rows = (
+        db.query(Booking, AvailabilitySlot, TherapistProfile, User, Practice)
+        .join(AvailabilitySlot, AvailabilitySlot.id == Booking.availability_slot_id)
+        .join(TherapistProfile, TherapistProfile.id == AvailabilitySlot.therapist_id)
+        .join(User, User.id == TherapistProfile.user_id)
+        .join(Practice, Practice.id == TherapistProfile.practice_id)
+        .filter(Booking.client_id == current_user.id)
+        .order_by(AvailabilitySlot.starts_at.asc())
+        .all()
+    )
+    now = datetime.now(timezone.utc)
+    upcoming = next((row for row in rows if row[0].status == "confirmed" and row[1].starts_at >= now), None)
+    selected = upcoming or (rows[-1] if rows else None)
+    if selected is None:
+        return {"practice": None, "therapist": None, "upcoming_session": None, "approved_exercises": []}
+    booking, slot, profile, therapist_user, practice = selected
+    return {
+        "practice": {"id": practice.id, "name": practice.name, "slug": practice.slug},
+        "therapist": _therapist_payload(profile, therapist_user, practice),
+        "upcoming_session": ({"id": booking.id, "starts_at": slot.starts_at.isoformat(),
+                              "ends_at": slot.ends_at.isoformat(), "status": booking.status} if upcoming else None),
+        "approved_exercises": [],
+    }
+
+
+@app.post("/admin/therapists/{therapist_id}/verify")
+def verify_therapist(
+    therapist_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.admin)),
+) -> dict[str, object]:
+    profile = db.query(TherapistProfile).filter(TherapistProfile.id == therapist_id).first()
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Therapist profile not found")
+    profile.verified = True
+    db.add(AuditLog(action="therapist.verify", actor_id=current_user.id, entity_type="therapist_profile",
+                    entity_id=profile.id, details={"verified": True}))
+    db.commit()
+    return {"id": profile.id, "verified": profile.verified}
 
 
 @app.post("/admin/practices/{practice_id}/verify")
