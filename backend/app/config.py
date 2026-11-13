@@ -7,7 +7,7 @@ class Settings:
     app_env: str = os.getenv("APP_ENV", "development")
     database_url: str = os.getenv(
         "DATABASE_URL",
-        "postgresql+psycopg://postgres:postgres@localhost:5432/counselling",
+        "postgresql+psycopg://postgres:postgres@postgres:5432/counselling",
     )
     jwt_secret: str = os.getenv("JWT_SECRET", "dev-secret")
     jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")

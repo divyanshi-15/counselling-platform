@@ -24,5 +24,33 @@ class UserOut(BaseModel):
     name: str | None = None
 
 
+class PracticeDraft(BaseModel):
+    name: str
+    location: str
+    languages: list[str] = Field(default_factory=list)
+    specialties: list[str] = Field(default_factory=list)
+    approaches: list[str] = Field(default_factory=list)
+    fee_range: str = "2000-3000"
+    tone: str = "warm and calm"
+    session_type: str = "online"
+    tagline: str | None = None
+
+
+class PracticeContact(BaseModel):
+    name: str
+    email: EmailStr
+    practice: str
+    message: str
+
+
+class PracticeOut(BaseModel):
+    id: int
+    name: str
+    slug: str
+    status: str
+    verified: bool
+    page_json: dict[str, object]
+
+
 class MessageResponse(BaseModel):
     message: str
