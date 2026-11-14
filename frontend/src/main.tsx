@@ -1,3 +1,4 @@
+import Availability from "./pages/therapist/Availability";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
@@ -40,6 +41,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="/therapist" element={<Today />} />
             <Route path="/therapist/inbox" element={<Inbox />} />
             <Route path="/therapist/activity" element={<Activity />} />
+            <Route path="/therapist/availability" element={<Availability />} />
             <Route path="/therapist/bookings" element={<Bookings />} />
             <Route path="/therapist/bookings/:bookingId" element={<BookingDetail />} />
             <Route path="/therapist/clients/:clientId" element={<TherapistClient />} />

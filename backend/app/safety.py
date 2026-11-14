@@ -287,11 +287,16 @@ DIAGNOSIS_PATTERNS = [
     r"\bmeets? (the )?(dsm|icd|criteria)\b",
     r"\b(has|have|is suffering from|suffers from|presents with|consistent with|indicative of)\s+(a |an )?" + _DISORDERS,
     r"\b(is|are)\s+(clinically\s+)?(depressed|bipolar|psychotic|schizophrenic)\b",
+    r"निदान",  # Hindi: diagnosis
+    r"आपको\s+(अवसाद|डिप्रेशन|चिंता विकार|बाइपोलर|द्विध्रुवी)",  # Hindi: "you have depression / anxiety disorder / ..."
+    r"\bnidaan\b|aapko\s+(depression|avsaad|chinta vikar)\b",  # romanised Hindi
 ]
 MEDICATION_PATTERNS = [
     r"\b(supplements?|melatonin|ashwagandha|magnesium|vitamin\s*[a-z0-9]+|omega-?3|st\.? john'?s wort|cbd|"
     r"ssris?|snris?|sertraline|fluoxetine|escitalopram|benzodiazepines?|antidepressants?|anxiolytics?|"
     r"medications?|medicines?|tablets?|pills?|dosage|doses?|\d+\s?mg)\b",
+    r"दवा|दवाई|दवाइयाँ|गोली|गोलियाँ|सप्लीमेंट|मेलाटोनिन|खुराक|\d+\s?मिलीग्राम",  # Hindi: medicine, pill, supplement, melatonin, dose
+    r"\b(dawa|dawai|dawaai|goli|supplement|khurak)\b",  # romanised Hindi
 ]
 
 

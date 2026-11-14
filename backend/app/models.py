@@ -231,6 +231,10 @@ class CasePlan(Base):
     goals_json: Mapped[list[dict]] = mapped_column(JSON, nullable=False, default=list)
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utcnow)
+    # approved AI draft, never merged into formulation_text
+    update_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    update_notes_approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    update_notes_approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class Assessment(Base):

@@ -24,3 +24,6 @@ htmlcov/
 .DS_Store
 *.egg-info/
 *.db
+
+.ai_cache/
+.ai_token_usage.json

@@ -145,7 +145,8 @@ def test_nothing_applied_without_approval(seeded, model):
     assert versions() == 2
     with SessionLocal() as db:
         new = db.scalars(select(CasePlan).where(CasePlan.client_id == _alpha_id()).order_by(CasePlan.version.desc())).first()
-        assert new.version == 2 and new.approved_at is not None and DRAFT["update_text"] in new.formulation_text
+        assert new.version == 2 and new.approved_at is not None and new.update_notes == DRAFT["update_text"]
+        assert DRAFT["update_text"] not in new.formulation_text and new.update_notes_approved_by == new.therapist_user_id
         assert new.therapist_user_id == _user("therapist@example.com").id
 
 

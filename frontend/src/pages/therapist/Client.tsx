@@ -79,6 +79,12 @@ function CasePlan({ clientId }: { clientId: string }) {
       {latest && <p className="flex items-center gap-2 text-sm">Version {latest.version} <Badge className={latest.approved_at ? "border-emerald-400 text-emerald-800" : "text-muted-foreground"}>{latest.approved_at ? "approved" : "draft"}</Badge></p>}
       <div className="space-y-1"><Label htmlFor="approach">Approach</Label><Input id="approach" value={approach} maxLength={32} onChange={(e) => setApproach(e.target.value)} /></div>
       <div className="space-y-1"><Label htmlFor="form">Formulation</Label><Textarea id="form" rows={8} value={text} onChange={(e) => setText(e.target.value)} /></div>
+      {latest?.update_notes && (
+        <div className="space-y-1 rounded-md border bg-muted/40 p-3 text-sm" aria-label="Update notes">
+          <p className="font-medium">{latest.update_notes_label}</p>
+          <p className="whitespace-pre-wrap">{latest.update_notes}</p>
+        </div>
+      )}
       <div className="space-y-1"><Label htmlFor="goals">Goals (one per line)</Label><Textarea id="goals" rows={4} value={goals} onChange={(e) => setGoals(e.target.value)} /></div>
       {error != null && <ErrorMsg error={error} />}
       <div className="flex gap-2">

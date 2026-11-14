@@ -21,7 +21,7 @@ export function RequireTherapist({ children }: { children: React.ReactNode }) {
 }
 
 const tabs = [["/therapist", "Today", true], ["/therapist/inbox", "Approval inbox", false],
-  ["/therapist/bookings", "Bookings", false], ["/therapist/activity", "Agent activity", false]] as const;
+  ["/therapist/bookings", "Bookings", false], ["/therapist/availability", "Availability", false], ["/therapist/activity", "Agent activity", false]] as const;
 
 export function Shell({ children }: { children: React.ReactNode }) {
   return (

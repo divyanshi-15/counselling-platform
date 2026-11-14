@@ -9,7 +9,7 @@ import json
 import sys
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from backend.app import rag
@@ -169,6 +169,28 @@ def _slot(db: Session, profile: TherapistProfile, start: datetime) -> Availabili
     return slot
 
 
+SLOT_TIMES_UTC = ((4, 30), (6, 30), (10, 30))  # minute 30 never collides with case slots (minutes 0-3)
+SLOT_WINDOW_DAYS = 14
+
+
+def refresh_slots(db: Session, profiles: list[TherapistProfile], now: datetime) -> None:
+    """Idempotent: drop expired unbooked slots, add any missing slot in the next 14 days."""
+    ids = [p.id for p in profiles]
+    booked = select(Booking.availability_slot_id)
+    db.execute(delete(AvailabilitySlot).where(AvailabilitySlot.therapist_id.in_(ids), AvailabilitySlot.starts_at <= now,
+                                              AvailabilitySlot.id.not_in(booked)))
+    end = now + timedelta(days=SLOT_WINDOW_DAYS)
+    have = set(db.execute(select(AvailabilitySlot.therapist_id, AvailabilitySlot.starts_at)
+                          .where(AvailabilitySlot.therapist_id.in_(ids), AvailabilitySlot.starts_at > now)).all())
+    for profile in profiles:
+        for d in range(SLOT_WINDOW_DAYS + 1):
+            day = (now + timedelta(days=d)).replace(hour=0, minute=0, second=0, microsecond=0)
+            for hour, minute in SLOT_TIMES_UTC:
+                start = day.replace(hour=hour, minute=minute)
+                if now < start <= end and (profile.id, start) not in have:
+                    _slot(db, profile, start)
+
+
 def _seed_client(db: Session, now: datetime, idx: int, client: User, therapist: User, profile: TherapistProfile,
                  spec: dict) -> None:
     if db.scalar(select(Booking.id).where(Booking.client_id == client.id).limit(1)) is not None:
@@ -214,8 +236,8 @@ def _seed_client(db: Session, now: datetime, idx: int, client: User, therapist: 
                            completed_at=when + timedelta(days=1)))
 
 
-def seed(db: Session, *, load_kb: bool = True) -> None:
-    now = datetime.now(timezone.utc)
+def seed(db: Session, *, load_kb: bool = True, now: datetime | None = None) -> None:
+    now = now or datetime.now(timezone.utc)
     users = {email: _user(db, email, pw, role, name) for email, pw, role, name in LOGINS}
     p1 = _practice(db, "demo-calm-minds", "Demo Calm Minds Practice", users["owner@example.com"], True)
     p2 = _practice(db, "demo-harbour-counselling", "Demo Harbour Counselling (draft)", users["owner2@example.com"], False)
@@ -232,6 +254,7 @@ def seed(db: Session, *, load_kb: bool = True) -> None:
         rag.load_kb(db)
     for idx, (email, spec) in enumerate(CASES.items()):
         _seed_client(db, now, idx, users[email], users[spec["therapist"]], profiles[spec["therapist"]], spec)
+    refresh_slots(db, list(profiles.values()), now)
     db.commit()
 
 

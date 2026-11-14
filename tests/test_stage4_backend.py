@@ -56,7 +56,7 @@ def test_acknowledge_alert_idempotent_and_audited(seeded, monkeypatch):
     again = client.post(f"/alerts/{aid}/acknowledge", headers=h)
     assert again.status_code == 200 and again.json()["acknowledged_at"] == first.json()["acknowledged_at"]
     with SessionLocal() as db:
-        rows = db.scalars(select(AuditLog).where(AuditLog.action == "alert.acknowledge", AuditLog.entity_id == aid)).all()
+        rows = db.scalars(select(AuditLog).where(AuditLog.action == "alert.acknowledge", AuditLog.entity_id == aid).order_by(AuditLog.id)).all()
         assert [r.details["idempotent_replay"] for r in rows] == [False, True]
         assert all(r.actor_id == db.scalar(select(User.id).where(User.email == "therapist@example.com")) for r in rows)
 
@@ -82,16 +82,23 @@ def test_plan_update_preview_has_diff_matching_apply(seeded, monkeypatch):
     h = _h("therapist@example.com")
     [item] = [i for i in client.get("/therapists/me/pending-actions", headers=h).json()["items"] if i["type"] == "apply_plan_update"]
     d = item["diff"]
-    assert d["stale"] is False and d["changed"] == ["formulation"]
+    assert d["stale"] is False and d["changed"] == ["update_notes"]
     assert d["before"]["approach"] == d["after"]["approach"] == "CBT-I"
     assert d["before"]["goals"] == d["after"]["goals"] == ["Reduce racing thoughts at bedtime", "Reconnect with weekend football friends"]
-    assert "Consider whether the goals still fit." in d["after"]["formulation"]
+    assert d["after"]["update_notes"] == "Consider whether the goals still fit." and d["before"]["update_notes"] is None
+    assert d["after"]["formulation"] == d["before"]["formulation"]
+    assert d["after"]["update_notes_label"].startswith("AI-drafted, approved by Dr Demo Therapist One on ")
     r = client.post(f"/pending-actions/{item['id']}/approve", headers=h | {"Idempotency-Key": item["idempotency_key"]})
     assert r.status_code == 200
     with SessionLocal() as db:
         newest = db.scalars(select(CasePlan).where(CasePlan.client_id == item["payload"]["client_id"]).order_by(CasePlan.version.desc())).first()
-        assert newest.version == 2 and newest.formulation_text.split("approved by therapist): ")[1] == "Consider whether the goals still fit."
-    assert d["after"]["formulation"].split("\n\n")[0] == newest.formulation_text.split("\n\n")[0]
+        assert newest.version == 2 and newest.update_notes == "Consider whether the goals still fit."
+        assert newest.formulation_text == d["before"]["formulation"]
+    plans = client.get(f"/clients/{item['payload']['client_id']}/case-plans", headers=h).json()["items"]
+    assert plans[0]["update_notes_label"].startswith("AI-drafted, approved by Dr Demo Therapist One on ")
+    saved = client.post(f"/clients/{item['payload']['client_id']}/case-plans", headers=h, json={
+        "approach": "CBT-I", "formulation_text": "My own words.", "approve": True, "goals": [{"id": "g1", "text": "x"}]}).json()
+    assert saved["formulation_text"] == "My own words." and saved["update_notes"] == "Consider whether the goals still fit."
     other = client.get("/therapists/me/pending-actions", headers=_h("therapist2@example.com")).json()["items"]
     assert not any(i["type"] == "apply_plan_update" for i in other)
 

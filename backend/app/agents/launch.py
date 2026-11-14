@@ -49,7 +49,6 @@ class PracticeLaunchInput(BaseModel):
 
 
 BANNED_PATTERNS = [
-    "cure",
     "guaranteed",
     "100%",
     "outcome promise",
@@ -209,14 +208,15 @@ def evaluate_claims_with_model(prompt: str, model: str | None = None) -> dict[st
         return result
 
 
+CLAIM_RE = re.compile(r"(guarantee\w*|100\s?%|100 percent|\bcur(e|es|ed|ing)\b|miracle\w*|instant healing|instant relief|"
+                      r"quick fix|risk-free|permanent (relief|recovery|results?)|always works|works every time)")
+
+
 def _regex_claim_check(text: str) -> list[str]:
     normalized = text.lower()
-    failures = []
-    for pattern in BANNED_PATTERNS:
-        if pattern.lower() in normalized:
-            failures.append(f"Contains banned claim pattern: {pattern}")
-    if re_search := __import__("re").search(r"(guarantee|guaranteed|100%|cure|miracle|instant healing)", normalized):
-        failures.append(f"Contains outcome promise: {re_search.group(0)}")
+    failures = [f"Contains banned claim pattern: {p}" for p in BANNED_PATTERNS if p.lower() in normalized]
+    if found := CLAIM_RE.search(normalized):
+        failures.append(f"Contains outcome promise: {found.group(0)}")
     return failures
 
 
@@ -277,7 +277,7 @@ def revise_page(current_page: dict[str, Any], failure_reasons: list[str], *, max
         {"title": "Ongoing support", "description": "Structured, collaborative care that keeps progress realistic and sustainable."},
     ]
     revised["faq"] = [
-        {"question": "What should I expect?", "answer": "Warm, clear, and step-by-step support without promises of a quick fix."},
+        {"question": "What should I expect?", "answer": "Warm, clear, and step-by-step support without exaggerated promises."},
     ]
     revised["what_to_expect"] = ["Clear next steps", "Collaborative care", "Realistic, paced progress"]
     prompt = (

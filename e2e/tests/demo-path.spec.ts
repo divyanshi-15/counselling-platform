@@ -11,32 +11,25 @@ async function demoLogin(browser: Browser, role: "Client" | "Therapist"): Promis
   return page;
 }
 
-// Beta (client2) is the other client of the same therapist; the canned copilot output cites the knowledge entries
-// retrieved for each client, and only Beta's entries have a library exercise to release.
-async function passwordLogin(browser: Browser, email: string, password: string): Promise<Page> {
-  const page = await (await browser.newContext()).newPage();
-  await page.goto("/login");
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Log in", exact: true }).click();
-  await expect(page).toHaveURL(/\/client$/);
-  return page;
-}
-
 test("demo path with FAKE_LLM=1", async ({ browser }) => {
   const therapist = await demoLogin(browser, "Therapist");
-  const client = await demoLogin(browser, "Client"); // Alpha: books, plateau
-  const beta = await passwordLogin(browser, "client2@example.com", "client123"); // Beta: exercise
+  const client = await demoLogin(browser, "Client"); // Alpha: the whole story
 
-  // therapist opens a slot for the client to book (no availability UI in the spec)
-  const start = new Date(Date.now() + 2 * 3600_000 + 17_000);
-  const slot = await therapist.request.post("/api/therapists/me/availability", {
-    data: { starts_at: start.toISOString(), ends_at: new Date(start.getTime() + 50 * 60_000).toISOString() },
-  });
-  expect(slot.ok()).toBeTruthy();
+  // 0. therapist availability screen: seeded slots are there; add one and remove it again
+  await therapist.goto("/therapist/availability");
+  await expect(therapist.getByRole("button", { name: /^Remove slot/ }).first()).toBeVisible();
+  const extra = new Date(Date.now() + 20 * 86400_000);
+  const local = new Date(extra.getTime() - extra.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+  const mine = therapist.getByRole("button", { name: /^Remove slot/ });
+  const before = await mine.count();
+  await therapist.getByLabel(/New slot starts/).fill(local);
+  await therapist.getByRole("button", { name: "Add slot" }).click();
+  await expect(mine).toHaveCount(before + 1);
+  await mine.last().click(); // furthest slot is the one just added
+  await expect(mine).toHaveCount(before);
 
-  // 1. client browses and books
-  const exercisesBefore = await beta.getByRole("link", { name: "Open" }).count();
+  // 1. client browses and books a seeded slot
+  const exercisesBefore = await client.getByRole("link", { name: "Open" }).count();
   await client.goto("/");
   await client.getByRole("link", { name: /Demo Calm Minds Practice/ }).click();
   await expect(client).toHaveURL(/\/p\/demo-calm-minds$/);
@@ -47,7 +40,7 @@ test("demo path with FAKE_LLM=1", async ({ browser }) => {
   await client.getByRole("link", { name: "Fill in intake form" }).click();
   await client.getByLabel("What brings you here?").fill("Evenings are hard; my mind is busy at night.");
   await client.getByRole("button", { name: "Submit" }).click();
-  await expect(client.getByText("Intake saved. Thank you.")).toBeVisible();
+  await expect(client.getByText("Intake saved. Thank you.")).toBeVisible({ timeout: 30_000 }); // first call loads the embedding model
 
   // 2. therapist: Prepare my day -> briefing with INFERRED badge -> approve exercise
   await therapist.goto("/therapist");
@@ -56,15 +49,16 @@ test("demo path with FAKE_LLM=1", async ({ browser }) => {
   await expect(therapist.getByRole("status").filter({ hasText: "Briefed" })).toHaveCount(1);
   await expect(therapist.getByText("INFERRED").first()).toBeVisible();
   await therapist.getByRole("link", { name: "Approval inbox" }).click();
-  const exercise = therapist.locator("div.shadow-sm", { hasText: /Release exercise to client[\s\S]*For Client Beta Demo/ }).filter({ has: therapist.getByRole("button", { name: "Approve" }) }).first();
+  const exercise = therapist.locator("div.shadow-sm", { hasText: /Release exercise to client[\s\S]*For Client Alpha Demo/ }).filter({ has: therapist.getByRole("button", { name: "Approve" }) }).first();
   await expect(exercise).toBeVisible();
   await expect(exercise).toContainText("What reaches the client");
   await exercise.getByRole("button", { name: "Approve" }).click();
   await expect(therapist.getByText(/Decided \(\d+\)/)).toBeVisible();
 
   // 3. client sees it
-  await beta.goto("/client");
-  await expect(beta.getByRole("link", { name: "Open" })).toHaveCount(exercisesBefore + 1);
+  await client.goto("/client");
+  await expect(client.getByRole("link", { name: "Open" })).toHaveCount(exercisesBefore + 1);
+  const clientId = (await (await client.request.get("/api/auth/me")).json()).id;
 
   // 4. overnight check -> plateau alert -> acknowledge
   await therapist.goto("/therapist");
@@ -83,25 +77,30 @@ test("demo path with FAKE_LLM=1", async ({ browser }) => {
   await expect(changes).toContainText("Before (current version)");
   await expect(changes).toContainText("After (new version)");
   await expect(changes).toContainText("Reduce racing thoughts at bedtime");
-  await expect(changes).toContainText("Changed: formulation");
+  await expect(changes).toContainText("Changed: update_notes");
+  await expect(changes).toContainText("AI-drafted, approved by Dr Demo Therapist One on");
   await plan.getByRole("button", { name: "Approve" }).click();
   await expect(therapist.locator("div.shadow-sm", { hasText: /Update case plan/ }).filter({ has: therapist.getByRole("button", { name: "Approve" }) })).toHaveCount(0);
   await therapist.reload();
   await expect(therapist.getByText(/Decided \(\d+\)/)).toBeVisible();
 
+  // the formulation stays the therapist's; the approved AI draft sits in separate update notes
+  await therapist.goto(`/therapist/clients/${clientId}`);
+  await expect(therapist.getByLabel("Update notes")).toContainText("AI-drafted, approved by Dr Demo Therapist One on");
+
   // 6. risky phrase in a check-in: only the fixed crisis message
-  await beta.goto("/client");
-  await beta.getByRole("link", { name: "Open" }).first().click();
-  await expect(beta.getByRole("button", { name: "Save check-in" })).toBeVisible();
-  for (const box of await beta.locator("textarea").all()) await box.fill("I want to end my life");
-  for (const num of await beta.locator("input[type=number]").all()) await num.fill("5");
-  await beta.getByRole("button", { name: "Save check-in" }).click();
-  const alert = beta.getByRole("alert");
+  await client.goto("/client");
+  await client.getByRole("link", { name: "Open" }).first().click();
+  await expect(client.getByRole("button", { name: "Save check-in" })).toBeVisible();
+  for (const box of await client.locator("textarea").all()) await box.fill("I want to end my life");
+  for (const num of await client.locator("input[type=number]").all()) await num.fill("5");
+  await client.getByRole("button", { name: "Save check-in" }).click();
+  const alert = client.getByRole("alert");
   await expect(alert).toHaveText(/^You are not alone/);
   await expect(alert).toContainText(CRISIS);
-  await expect(beta.getByText("Check-in saved.")).toHaveCount(0);
-  await expect(beta.getByRole("button", { name: "Save check-in" })).toHaveCount(0);
-  await expect(beta.getByText("I want to end my life")).toHaveCount(0);
+  await expect(client.getByText("Check-in saved.")).toHaveCount(0);
+  await expect(client.getByRole("button", { name: "Save check-in" })).toHaveCount(0);
+  await expect(client.getByText("I want to end my life")).toHaveCount(0);
 
   // therapist is alerted (risk section, pinned)
   await therapist.goto("/therapist");

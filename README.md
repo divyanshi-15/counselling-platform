@@ -2,12 +2,24 @@
 
 ## Architecture
 
+Publishing requires owner approval; public visibility also requires admin verification.
+
 ```mermaid
 flowchart LR
-    User --> Caddy
+    Browser[React + Vite UI] --> Caddy[Caddy HTTPS]
     Caddy --> API[FastAPI API]
-    API --> Postgres[(PostgreSQL + pgvector)]
-    API --> AI[Anthropic / ML safety layer]
+    API --> Auth[Auth + role dependency layer<br/>client / therapist / owner / admin]
+    API --> Safety[Safety, no LLM<br/>layer 1 keywords + layer 2 embeddings/LR]
+    API --> Agents[Agents: copilot, monitor, launch<br/>max 8 tool calls, Pydantic JSON, post-check]
+    Agents -->|proposes only| Pending[(pending_actions / drafts)]
+    Pending -->|human approve + Idempotency-Key| Apply[Publish / release exercise /<br/>apply plan update]
+    Agents --> LLM[Anthropic API<br/>budget, cache, rate limits]
+    Agents --> RAG[pgvector KB retrieval]
+    API --> DB[(PostgreSQL 16 + pgvector)]
+    Safety -->|hit| Crisis[Fixed Tele-MANAS 14416 message<br/>+ high-priority therapist alert]
+    Apply --> DB
+    RAG --> DB
+    Scheduler[APScheduler overnight check] --> Agents
 ```
 
 ## Run locally
@@ -28,11 +40,15 @@ flowchart LR
 
 ## Evaluation snapshot
 
+All numbers are from the test suite (`make test`) with the LLM mocked; synthetic data only. Risk and RAG-calibration tables below use the real embedder.
+
 | Check | Result |
 | --- | --- |
-| Safety hit rate on 30 phrases | 100% |
-| Access-control tests | passing |
-| Claims screening | passing |
+| 30-phrase safety suite (EN + HI, `tests/test_milestone_5b.py`) | risk 10/10 get the fixed crisis message; benign 6/6 do not; 14 diagnosis / supplement / prompt-injection requests: 14/14 not mistaken for risk (layer 1), 14/14 compliant model replies rejected by the post-check |
+| Claims bait (20 generated pages, 10 with bait owner input, model check set to approve everything) | banned claims delivered to owner: 0/20; bait pages revised: 10/10; clean pages revised: 0/10 |
+| Access-control tests | passing (cross-client, cross-therapist, owner to clinical, cross-client retrieval) |
+
+Notes: the claims check is deterministic (regex) plus an optional model check; the bait test found five phrases the regex missed ("quick fix", "risk-free", "permanent relief", "always works", "100 percent") and fallback copy that itself said "quick fix". Both were fixed. The Hindi post-check (diagnosis and medicine/supplement words, native and romanised) is a short word list, not a classifier; it will miss paraphrases. Layer 2 is not part of the 30-phrase test because the test embedder is lexical; layer 2 numbers are in the risk table below.
 
 ## Risk triage evaluation (SYNTHETIC, demonstration only)
 
@@ -115,7 +131,7 @@ Result: in-domain 0.791-0.880, out-of-domain 0.749-0.844. The sets **overlap** (
 
 ## Demo data and logins
 
-`make seed` (idempotent, loads the KB, `make seed ARGS=--check` also prints retrieval margins with the real embedder). All people are fictional.
+`make seed` (idempotent, loads the KB, creates availability slots for the next 14 days for each therapist and refreshes expired unbooked ones on every rerun, `make seed ARGS=--check` also prints retrieval margins with the real embedder). All people are fictional.
 
 | Role | Login | Password | Notes |
 |---|---|---|---|
@@ -130,7 +146,7 @@ Result: in-domain 0.791-0.880, out-of-domain 0.749-0.844. The sets **overlap** (
 
 ## Monitoring (overnight check)
 
-Nightly APScheduler job (21:00 UTC, `OVERNIGHT_HOUR_UTC`; single worker plus a Postgres advisory lock) or `POST /therapist/overnight-check`. Code, not the model, flags per client: PHQ-9/GAD-7 slope over 14 days better than -1 point/week not reached (needs two readings at least 7 days apart, latest score 5 or more), under 50% of exercises completed in 14 days (2 or more assigned), a plan goal with no keyword overlap in the last 3 session notes. The model (`MODEL_FAST`, cached, 400 tokens, Pydantic-validated, diagnosis/medication post-check) only drafts the plan-update wording; without AI, or for a risk-flagged client, a fixed template is used. Each finding makes an alert (unique per client, date, type) and one `apply_plan_update` pending action; only the assigned therapist's approval creates a new `case_plans` version, and only if the plan has not changed since the draft.
+Nightly APScheduler job (21:00 UTC, `OVERNIGHT_HOUR_UTC`; single worker plus a Postgres advisory lock) or `POST /therapist/overnight-check`. Code, not the model, flags per client: PHQ-9/GAD-7 slope over 14 days better than -1 point/week not reached (needs two readings at least 7 days apart, latest score 5 or more), under 50% of exercises completed in 14 days (2 or more assigned), a plan goal with no keyword overlap in the last 3 session notes. The model (`MODEL_FAST`, cached, 400 tokens, Pydantic-validated, diagnosis/medication post-check) only drafts the plan-update wording; without AI, or for a risk-flagged client, a fixed template is used. Each finding makes an alert (unique per client, date, type) and one `apply_plan_update` pending action; only the assigned therapist's approval creates a new `case_plans` version, and only if the plan has not changed since the draft. The approved draft is stored in `case_plans.update_notes` (shown as "AI-drafted, approved by <therapist> on <date>"); the therapist-written formulation is never edited by AI text.
 
 ## Security notes
 

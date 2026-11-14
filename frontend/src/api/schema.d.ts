@@ -294,6 +294,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/therapists/me/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Availability */
+        get: operations["my_availability_therapists_me_availability_get"];
+        put?: never;
+        /** Create Availability Slot */
+        post: operations["create_availability_slot_therapists_me_availability_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/therapists/{therapist_id}/availability": {
         parameters: {
             query?: never;
@@ -311,7 +329,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/therapists/me/availability": {
+    "/therapists/me/availability/{slot_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -320,9 +338,9 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create Availability Slot */
-        post: operations["create_availability_slot_therapists_me_availability_post"];
-        delete?: never;
+        post?: never;
+        /** Delete Availability Slot */
+        delete: operations["delete_availability_slot_therapists_me_availability__slot_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1119,6 +1137,10 @@ export interface components {
             approved_at?: string | null;
             /** Created At */
             created_at: string;
+            /** Update Notes */
+            update_notes?: string | null;
+            /** Update Notes Label */
+            update_notes_label?: string | null;
         };
         /** CasePlansOut */
         CasePlansOut: {
@@ -1305,6 +1327,25 @@ export interface components {
             /** Message */
             message: string;
         };
+        /** MySlotOut */
+        MySlotOut: {
+            /** Id */
+            id: number;
+            /** Starts At */
+            starts_at: string;
+            /** Ends At */
+            ends_at: string;
+            /**
+             * Booked
+             * @default false
+             */
+            booked: boolean;
+        };
+        /** MySlotsOut */
+        MySlotsOut: {
+            /** Items */
+            items: components["schemas"]["MySlotOut"][];
+        };
         /** OvernightFlag */
         OvernightFlag: {
             /** Client Id */
@@ -1404,6 +1445,10 @@ export interface components {
              * @default
              */
             formulation: string;
+            /** Update Notes */
+            update_notes?: string | null;
+            /** Update Notes Label */
+            update_notes_label?: string | null;
         };
         /** PracticeContact */
         PracticeContact: {
@@ -2272,6 +2317,59 @@ export interface operations {
             };
         };
     };
+    my_availability_therapists_me_availability_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MySlotsOut"];
+                };
+            };
+        };
+    };
+    create_availability_slot_therapists_me_availability_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AvailabilitySlotIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MySlotOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     public_therapist_availability_therapists__therapist_id__availability_get: {
         parameters: {
             query?: never;
@@ -2303,29 +2401,23 @@ export interface operations {
             };
         };
     };
-    create_availability_slot_therapists_me_availability_post: {
+    delete_availability_slot_therapists_me_availability__slot_id__delete: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                slot_id: number;
+            };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AvailabilitySlotIn"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
-            200: {
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

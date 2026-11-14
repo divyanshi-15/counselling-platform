@@ -22,6 +22,12 @@ function Side({ title, snap, other }: { title: string; snap: Schemas["PlanSnapsh
         <ul className="list-disc pl-5">{snap.goals.map((g) => <li key={g} className={goalChanged(g) ? "bg-amber-100" : ""}>{g}</li>)}</ul>
       </div>
       <p className="whitespace-pre-wrap text-xs">{snap.formulation}</p>
+      {snap.update_notes && (
+        <div className={`rounded border p-2 text-xs ${snap.update_notes !== other.update_notes ? "bg-amber-100" : ""}`}>
+          <p className="font-medium">{snap.update_notes_label}</p>
+          <p className="whitespace-pre-wrap">{snap.update_notes}</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -33,7 +39,7 @@ function WhatChanges({ diff }: { diff: Schemas["PlanDiff"] }) {
       {diff.stale && <p role="alert" className="text-sm font-medium text-destructive">The plan changed since this draft; approving will be refused. Reject it and re-run the check.</p>}
       <p className="text-sm">
         {diff.changed.length ? `Changed: ${diff.changed.join(", ")}.` : "No change."}
-        {!diff.changed.includes("goals") && !diff.changed.includes("approach") && " Goals and approach stay as they are; only the formulation text is extended."}
+        {!diff.changed.includes("goals") && !diff.changed.includes("approach") && " Goals and approach stay as they are; your formulation is not touched; the AI draft is added as separate update notes."}
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <Side title="Before (current version)" snap={diff.before} other={diff.after} />

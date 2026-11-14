@@ -9,7 +9,7 @@ from email.message import EmailMessage
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Response
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
@@ -63,6 +63,8 @@ from backend.app.schemas import (
     MessageResponse,
     AssessmentIn,
     AvailabilityOut,
+    MySlotOut,
+    MySlotsOut,
     AvailabilitySlotIn,
     BookingOut,
     CasePlanIn,
@@ -130,11 +132,19 @@ def _create_publish_action(db: Session, practice: Practice, page: dict[str, obje
     return action
 
 
+def _notes_label(db: Session, user_id: int | None, at: datetime | None) -> str | None:
+    if at is None:
+        return None
+    who = db.get(User, user_id) if user_id else None
+    return f"AI-drafted, approved by {who.name if who else 'therapist'} on {at.date().isoformat()}"
+
+
 def _next_plan(latest: CasePlan, action: PendingAction, now: datetime) -> dict[str, object]:
-    """Fields of the case_plan version an apply_plan_update approval creates. Used by both preview and apply."""
-    return {"approach": latest.approach, "goals_json": latest.goals_json,
-            "formulation_text": f"{latest.formulation_text}\n\nPlan update ({now.date().isoformat()}, "
-                                f"drafted by monitoring, approved by therapist): {action.payload.get('update_text', '')}"}
+    """Fields of the case_plan version an apply_plan_update approval creates. The formulation is never touched:
+    the approved AI draft goes to update_notes. Used by both preview and apply."""
+    return {"approach": latest.approach, "goals_json": latest.goals_json, "formulation_text": latest.formulation_text,
+            "update_notes": str(action.payload.get("update_text", "")),
+            "update_notes_approved_by": action.assignee_user_id, "update_notes_approved_at": now}
 
 
 def _plan_diff(db: Session, action: PendingAction) -> dict[str, object] | None:
@@ -146,10 +156,15 @@ def _plan_diff(db: Session, action: PendingAction) -> dict[str, object] | None:
     if latest is None:
         return None
     nxt = _next_plan(latest, action, datetime.now(timezone.utc))
-    snap = lambda approach, goals, text: {"approach": approach, "goals": [str(g.get("text", "")) for g in goals], "formulation": text}  # noqa: E731
-    before = snap(latest.approach, latest.goals_json, latest.formulation_text)
-    after = snap(nxt["approach"], nxt["goals_json"], nxt["formulation_text"])
-    return {"before": before, "after": after, "changed": [k for k in ("approach", "goals", "formulation") if before[k] != after[k]],
+    snap = lambda approach, goals, text, notes, label: {  # noqa: E731
+        "approach": approach, "goals": [str(g.get("text", "")) for g in goals], "formulation": text,
+        "update_notes": notes, "update_notes_label": label}
+    before = snap(latest.approach, latest.goals_json, latest.formulation_text, latest.update_notes,
+                  _notes_label(db, latest.update_notes_approved_by, latest.update_notes_approved_at))
+    after = snap(nxt["approach"], nxt["goals_json"], nxt["formulation_text"], nxt["update_notes"],
+                 _notes_label(db, nxt["update_notes_approved_by"], nxt["update_notes_approved_at"]))
+    return {"before": before, "after": after,
+            "changed": [k for k in ("approach", "goals", "formulation", "update_notes") if before[k] != after[k]],
             "stale": latest.id != action.payload.get("base_plan_id")}
 
 
@@ -615,6 +630,22 @@ def public_therapists(
     return {"items": [_therapist_payload(profile, user, practice) for profile, user, practice in rows]}
 
 
+@app.get("/therapists/me/availability", response_model=MySlotsOut)
+def my_availability(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.therapist)),
+) -> dict[str, object]:
+    profile = db.query(TherapistProfile).filter(TherapistProfile.user_id == current_user.id).first()
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Therapist profile not found")
+    booked = {b for (b,) in db.query(Booking.availability_slot_id).all()}
+    rows = (db.query(AvailabilitySlot).filter(AvailabilitySlot.therapist_id == profile.id,
+                                              AvailabilitySlot.starts_at > datetime.now(timezone.utc))
+            .order_by(AvailabilitySlot.starts_at.asc()).all())
+    return {"items": [{"id": r.id, "starts_at": r.starts_at.isoformat(), "ends_at": r.ends_at.isoformat(),
+                       "booked": r.id in booked} for r in rows]}
+
+
 @app.get("/therapists/{therapist_id}/availability", response_model=AvailabilityOut)
 def public_therapist_availability(
     therapist_id: int,
@@ -639,7 +670,26 @@ def public_therapist_availability(
     return {"items": [{"id": slot.id, "starts_at": slot.starts_at.isoformat(), "ends_at": slot.ends_at.isoformat()} for slot in slots]}
 
 
-@app.post("/therapists/me/availability")
+@app.delete("/therapists/me/availability/{slot_id}", status_code=204, response_class=Response)
+def delete_availability_slot(
+    slot_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.therapist)),
+) -> Response:
+    slot = db.query(AvailabilitySlot).filter(AvailabilitySlot.id == slot_id).with_for_update().first()
+    if slot is None:
+        raise HTTPException(status_code=404, detail="Availability slot not found")
+    profile = db.query(TherapistProfile).filter(TherapistProfile.user_id == current_user.id).first()
+    if profile is None or slot.therapist_id != profile.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    if db.query(Booking).filter(Booking.availability_slot_id == slot.id).first() is not None:
+        raise HTTPException(status_code=409, detail="This slot is booked and cannot be removed")
+    db.delete(slot)
+    db.commit()
+    return Response(status_code=204)
+
+
+@app.post("/therapists/me/availability", response_model=MySlotOut)
 def create_availability_slot(
     payload: AvailabilitySlotIn,
     db: Session = Depends(get_db),
@@ -660,7 +710,7 @@ def create_availability_slot(
         db.rollback()
         raise HTTPException(status_code=409, detail="Availability slot already exists") from exc
     db.refresh(slot)
-    return {"id": slot.id, "therapist_id": profile.id, "starts_at": slot.starts_at.isoformat(), "ends_at": slot.ends_at.isoformat()}
+    return {"id": slot.id, "therapist_id": profile.id, "starts_at": slot.starts_at.isoformat(), "ends_at": slot.ends_at.isoformat(), "booked": False}
 
 
 @app.get("/therapists/me/bookings", response_model=TherapistBookingsOut)
@@ -1198,11 +1248,12 @@ def list_assessments(
                        "taken_at": r.taken_at.isoformat()} for r in rows]}
 
 
-def _plan_payload(row: CasePlan) -> dict[str, object]:
+def _plan_payload(db: Session, row: CasePlan) -> dict[str, object]:
     return {"id": row.id, "client_id": row.client_id, "version": row.version, "approach": row.approach,
             "formulation_text": row.formulation_text, "goals": row.goals_json,
             "approved_at": row.approved_at.isoformat() if row.approved_at else None,
-            "created_at": row.created_at.isoformat()}
+            "created_at": row.created_at.isoformat(), "update_notes": row.update_notes,
+            "update_notes_label": _notes_label(db, row.update_notes_approved_by, row.update_notes_approved_at)}
 
 
 @app.post("/clients/{client_id}/case-plans", response_model=CasePlanOut)
@@ -1218,14 +1269,16 @@ def create_case_plan_version(
     row = CasePlan(client_id=client_id, therapist_user_id=current_user.id, version=(latest.version + 1) if latest else 1,
                    approach=payload.approach, formulation_text=payload.formulation_text,
                    goals_json=[g.model_dump() for g in payload.goals],
-                   approved_at=datetime.now(timezone.utc) if payload.approve else None)
+                   approved_at=datetime.now(timezone.utc) if payload.approve else None,
+                   **({"update_notes": latest.update_notes, "update_notes_approved_by": latest.update_notes_approved_by,
+                       "update_notes_approved_at": latest.update_notes_approved_at} if latest else {}))
     db.add(row)
     try:
         db.commit()
     except IntegrityError as exc:
         db.rollback()
         raise HTTPException(status_code=409, detail="Case plan version conflict; retry") from exc
-    return _plan_payload(row)
+    return _plan_payload(db, row)
 
 
 @app.post("/clients/{client_id}/case-plans/{plan_id}/approve", response_model=CasePlanOut)
@@ -1242,7 +1295,7 @@ def approve_case_plan(
     if row.approved_at is None:
         row.approved_at = datetime.now(timezone.utc)
         db.commit()
-    return _plan_payload(row)
+    return _plan_payload(db, row)
 
 
 @app.get("/clients/{client_id}/case-plans", response_model=CasePlansOut)
@@ -1253,7 +1306,7 @@ def list_case_plans(
 ) -> dict[str, object]:
     rows = (db.query(CasePlan).filter(CasePlan.client_id == client_id, CasePlan.therapist_user_id == current_user.id)
             .order_by(CasePlan.version.desc()).all())
-    return {"items": [_plan_payload(r) for r in rows]}
+    return {"items": [_plan_payload(db, r) for r in rows]}
 
 
 @app.post("/therapists/me/prepare-my-day", response_model=PrepareDayOut)

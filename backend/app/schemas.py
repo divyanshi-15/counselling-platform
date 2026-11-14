@@ -200,6 +200,17 @@ class SlotOut(_Out):
     ends_at: str
 
 
+class MySlotOut(_Out):
+    id: int
+    starts_at: str
+    ends_at: str
+    booked: bool = False
+
+
+class MySlotsOut(_Out):
+    items: list[MySlotOut]
+
+
 class AvailabilityOut(_Out):
     items: list[SlotOut]
 
@@ -320,6 +331,8 @@ class CasePlanOut(_Out):
     goals: list[CaseGoal]
     approved_at: str | None = None
     created_at: str
+    update_notes: str | None = None
+    update_notes_label: str | None = None  # "AI-drafted, approved by <therapist> on <date>"
 
 
 class CasePlansOut(_Out):
@@ -414,13 +427,15 @@ class PlanSnapshot(_Out):
     approach: str | None = None
     goals: list[str] = []
     formulation: str = ""
+    update_notes: str | None = None
+    update_notes_label: str | None = None
 
 
 class PlanDiff(_Out):
     """Case plan before and after approving an apply_plan_update action (server-computed, same code as the apply)."""
     before: PlanSnapshot
     after: PlanSnapshot
-    changed: list[str]  # subset of approach, goals, formulation
+    changed: list[str]  # subset of approach, goals, formulation, update_notes
     stale: bool = False  # the plan changed since the draft; approving will be refused
 
 

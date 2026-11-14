@@ -336,18 +336,24 @@ def _run(db: Session, loop: _Loop, therapist_user_id: int, client_id: int, start
                     retrieved=[{"id": h.id, "title": h.title, "similarity": round(h.similarity, 3)} for h in retrieved])
 
 
+# KB entries about sleep, racing thoughts and worry all map to the one library exercise for them.
+KB_TO_EXERCISE = {"worry-postponement": "worry_postponement", "stimulus-control": "worry_postponement",
+                  "wind-down-routine": "worry_postponement"}
+
+
 def _release_candidates(db: Session, suggestions: list[Suggestion]) -> list[tuple[str, int]]:
     """(exercise slug, suggestion index) for suggestions whose cited KB entry has a library exercise. First wins."""
     ids = {i for s in suggestions for i in s.chunk_ids}
     if not ids:
         return []
-    rows = db.execute(select(KbChunk.id, Exercise.slug).join(KbDocument, KbDocument.id == KbChunk.document_id)
-                      .join(Exercise, Exercise.kb_slug == KbDocument.slug).where(KbChunk.id.in_(ids))).all()
-    by_chunk = {chunk_id: slug for chunk_id, slug in rows}
+    rows = db.execute(select(KbChunk.id, KbDocument.slug, Exercise.slug)
+                      .join(KbDocument, KbDocument.id == KbChunk.document_id)
+                      .outerjoin(Exercise, Exercise.kb_slug == KbDocument.slug).where(KbChunk.id.in_(ids))).all()
+    by_chunk = {chunk_id: KB_TO_EXERCISE.get(kb_slug) or ex_slug for chunk_id, kb_slug, ex_slug in rows}
     out: dict[str, int] = {}
     for idx, sug in enumerate(suggestions):
         for chunk_id in sug.chunk_ids:
-            if chunk_id in by_chunk:
+            if by_chunk.get(chunk_id):
                 out.setdefault(by_chunk[chunk_id], idx)
     return list(out.items())
 
