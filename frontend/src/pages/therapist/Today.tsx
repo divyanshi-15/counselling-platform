@@ -19,6 +19,7 @@ function Suggestion({ s, retrieved }: { s: Schemas["BriefingSuggestion"]; retrie
         {s.label === "SUPPORTED" ? <SupportedBadge /> : <InferredBadge />}
       </div>
       <p>{s.text}</p>
+      {s.follow_up_note && <p className="rounded-md border border-amber-400 bg-amber-50 p-2 text-sm font-medium text-amber-900">{s.follow_up_note}</p>}
       <div className="space-y-1 text-xs text-muted-foreground">
         {titles.map((t, i) => <p key={i}>📚 Source: <span className="font-medium text-foreground">{t}</span></p>)}
         {s.note_quotes.map((q, i) => <p key={i}>📝 From your notes: <q className="italic text-foreground">{q}</q></p>)}

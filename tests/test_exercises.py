@@ -357,3 +357,32 @@ def test_inbox_preview_shows_exactly_what_client_gets(world, real_chunk, monkeyp
     assert "Nothing else is sent" in view["note"]
     other = client.get("/therapists/me/pending-actions", headers=_h(w["tb"])).json()["items"]
     assert all(i["id"] != action["id"] for i in other)
+
+
+def _rebrief(client, w, monkeypatch, chunk_id: int) -> tuple[list[dict], dict]:
+    monkeypatch.setattr(copilot, "call_model", FakeModel([_briefing(chunk_id)]))
+    client.post("/therapists/me/prepare-my-day", headers=_h(w["ta"]))
+    items = client.get("/therapists/me/pending-actions", headers=_h(w["ta"])).json()["items"]
+    briefing = client.get("/therapists/me/briefings", headers=_h(w["ta"])).json()["items"][0]["briefing"]
+    return [i for i in items if i["type"] == "release_exercise" and i["status"] == "pending"], briefing
+
+
+def test_open_assignment_gives_follow_up_note_not_a_release(world, real_chunk, monkeypatch) -> None:
+    client, w = world
+    _approved_assignment(client, w, monkeypatch, real_chunk)  # thought_record now assigned, not completed
+    pending, briefing = _rebrief(client, w, monkeypatch, real_chunk)
+    assert pending == []
+    sug = briefing["suggestions"][0]
+    assert sug["follow_up_note"] == "Already assigned (0 of 1 completed) - consider following up"
+    assert sug["already_assigned"]["exercise"] == "thought_record"
+
+
+def test_completed_assignment_allows_a_new_release(world, real_chunk, monkeypatch) -> None:
+    client, w = world
+    _approved_assignment(client, w, monkeypatch, real_chunk)
+    with SessionLocal() as db:
+        db.query(Assignment).update({"status": "completed"})
+        db.commit()
+    pending, briefing = _rebrief(client, w, monkeypatch, real_chunk)
+    assert [p["payload"]["exercise"] for p in pending] == ["thought_record"]
+    assert briefing["suggestions"][0]["follow_up_note"] is None

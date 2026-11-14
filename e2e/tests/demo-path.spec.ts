@@ -13,7 +13,13 @@ async function demoLogin(browser: Browser, role: "Client" | "Therapist"): Promis
 
 test("demo path with FAKE_LLM=1", async ({ browser }) => {
   const therapist = await demoLogin(browser, "Therapist");
-  const client = await demoLogin(browser, "Client"); // Alpha: the whole story
+  const client = await demoLogin(browser, "Client"); // Alpha: plateau alert -> plan update -> follow-up flag
+  const beta = await (await browser.newContext()).newPage(); // Beta: the exercise-release approval
+  await beta.goto("/login");
+  await beta.getByLabel("Email").fill("client2@example.com");
+  await beta.getByLabel("Password").fill("client123");
+  await beta.getByRole("button", { name: /^(Sign in|Log in|Login)$/ }).click();
+  await expect(beta).toHaveURL(/\/client$/);
 
   // 0. therapist availability screen: seeded slots are there; add one and remove it again
   await therapist.goto("/therapist/availability");
@@ -29,7 +35,7 @@ test("demo path with FAKE_LLM=1", async ({ browser }) => {
   await expect(mine).toHaveCount(before);
 
   // 1. client browses and books a seeded slot
-  const exercisesBefore = await client.getByRole("link", { name: "Open" }).count();
+  const exercisesBefore = await beta.getByRole("link", { name: "Open" }).count();
   await client.goto("/");
   await client.getByRole("link", { name: /Demo Calm Minds Practice/ }).click();
   await expect(client).toHaveURL(/\/p\/demo-calm-minds$/);
@@ -42,22 +48,24 @@ test("demo path with FAKE_LLM=1", async ({ browser }) => {
   await client.getByRole("button", { name: "Submit" }).click();
   await expect(client.getByText("Intake saved. Thank you.")).toBeVisible({ timeout: 30_000 }); // first call loads the embedding model
 
-  // 2. therapist: Prepare my day -> briefing with INFERRED badge -> approve exercise
+  // 2. therapist: Prepare my day -> briefing with INFERRED badge -> approve Beta's exercise.
+  // Alpha already holds open assignments, so Alpha gets no release action.
   await therapist.goto("/therapist");
   await therapist.getByRole("button", { name: "Prepare my day" }).click();
   await expect(therapist.getByText(/^Briefed \d+ client/)).toBeVisible();
   await expect(therapist.getByRole("status").filter({ hasText: "Briefed" })).toHaveCount(1);
   await expect(therapist.getByText("INFERRED").first()).toBeVisible();
   await therapist.getByRole("link", { name: "Approval inbox" }).click();
-  const exercise = therapist.locator("div.shadow-sm", { hasText: /Release exercise to client[\s\S]*For Client Alpha Demo/ }).filter({ has: therapist.getByRole("button", { name: "Approve" }) }).first();
+  await expect(therapist.locator("div.shadow-sm", { hasText: /Release exercise to client[\s\S]*For Client Alpha Demo/ })).toHaveCount(0);
+  const exercise = therapist.locator("div.shadow-sm", { hasText: /Release exercise to client[\s\S]*For Client Beta Demo/ }).filter({ has: therapist.getByRole("button", { name: "Approve" }) }).first();
   await expect(exercise).toBeVisible();
   await expect(exercise).toContainText("What reaches the client");
   await exercise.getByRole("button", { name: "Approve" }).click();
   await expect(therapist.getByText(/Decided \(\d+\)/)).toBeVisible();
 
-  // 3. client sees it
-  await client.goto("/client");
-  await expect(client.getByRole("link", { name: "Open" })).toHaveCount(exercisesBefore + 1);
+  // 3. Beta sees it
+  await beta.goto("/client");
+  await expect(beta.getByRole("link", { name: "Open" })).toHaveCount(exercisesBefore + 1);
   const clientId = (await (await client.request.get("/api/auth/me")).json()).id;
 
   // 4. overnight check -> plateau alert -> acknowledge
@@ -87,6 +95,12 @@ test("demo path with FAKE_LLM=1", async ({ browser }) => {
   // the formulation stays the therapist's; the approved AI draft sits in separate update notes
   await therapist.goto(`/therapist/clients/${clientId}`);
   await expect(therapist.getByLabel("Update notes")).toContainText("AI-drafted, approved by Dr Demo Therapist One on");
+
+  // briefing now flags the open homework instead of offering a second release
+  await therapist.goto("/therapist");
+  await therapist.getByRole("button", { name: "Prepare my day" }).click();
+  await expect(therapist.getByText(/^Briefed \d+ client/)).toBeVisible();
+  await expect(therapist.getByText(/Already assigned \(\d+ of \d+ completed\) - consider following up/).first()).toBeVisible();
 
   // 6. risky phrase in a check-in: only the fixed crisis message
   await client.goto("/client");

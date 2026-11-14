@@ -1092,6 +1092,12 @@ export interface components {
             label?: ("SUPPORTED" | "INFERRED") | null;
             /** Support Note */
             support_note?: string | null;
+            /** Already Assigned */
+            already_assigned?: {
+                [key: string]: unknown;
+            } | null;
+            /** Follow Up Note */
+            follow_up_note?: string | null;
         };
         /** BriefingsOut */
         BriefingsOut: {

@@ -23,7 +23,7 @@ from backend.app import fake_llm, rag
 from backend.app.agents.launch import _budget_exceeded, _cached_model_output, _record_token_usage, _write_cache
 from backend.app.citations import CitationError, Suggestion, validate_suggestions
 from backend.app.clinical import phq9_item9_positive, scan_client_text
-from backend.app.models import (AgentRun, Assessment, AvailabilitySlot, Booking, CasePlan, CopilotBriefing, Exercise,
+from backend.app.models import (AgentRun, Assessment, Assignment, AvailabilitySlot, Booking, CasePlan, CopilotBriefing, Exercise,
                                 IntakeResponse, KbChunk, KbDocument, PendingAction, TherapistProfile, TherapySession,
                                 User)
 from backend.app.safety import clinical_output_violations, render_prompt_data
@@ -321,6 +321,7 @@ def _run(db: Session, loop: _Loop, therapist_user_id: int, client_id: int, start
                 if violations:
                     raise CopilotError("post-check rejected output: " + "; ".join(violations))
             validated = validate_suggestions(suggestions, retrieved_ids, notes_text)
+            _flag_open_assignments(db, client_id, validated)
             break
         except ToolLimitExceeded:
             raise
@@ -358,6 +359,17 @@ def _release_candidates(db: Session, suggestions: list[Suggestion]) -> list[tupl
     return list(out.items())
 
 
+def _flag_open_assignments(db: Session, client_id: int, suggestions: list[Suggestion]) -> None:
+    """A suggested exercise the client already holds, uncompleted, is a follow-up prompt, never a new release."""
+    for slug, idx in _release_candidates(db, suggestions):
+        statuses = db.scalars(select(Assignment.status).join(Exercise, Exercise.id == Assignment.exercise_id)
+                              .where(Assignment.client_id == client_id, Exercise.slug == slug)).all()
+        if "assigned" in statuses and suggestions[idx].already_assigned is None:
+            done = statuses.count("completed")
+            suggestions[idx].already_assigned = {"exercise": slug, "completed": done, "total": len(statuses)}
+            suggestions[idx].follow_up_note = f"Already assigned ({done} of {len(statuses)} completed) - consider following up"
+
+
 def _queue_exercise_releases(db: Session, therapist: User, practice_id: int, client_id: int, briefing_id: int,
                              suggestions: list[Suggestion]) -> None:
     """draft_exercises output -> release_exercise pending_actions. Nothing reaches the client until approval."""
@@ -366,7 +378,7 @@ def _queue_exercise_releases(db: Session, therapist: User, practice_id: int, cli
                                                           PendingAction.status == "pending")).all()
     already = {a.payload.get("exercise") for a in open_actions if a.payload.get("client_id") == client_id}
     for slug, idx in _release_candidates(db, suggestions):
-        if slug in already:
+        if slug in already or suggestions[idx].already_assigned is not None:
             continue
         db.add(PendingAction(practice_id=practice_id, type="release_exercise", assignee_user_id=therapist.id,
                              status="pending", idempotency_key=f"release:{therapist.id}:{client_id}:{slug}:{briefing_id}",
@@ -385,7 +397,9 @@ def _input_hash(db: Session, therapist_user_id: int, client_id: int, starts_at: 
                       .order_by(CasePlan.version.desc()).limit(1)).first()
     assessments = db.scalars(select(Assessment.id).where(Assessment.client_id == client_id)).all()
     intake = db.scalars(select(IntakeResponse.id).where(IntakeResponse.client_id == client_id)).all()
-    key = json.dumps([therapist_user_id, client_id, starts_at, session.id if session else None,
+    assigned = db.execute(select(Assignment.id, Assignment.status).where(Assignment.client_id == client_id)
+                          .order_by(Assignment.id)).all()
+    key = json.dumps([therapist_user_id, client_id, starts_at, [tuple(a) for a in assigned], session.id if session else None,
                       session.updated_at.isoformat() if session else None, plan, sorted(assessments), sorted(intake)])
     return hashlib.sha256(key.encode()).hexdigest()
 

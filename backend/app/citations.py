@@ -15,6 +15,8 @@ class Suggestion(BaseModel):
     note_quotes: list[str] = Field(default_factory=list)
     label: Literal["SUPPORTED", "INFERRED"] | None = None
     support_note: str | None = None
+    already_assigned: dict | None = None  # {"exercise", "completed", "total"}: set when an open assignment exists
+    follow_up_note: str | None = None
 
 
 class CitationError(ValueError):

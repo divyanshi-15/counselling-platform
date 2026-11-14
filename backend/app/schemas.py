@@ -345,6 +345,8 @@ class BriefingSuggestion(_Out):
     note_quotes: list[str] = []
     label: Literal["SUPPORTED", "INFERRED"] | None = None
     support_note: str | None = None
+    already_assigned: dict[str, object] | None = None
+    follow_up_note: str | None = None
 
 
 class RetrievedRef(_Out):
