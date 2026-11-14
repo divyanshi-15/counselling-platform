@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 
 from backend.app.db import SessionLocal
 from backend.app.main import app
-from backend.app.models import AvailabilitySlot, Booking, Practice, TherapistProfile
+from backend.app.models import AvailabilitySlot, Booking, Practice, TherapistProfile, User
 
 
 @pytest.fixture
@@ -28,10 +28,14 @@ def scenario():
         ]:
             email = f"{key}-{uuid4().hex}@example.com"
             response = client.post("/auth/register", json={
-                "email": email, "password": "secret1234", "role": role,
+                "email": email, "password": "secret1234", "role": "client" if role == "admin" else role,
                 "language": "en", "name": key.replace("_", " ").title(),
             })
             assert response.status_code == 200, response.text
+            if role == "admin":  # admins cannot self-register; promote directly in the DB
+                with SessionLocal() as db:
+                    db.query(User).filter(User.email == email).update({"role": "admin", "is_verified": True})
+                    db.commit()
             login = client.post("/auth/login", json={"email": email, "password": "secret1234"})
             user_id = client.get("/auth/me", headers={"Authorization": f"Bearer {login.json()['token']}"}).json()["id"]
             identities[key] = {"id": user_id, "token": login.json()["token"], "email": email}

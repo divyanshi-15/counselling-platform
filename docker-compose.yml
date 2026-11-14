@@ -36,7 +36,10 @@ services:
       - appnet
 
   caddy:
-    image: caddy:2-alpine
+    build:
+      context: ./frontend
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
     ports:
       - "80:80"
       - "443:443"

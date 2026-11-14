@@ -44,6 +44,5 @@ COST CONTROLS
 - AI down → safety path and manual workflows still work
 
 CURRENT STATE
-Done: 1-4b, hardening, 5a (monitoring agent, scheduler, seed), safety fix: layer 2 skips <4 words and numeric/date values (`risk_scan(layer2=False)` for single-choice); layer 1 always runs. Migration 008. Run tests with `--build`.
-Remaining: 4c gaps (brain_dump exercise, Kannada/Hindi templates); frontend demo path; 5b safety tests (30 phrases), claims bait, README (diagram, KB calibration, guardrails).
-Env: OVERNIGHT_HOUR_UTC (21), SCHEDULER_ENABLED=0 disables job (off in test). Dep: apscheduler<4.
+Backend done through 5a + safety fix + security fix (register role allowlist, extra=forbid schemas, demo-login never admin, `make create-admin`); remaining backend: 4c gaps (brain_dump, KN/HI templates), 5b safety tests, claims bait, README.
+Frontend stage 1 done (spec: /frontend/SPEC.md); `make api-types` regenerates types. Env: OVERNIGHT_HOUR_UTC, SCHEDULER_ENABLED=0, DEMO_MODE (must be 0 in real use). Run tests with `--build`.

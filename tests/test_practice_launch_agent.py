@@ -99,9 +99,13 @@ def _register_user(client: TestClient, role: str) -> tuple[str, int]:
     email = f"{role}-{uuid4().hex}@example.com"
     registered = client.post(
         "/auth/register",
-        json={"email": email, "password": "secret1234", "role": role, "language": "en", "name": role.title()},
+        json={"email": email, "password": "secret1234", "role": "client" if role == "admin" else role, "language": "en", "name": role.title()},
     )
     assert registered.status_code == 200, registered.text
+    if role == "admin":  # admins cannot self-register; promote directly in the DB
+        with SessionLocal() as db:
+            db.query(User).filter(User.email == email).update({"role": "admin", "is_verified": True})
+            db.commit()
     login = client.post("/auth/login", json={"email": email, "password": "secret1234"})
     assert login.status_code == 200, login.text
     user = client.get("/auth/me", headers={"Authorization": f"Bearer {login.json()['token']}"})

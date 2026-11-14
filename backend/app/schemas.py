@@ -3,13 +3,19 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel as _PydBase, ConfigDict, EmailStr, Field
+
+
+class BaseModel(_PydBase):
+    """Request/response base: unknown fields (role, verified, owner_id...) are rejected, never ignored."""
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8)
-    role: str = "client"
+    role: Literal["client", "therapist", "practice_owner"] = "client"
     language: str = "en"
     name: str | None = None
 

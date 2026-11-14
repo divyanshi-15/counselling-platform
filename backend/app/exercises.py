@@ -29,6 +29,8 @@ def with_notice(body: dict[str, Any]) -> dict[str, Any]:
 
 
 class CheckinIn(BaseModel):
+    model_config = {"extra": "forbid"}
+
     responses: dict[str, str | int] = Field(default_factory=dict)
 
 

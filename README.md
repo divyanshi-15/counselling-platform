@@ -131,3 +131,9 @@ Result: in-domain 0.791-0.880, out-of-domain 0.749-0.844. The sets **overlap** (
 ## Monitoring (overnight check)
 
 Nightly APScheduler job (21:00 UTC, `OVERNIGHT_HOUR_UTC`; single worker plus a Postgres advisory lock) or `POST /therapist/overnight-check`. Code, not the model, flags per client: PHQ-9/GAD-7 slope over 14 days better than -1 point/week not reached (needs two readings at least 7 days apart, latest score 5 or more), under 50% of exercises completed in 14 days (2 or more assigned), a plan goal with no keyword overlap in the last 3 session notes. The model (`MODEL_FAST`, cached, 400 tokens, Pydantic-validated, diagnosis/medication post-check) only drafts the plan-update wording; without AI, or for a risk-flagged client, a fixed template is used. Each finding makes an alert (unique per client, date, type) and one `apply_plan_update` pending action; only the assigned therapist's approval creates a new `case_plans` version, and only if the plan has not changed since the draft.
+
+## Security notes
+
+- `DEMO_MODE` must be `0` for any real use. When `1`, `/auth/demo-login` logs in as seeded demo accounts (never admin) without a password.
+- `/auth/register` accepts only `client`, `therapist`, `practice_owner`; unknown fields are rejected. Therapists and practices start unverified and stay out of public lists until an admin verifies them.
+- Create admins only via `make create-admin EMAIL=you@example.com PASSWORD=...` (or the seed script).

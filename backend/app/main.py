@@ -322,8 +322,13 @@ def health() -> dict[str, str]:
     return {"status": "ok", "db": db_status}
 
 
+SELF_REGISTER_ROLES = {UserRole.client, UserRole.therapist, UserRole.practice_owner}
+
+
 @app.post("/auth/register", response_model=UserOut)
 def register(payload: UserCreate, db: Session = Depends(get_db)) -> User:
+    if payload.role not in SELF_REGISTER_ROLES:
+        raise HTTPException(status_code=403, detail="Role cannot be self-registered")
     if db.query(User).filter(User.email == payload.email.lower()).first():
         raise HTTPException(status_code=400, detail="User already exists")
     user = User(
@@ -332,6 +337,7 @@ def register(payload: UserCreate, db: Session = Depends(get_db)) -> User:
         role=payload.role,
         language=payload.language,
         name=payload.name,
+        is_verified=False,
     )
     db.add(user)
     db.commit()
@@ -348,6 +354,43 @@ def login(payload: UserLogin, db: Session = Depends(get_db)) -> JSONResponse:
     user_payload = UserOut.model_validate(user, from_attributes=True).model_dump()
     response = JSONResponse({"message": "Logged in", "user": user_payload, "token": token})
     response.set_cookie("access_token", token, httponly=True, samesite="lax")
+    return response
+
+
+DEMO_ACCOUNTS = {
+    "client": "client@example.com",
+    "therapist": "therapist@example.com",
+    "practice_owner": "owner@example.com",
+}
+
+
+def _demo_mode() -> bool:
+    return os.getenv("DEMO_MODE", "0") == "1"
+
+
+@app.get("/config")
+def public_config() -> dict[str, object]:
+    return {"demo_mode": _demo_mode(), "banner": "Demo: use fictional information only."}
+
+
+@app.post("/auth/demo-login")
+def demo_login(role: str, db: Session = Depends(get_db)) -> JSONResponse:
+    email = DEMO_ACCOUNTS.get(role)
+    if not _demo_mode() or email is None or role == UserRole.admin:
+        raise HTTPException(status_code=404, detail="Not found")
+    user = db.query(User).filter(User.email == email).first()
+    if not user or user.role == UserRole.admin:
+        raise HTTPException(status_code=404, detail="Demo data not seeded")
+    token = create_access_token(user.email, user.role)
+    response = JSONResponse({"message": "Logged in", "user": UserOut.model_validate(user, from_attributes=True).model_dump()})
+    response.set_cookie("access_token", token, httponly=True, samesite="lax")
+    return response
+
+
+@app.post("/auth/logout")
+def logout() -> JSONResponse:
+    response = JSONResponse({"message": "Logged out"})
+    response.delete_cookie("access_token")
     return response
 
 

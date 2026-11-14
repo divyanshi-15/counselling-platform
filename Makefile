@@ -1,12 +1,15 @@
 PYTHON ?= python3
 
-.PHONY: up down seed test kb calibrate risk-report
+.PHONY: up down seed test kb calibrate risk-report create-admin
 
 up:
 	docker compose up --build -d
 
 seed:
 	docker compose run --build --rm api sh -c 'alembic -c backend/alembic.ini upgrade head && python -m backend.scripts.seed $(ARGS)'
+
+create-admin:
+	docker compose run --build --rm api sh -c 'alembic -c backend/alembic.ini upgrade head && python -m backend.scripts.create_admin "$(EMAIL)" "$(PASSWORD)"'
 
 kb:
 	docker compose run --build --rm api sh -c 'alembic -c backend/alembic.ini upgrade head && python -m backend.scripts.load_kb'
@@ -23,3 +26,8 @@ test:
 
 down:
 	docker compose down -v
+
+.PHONY: api-types
+api-types:
+	docker compose run --rm -T api python -c "import json; from backend.app.main import app; print(json.dumps(app.openapi()))" > frontend/openapi.json
+	cd frontend && npm run gen:api
