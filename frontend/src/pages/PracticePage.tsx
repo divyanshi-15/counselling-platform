@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import { useAuth } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { useFetch } from "@/lib/useFetch";
 
 export default function PracticePage() {
   const { slug } = useParams();
+  const { user } = useAuth();
   const { data, error, loading } = useFetch<{ practice: PracticeItem }>(`/p/${slug}`);
   const practice = data?.practice;
   const therapists = useFetch<{ items: (TherapistItem)[] }>("/therapists/public", practice ? { practice_id: practice.id } : undefined);
@@ -53,7 +55,8 @@ export default function PracticePage() {
           {therapists.data?.items.map((t) => (
             <Card key={t.id}><CardHeader><CardTitle>{t.name}</CardTitle></CardHeader>
               <CardContent className="space-y-1 text-sm"><p>{t.bio}</p>
-                <p className="text-muted-foreground">{[(t.approaches ?? []).join(", "), t.fee ? `INR ${t.fee}` : ""].filter(Boolean).join(" · ")}</p></CardContent></Card>
+                <p className="text-muted-foreground">{[(t.approaches ?? []).join(", "), t.fee ? `INR ${t.fee}` : ""].filter(Boolean).join(" · ")}</p>
+                <Button asChild className="mt-2"><Link to={user?.role === "client" ? `/client/book/${t.id}` : "/signup"}>Book a session</Link></Button></CardContent></Card>
           ))}
         </div>
       </section>

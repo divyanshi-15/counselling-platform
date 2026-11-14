@@ -58,8 +58,15 @@ from backend.app.safety import CRISIS_MESSAGE, check_claims, render_prompt_data,
 from backend.app.schemas import (
     MessageResponse,
     AssessmentIn,
+    AvailabilityOut,
     AvailabilitySlotIn,
+    BookingOut,
     CasePlanIn,
+    ClientDashboardOut,
+    IntakeFormOut,
+    IntakeResponseOut,
+    IntakeSubmitOut,
+    RoomOut,
     SessionNotesIn,
     BookingIn,
     IntakeFormIn,
@@ -562,7 +569,7 @@ def public_therapists(
     return {"items": [_therapist_payload(profile, user, practice) for profile, user, practice in rows]}
 
 
-@app.get("/therapists/{therapist_id}/availability")
+@app.get("/therapists/{therapist_id}/availability", response_model=AvailabilityOut)
 def public_therapist_availability(
     therapist_id: int,
     db: Session = Depends(get_db),
@@ -632,7 +639,7 @@ def therapist_bookings(
                       for booking, slot, client in rows]}
 
 
-@app.post("/bookings", dependencies=[Depends(client_rate_limit)])
+@app.post("/bookings", dependencies=[Depends(client_rate_limit)], response_model=BookingOut)
 def create_booking(
     payload: BookingIn,
     db: Session = Depends(get_db),
@@ -661,6 +668,16 @@ def create_booking(
     return {"id": booking.id, "status": booking.status, "therapist_id": profile.id,
             "starts_at": slot.starts_at.isoformat(), "ends_at": slot.ends_at.isoformat(),
             "confirmation_email": email_status}
+
+
+@app.get("/bookings/{booking_id}/room", response_model=RoomOut)
+def get_booking_room(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.client, UserRole.therapist)),
+) -> dict[str, str]:
+    booking, _, _ = _booking_for_participant(db, booking_id, current_user)
+    return {"room_name": f"cp-{booking.room_token}"}
 
 
 @app.put("/therapists/me/intake-form")
@@ -694,7 +711,7 @@ def save_intake_form(
     return {"id": form.id, "therapist_id": profile.id, "fields": form.fields_json}
 
 
-@app.get("/bookings/{booking_id}/intake-form")
+@app.get("/bookings/{booking_id}/intake-form", response_model=IntakeFormOut)
 def get_booking_intake_form(
     booking_id: int,
     db: Session = Depends(get_db),
@@ -707,7 +724,8 @@ def get_booking_intake_form(
     return {"booking_id": booking.id, "fields": form.fields_json}
 
 
-@app.post("/bookings/{booking_id}/intake-response", dependencies=[Depends(client_rate_limit)])
+@app.post("/bookings/{booking_id}/intake-response", dependencies=[Depends(client_rate_limit)],
+          response_model=IntakeSubmitOut)
 def submit_booking_intake_response(
     booking_id: int,
     payload: IntakeResponseIn,
@@ -743,7 +761,7 @@ def submit_booking_intake_response(
                         "safety": {"flagged": bool(risk), "message": CRISIS_MESSAGE if risk else None}})
 
 
-@app.get("/bookings/{booking_id}/intake-response")
+@app.get("/bookings/{booking_id}/intake-response", response_model=IntakeResponseOut)
 def get_booking_intake_response(
     booking_id: int,
     db: Session = Depends(get_db),
@@ -757,7 +775,7 @@ def get_booking_intake_response(
             "answers": response.answers_json, "submitted_at": response.submitted_at.isoformat()}
 
 
-@app.get("/client/dashboard", dependencies=[Depends(client_rate_limit)])
+@app.get("/client/dashboard", dependencies=[Depends(client_rate_limit)], response_model=ClientDashboardOut)
 def client_dashboard(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.client)),

@@ -45,4 +45,5 @@ COST CONTROLS
 
 CURRENT STATE
 Backend done through 5a + safety fix + security fix (register role allowlist, extra=forbid schemas, demo-login never admin, `make create-admin`); remaining backend: 4c gaps (brain_dump, KN/HI templates), 5b safety tests, claims bait, README.
-Frontend stage 1 done (spec: /frontend/SPEC.md); `make api-types` regenerates types. Env: OVERNIGHT_HOUR_UTC, SCHEDULER_ENABLED=0, DEMO_MODE (must be 0 in real use). Run tests with `--build`.
+Frontend stages done: 1, 2 (client screens in frontend/src/pages/client; spec: /frontend/SPEC.md); `make api-types` regenerates types. Env: OVERNIGHT_HOUR_UTC, SCHEDULER_ENABLED=0, DEMO_MODE (must be 0 in real use). Run tests with `--build`.
+Bookings have room_token; GET /bookings/{id}/room -> cp-<token> (client+therapist only); client endpoints have response_models and the frontend uses generated types.

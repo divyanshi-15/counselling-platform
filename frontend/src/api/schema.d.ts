@@ -362,6 +362,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/bookings/{booking_id}/room": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Booking Room */
+        get: operations["get_booking_room_bookings__booking_id__room_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/therapists/me/intake-form": {
         parameters: {
             query?: never;
@@ -798,6 +815,19 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ApprovedExercise */
+        ApprovedExercise: {
+            /** Assignment Id */
+            assignment_id: number;
+            /** Exercise */
+            exercise: string;
+            /** Title */
+            title: string;
+            /** Status */
+            status: string;
+            /** Assigned At */
+            assigned_at: string;
+        };
         /** AssessmentIn */
         AssessmentIn: {
             /**
@@ -809,6 +839,20 @@ export interface components {
             item_scores: number[];
             /** Taken At */
             taken_at?: string | null;
+        };
+        /** AssignmentsOut */
+        AssignmentsOut: {
+            /** Notice */
+            notice: string;
+            /** Crisis Line */
+            crisis_line: string;
+            /** Items */
+            items: components["schemas"]["ApprovedExercise"][];
+        };
+        /** AvailabilityOut */
+        AvailabilityOut: {
+            /** Items */
+            items: components["schemas"]["SlotOut"][];
         };
         /** AvailabilitySlotIn */
         AvailabilitySlotIn: {
@@ -827,6 +871,21 @@ export interface components {
         BookingIn: {
             /** Availability Slot Id */
             availability_slot_id: number;
+        };
+        /** BookingOut */
+        BookingOut: {
+            /** Id */
+            id: number;
+            /** Status */
+            status: string;
+            /** Therapist Id */
+            therapist_id: number;
+            /** Starts At */
+            starts_at: string;
+            /** Ends At */
+            ends_at: string;
+            /** Confirmation Email */
+            confirmation_email: string;
         };
         /** CaseGoal */
         CaseGoal: {
@@ -856,10 +915,92 @@ export interface components {
                 [key: string]: string | number;
             };
         };
+        /** CheckinOut */
+        CheckinOut: {
+            /** Notice */
+            notice: string;
+            /** Crisis Line */
+            crisis_line: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "saved" | "crisis";
+            /** Message */
+            message?: string | null;
+            /** Checkin Id */
+            checkin_id?: number | null;
+            /** Completed At */
+            completed_at?: string | null;
+        };
+        /** ClientDashboardOut */
+        ClientDashboardOut: {
+            /** Notice */
+            notice: string;
+            /** Crisis Line */
+            crisis_line: string;
+            practice: components["schemas"]["PracticeRef"] | null;
+            therapist: components["schemas"]["DashboardTherapist"] | null;
+            upcoming_session: components["schemas"]["UpcomingSession"] | null;
+            /** Approved Exercises */
+            approved_exercises: components["schemas"]["ApprovedExercise"][];
+        };
+        /** DashboardTherapist */
+        DashboardTherapist: {
+            /** Id */
+            id: number;
+            /** Name */
+            name?: string | null;
+            /** Bio */
+            bio?: string | null;
+            /** Approaches */
+            approaches?: string[] | null;
+            /** Languages */
+            languages?: string[] | null;
+            /** Fee */
+            fee?: number | null;
+            practice: components["schemas"]["PracticeRef"];
+        };
+        /** ExerciseTemplate */
+        ExerciseTemplate: {
+            /** Fields */
+            fields: components["schemas"]["TemplateField"][];
+        } & {
+            [key: string]: unknown;
+        };
+        /** ExerciseTemplateOut */
+        ExerciseTemplateOut: {
+            /** Notice */
+            notice: string;
+            /** Crisis Line */
+            crisis_line: string;
+            /** Assignment Id */
+            assignment_id: number;
+            /** Exercise */
+            exercise: string;
+            /** Title */
+            title: string;
+            /** Status */
+            status: string;
+            template: components["schemas"]["ExerciseTemplate"];
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** IntakeField */
+        IntakeField: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Type */
+            type?: string | null;
+            /** Required */
+            required?: boolean | null;
+        } & {
+            [key: string]: unknown;
         };
         /** IntakeFormIn */
         IntakeFormIn: {
@@ -868,12 +1009,59 @@ export interface components {
                 [key: string]: unknown;
             }[];
         };
+        /** IntakeFormOut */
+        IntakeFormOut: {
+            /** Booking Id */
+            booking_id: number;
+            /** Fields */
+            fields: components["schemas"]["IntakeField"][];
+        };
         /** IntakeResponseIn */
         IntakeResponseIn: {
             /** Answers */
             answers: {
                 [key: string]: unknown;
             };
+        };
+        /** IntakeResponseOut */
+        IntakeResponseOut: {
+            /** Id */
+            id: number;
+            /** Booking Id */
+            booking_id: number;
+            /** Client Id */
+            client_id: number;
+            /** Answers */
+            answers: {
+                [key: string]: unknown;
+            };
+            /** Submitted At */
+            submitted_at: string;
+        };
+        /** IntakeSafety */
+        IntakeSafety: {
+            /** Flagged */
+            flagged: boolean;
+            /** Message */
+            message?: string | null;
+        };
+        /** IntakeSubmitOut */
+        IntakeSubmitOut: {
+            /** Notice */
+            notice: string;
+            /** Crisis Line */
+            crisis_line: string;
+            /** Id */
+            id: number;
+            /** Booking Id */
+            booking_id: number;
+            /** Answers */
+            answers: {
+                [key: string]: unknown;
+            };
+            /** Submitted At */
+            submitted_at: string;
+            safety: components["schemas"]["IntakeSafety"];
         };
         /** MessageResponse */
         MessageResponse: {
@@ -924,6 +1112,20 @@ export interface components {
             /** Tagline */
             tagline?: string | null;
         };
+        /** PracticeRef */
+        PracticeRef: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+        };
+        /** RoomOut */
+        RoomOut: {
+            /** Room Name */
+            room_name: string;
+        };
         /** SessionNotesIn */
         SessionNotesIn: {
             /** Raw Notes */
@@ -934,6 +1136,28 @@ export interface components {
              * @enum {string}
              */
             source: "typed" | "transcript";
+        };
+        /** SlotOut */
+        SlotOut: {
+            /** Id */
+            id: number;
+            /** Starts At */
+            starts_at: string;
+            /** Ends At */
+            ends_at: string;
+        };
+        /** TemplateField */
+        TemplateField: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Type */
+            type?: string | null;
+            /** Required */
+            required?: boolean | null;
+        } & {
+            [key: string]: unknown;
         };
         /** TherapistProfileIn */
         TherapistProfileIn: {
@@ -951,6 +1175,17 @@ export interface components {
             /** Fee */
             fee: number;
         };
+        /** UpcomingSession */
+        UpcomingSession: {
+            /** Id */
+            id: number;
+            /** Starts At */
+            starts_at: string;
+            /** Ends At */
+            ends_at: string;
+            /** Status */
+            status: string;
+        };
         /** UserCreate */
         UserCreate: {
             /**
@@ -963,8 +1198,9 @@ export interface components {
             /**
              * Role
              * @default client
+             * @enum {string}
              */
-            role: string;
+            role: "client" | "therapist" | "practice_owner";
             /**
              * Language
              * @default en
@@ -1033,9 +1269,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AssignmentsOut"];
                 };
             };
         };
@@ -1059,9 +1293,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ExerciseTemplateOut"];
                 };
             };
             /** @description Validation Error */
@@ -1096,9 +1328,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CheckinOut"];
                 };
             };
             /** @description Validation Error */
@@ -1549,9 +1779,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AvailabilityOut"];
                 };
             };
             /** @description Validation Error */
@@ -1641,9 +1869,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["BookingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_booking_room_bookings__booking_id__room_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                booking_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomOut"];
                 };
             };
             /** @description Validation Error */
@@ -1709,9 +1966,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["IntakeFormOut"];
                 };
             };
             /** @description Validation Error */
@@ -1742,9 +1997,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["IntakeResponseOut"];
                 };
             };
             /** @description Validation Error */
@@ -1779,9 +2032,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["IntakeSubmitOut"];
                 };
             };
             /** @description Validation Error */
@@ -1810,9 +2061,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ClientDashboardOut"];
                 };
             };
         };

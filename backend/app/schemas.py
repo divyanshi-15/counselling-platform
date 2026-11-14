@@ -111,3 +111,141 @@ class CasePlanIn(BaseModel):
     formulation_text: str = Field(min_length=1, max_length=20000)
     goals: list[CaseGoal] = Field(default_factory=list, max_length=12)
     approve: bool = False
+
+
+# ---------- responses (client-facing endpoints) ----------
+
+class _Out(_PydBase):
+    model_config = ConfigDict(extra="ignore")
+
+
+class Notice(_Out):
+    notice: str
+    crisis_line: str
+
+
+class PracticeRef(_Out):
+    id: int
+    name: str
+    slug: str
+
+
+class DashboardTherapist(_Out):
+    id: int
+    name: str | None = None
+    bio: str | None = None
+    approaches: list[str] | None = None
+    languages: list[str] | None = None
+    fee: int | None = None
+    practice: PracticeRef
+
+
+class UpcomingSession(_Out):
+    id: int
+    starts_at: str
+    ends_at: str
+    status: str
+
+
+class ApprovedExercise(_Out):
+    assignment_id: int
+    exercise: str
+    title: str
+    status: str
+    assigned_at: str
+
+
+class ClientDashboardOut(Notice):
+    practice: PracticeRef | None
+    therapist: DashboardTherapist | None
+    upcoming_session: UpcomingSession | None
+    approved_exercises: list[ApprovedExercise]
+
+
+class AssignmentsOut(Notice):
+    items: list[ApprovedExercise]
+
+
+class TemplateField(_Out):
+    model_config = ConfigDict(extra="allow")
+    id: str
+    label: str
+    type: str | None = None
+    required: bool | None = None
+
+
+class ExerciseTemplate(_Out):
+    model_config = ConfigDict(extra="allow")
+    fields: list[TemplateField]
+
+
+class ExerciseTemplateOut(Notice):
+    assignment_id: int
+    exercise: str
+    title: str
+    status: str
+    template: ExerciseTemplate
+
+
+class CheckinOut(Notice):
+    status: Literal["saved", "crisis"]
+    message: str | None = None
+    checkin_id: int | None = None
+    completed_at: str | None = None
+
+
+class SlotOut(_Out):
+    id: int
+    starts_at: str
+    ends_at: str
+
+
+class AvailabilityOut(_Out):
+    items: list[SlotOut]
+
+
+class BookingOut(_Out):
+    id: int
+    status: str
+    therapist_id: int
+    starts_at: str
+    ends_at: str
+    confirmation_email: str
+
+
+class IntakeField(_Out):
+    model_config = ConfigDict(extra="allow")
+    id: str
+    label: str
+    type: str | None = None
+    required: bool | None = None
+
+
+class IntakeFormOut(_Out):
+    booking_id: int
+    fields: list[IntakeField]
+
+
+class IntakeSafety(_Out):
+    flagged: bool
+    message: str | None = None
+
+
+class IntakeSubmitOut(Notice):
+    id: int
+    booking_id: int
+    answers: dict[str, object]
+    submitted_at: str
+    safety: IntakeSafety
+
+
+class IntakeResponseOut(_Out):
+    id: int
+    booking_id: int
+    client_id: int
+    answers: dict[str, object]
+    submitted_at: str
+
+
+class RoomOut(_Out):
+    room_name: str

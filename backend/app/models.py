@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import secrets
 from datetime import datetime, timezone
 
 from pgvector.sqlalchemy import Vector
@@ -80,6 +81,7 @@ class Booking(Base):
         ForeignKey("availability_slots.id", ondelete="CASCADE"), unique=True, nullable=False
     )
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="confirmed")
+    room_token: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, default=lambda: secrets.token_hex(32))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utcnow)
 
 

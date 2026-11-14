@@ -248,3 +248,32 @@ def test_confirmation_emails_are_exactly_once_per_recipient_and_contain_no_clini
         )
 
 
+
+
+def _book(scenario, slot, who="client") -> int:
+    r = scenario["client"].post("/bookings", json={"availability_slot_id": slot.id}, headers=headers(scenario, who))
+    assert r.status_code == 200, r.text
+    return r.json()["id"]
+
+
+def test_booking_room_only_for_its_client_and_therapist(scenario) -> None:
+    c = scenario["client"]
+    booking_id = _book(scenario, scenario["slot_a"])
+    for who in ("client", "therapist_a"):
+        r = c.get(f"/bookings/{booking_id}/room", headers=headers(scenario, who))
+        assert r.status_code == 200 and r.json()["room_name"].startswith("cp-")
+    for who in ("other_client", "therapist_b", "owner_a", "owner_b"):
+        assert c.get(f"/bookings/{booking_id}/room", headers=headers(scenario, who)).status_code in {403, 404}, who
+    assert c.get(f"/bookings/{booking_id}/room").status_code in {401, 403}
+
+
+def test_room_name_unique_per_booking_and_not_derived_from_id(scenario) -> None:
+    c = scenario["client"]
+    id_a = _book(scenario, scenario["slot_a"])
+    id_b = _book(scenario, scenario["slot_b"], "other_client")
+    room_a = c.get(f"/bookings/{id_a}/room", headers=headers(scenario, "client")).json()["room_name"]
+    room_b = c.get(f"/bookings/{id_b}/room", headers=headers(scenario, "other_client")).json()["room_name"]
+    assert room_a != room_b
+    for room, bid in ((room_a, id_a), (room_b, id_b)):
+        assert len(room) >= 3 + 32 and str(bid) not in room.removeprefix("cp-")[:8]
+        assert room != f"cp-{bid}" and "booking" not in room

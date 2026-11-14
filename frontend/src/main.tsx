@@ -9,6 +9,11 @@ import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import PracticePage from "@/pages/PracticePage";
 import RoleHome from "@/pages/RoleHome";
+import ClientDashboard from "@/pages/client/Dashboard";
+import Book from "@/pages/client/Book";
+import Intake from "@/pages/client/Intake";
+import Exercise from "@/pages/client/Exercise";
+import Session from "@/pages/client/Session";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
@@ -20,7 +25,12 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="/p/:slug" element={<PracticePage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            {["client", "therapist", "owner", "admin"].map((r) => <Route key={r} path={`/${r}`} element={<RoleHome />} />)}
+            <Route path="/client" element={<ClientDashboard />} />
+            <Route path="/client/book/:therapistId" element={<Book />} />
+            <Route path="/client/intake/:bookingId" element={<Intake />} />
+            <Route path="/client/exercise/:assignmentId" element={<Exercise />} />
+            <Route path="/client/session/:bookingId" element={<Session />} />
+            {["therapist", "owner", "admin"].map((r) => <Route key={r} path={`/${r}`} element={<RoleHome />} />)}
             <Route path="*" element={<p>Page not found.</p>} />
           </Route>
         </Routes>

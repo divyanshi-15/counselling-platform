@@ -14,6 +14,7 @@ from backend.app.db import get_db
 from backend.app.models import Alert, Assignment, Checkin, Exercise, User, UserRole
 from backend.app.ratelimit import client_rate_limit
 from backend.app.safety import CRISIS_MESSAGE
+from backend.app.schemas import AssignmentsOut, CheckinOut, ExerciseTemplateOut
 
 RUNNER_TOOLS = ("save_checkin", "flag_risk")
 NOTICE = "Skill-building support, not a replacement for therapy."
@@ -103,12 +104,13 @@ def flag_risk(db: Session, assignment: Assignment, hit: dict) -> Alert:
 
 # ---------- endpoints ----------
 
-@router.get("/client/assignments", dependencies=[Depends(client_rate_limit)])
+@router.get("/client/assignments", dependencies=[Depends(client_rate_limit)], response_model=AssignmentsOut)
 def list_my_assignments(db: Session = Depends(get_db), user: User = Depends(client_only)) -> dict[str, Any]:
     return with_notice({"items": approved_exercises(db, user.id)})
 
 
-@router.get("/client/assignments/{assignment_id}/exercise", dependencies=[Depends(client_rate_limit)])
+@router.get("/client/assignments/{assignment_id}/exercise", dependencies=[Depends(client_rate_limit)],
+            response_model=ExerciseTemplateOut)
 def get_exercise_template(assignment_id: int, lang: str = Query(default="en"), db: Session = Depends(get_db),
                           user: User = Depends(client_only)) -> dict[str, Any]:
     a, exercise = _own_assignment(db, assignment_id, user)
@@ -117,7 +119,8 @@ def get_exercise_template(assignment_id: int, lang: str = Query(default="en"), d
                         "template": template})
 
 
-@router.post("/client/assignments/{assignment_id}/checkin", dependencies=[Depends(client_rate_limit)])
+@router.post("/client/assignments/{assignment_id}/checkin", dependencies=[Depends(client_rate_limit)],
+             response_model=CheckinOut)
 def submit_checkin(assignment_id: int, payload: CheckinIn, db: Session = Depends(get_db),
                    user: User = Depends(client_only)) -> dict[str, Any]:
     a, exercise = _own_assignment(db, assignment_id, user)
