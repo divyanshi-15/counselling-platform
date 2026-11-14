@@ -29,6 +29,7 @@ from backend.app.auth import (
     require_therapist_of_client,
     verify_password,
 )
+from backend.app import fake_llm
 from backend.app.db import engine, get_db
 from backend.app.clinical import assessment_total, phq9_item9_positive, raise_risk_alert, scan_client_text
 from backend.app.models import (
@@ -56,7 +57,7 @@ from backend.app.ratelimit import client_rate_limit, contact_rate_limit
 from backend.app.rag import index_session_notes
 from backend.app.safety import CRISIS_MESSAGE, check_claims, render_prompt_data, risk_scan, validate_ai_output
 from backend.app.schemas import (
-    AgentRunsOut, AlertsOut, AssessmentOut, AssessmentsOut, BriefingsOut, CasePlanOut, CasePlansOut,
+    AdminTherapistsOut, AgentRunsOut, AlertItem, AlertsOut, OwnerActionsOut, PracticeDraftOut, PracticesOut, VerifyIn, VerifyOut, AssessmentOut, AssessmentsOut, BriefingsOut, CasePlanOut, CasePlansOut,
     OvernightOut, PendingActionOut, PrepareDayOut, SessionNotesOut, TherapistActionsOut,
     TherapistBookingsOut, TherapistProfileOut,
     MessageResponse,
@@ -85,6 +86,7 @@ from backend.app.schemas import (
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    fake_llm.assert_safe_config()
     scheduler = start_scheduler()
     try:
         yield
@@ -128,6 +130,29 @@ def _create_publish_action(db: Session, practice: Practice, page: dict[str, obje
     return action
 
 
+def _next_plan(latest: CasePlan, action: PendingAction, now: datetime) -> dict[str, object]:
+    """Fields of the case_plan version an apply_plan_update approval creates. Used by both preview and apply."""
+    return {"approach": latest.approach, "goals_json": latest.goals_json,
+            "formulation_text": f"{latest.formulation_text}\n\nPlan update ({now.date().isoformat()}, "
+                                f"drafted by monitoring, approved by therapist): {action.payload.get('update_text', '')}"}
+
+
+def _plan_diff(db: Session, action: PendingAction) -> dict[str, object] | None:
+    client_id = action.payload.get("client_id")
+    if not isinstance(client_id, int) or action.assignee_user_id is None:
+        return None
+    latest = (db.query(CasePlan).filter(CasePlan.client_id == client_id, CasePlan.therapist_user_id == action.assignee_user_id)
+              .order_by(CasePlan.version.desc()).first())
+    if latest is None:
+        return None
+    nxt = _next_plan(latest, action, datetime.now(timezone.utc))
+    snap = lambda approach, goals, text: {"approach": approach, "goals": [str(g.get("text", "")) for g in goals], "formulation": text}  # noqa: E731
+    before = snap(latest.approach, latest.goals_json, latest.formulation_text)
+    after = snap(nxt["approach"], nxt["goals_json"], nxt["formulation_text"])
+    return {"before": before, "after": after, "changed": [k for k in ("approach", "goals", "formulation") if before[k] != after[k]],
+            "stale": latest.id != action.payload.get("base_plan_id")}
+
+
 def _action_preview(db: Session, action: PendingAction) -> dict[str, object]:
     """Server-computed: who the action concerns and exactly what would reach the client on approval."""
     client_id = action.payload.get("client_id")
@@ -142,7 +167,10 @@ def _action_preview(db: Session, action: PendingAction) -> dict[str, object]:
             return {"client_name": client.name if client else None, "client_view": view}
     note = ("Nothing reaches the client. This adds a new version to your own case plan only."
             if action.type == "apply_plan_update" else "Nothing reaches the client. This is a private briefing for you.")
-    return {"client_name": client.name if client else None, "client_view": {"kind": "nothing", "note": note}}
+    out: dict[str, object] = {"client_name": client.name if client else None, "client_view": {"kind": "nothing", "note": note}}
+    if action.type == "apply_plan_update":
+        out["diff"] = _plan_diff(db, action)
+    return out
 
 
 def _pending_action_result(action: PendingAction) -> dict[str, object]:
@@ -210,10 +238,8 @@ def _apply_plan_update(db: Session, action: PendingAction, user: User) -> None:
     if latest is None or latest.id != action.payload.get("base_plan_id"):
         raise HTTPException(status_code=409, detail="The plan changed since this draft; reject it and re-run the check")
     now = datetime.now(timezone.utc)
-    db.add(CasePlan(client_id=client_id, therapist_user_id=user.id, version=latest.version + 1,
-                    approach=latest.approach, goals_json=latest.goals_json, approved_at=now,
-                    formulation_text=f"{latest.formulation_text}\n\nPlan update ({now.date().isoformat()}, "
-                                     f"drafted by monitoring, approved by therapist): {action.payload.get('update_text', '')}"))
+    db.add(CasePlan(client_id=client_id, therapist_user_id=user.id, version=latest.version + 1, approved_at=now,
+                    **_next_plan(latest, action, now)))
     action.status = "approved"
     action.decided_by = user.id
     action.decided_at = now
@@ -426,7 +452,7 @@ def me(user: User = Depends(get_current_user)) -> User:
     return user
 
 
-@app.post("/practices/draft")
+@app.post("/practices/draft", response_model=PracticeDraftOut)
 def draft_practice(
     payload: PracticeDraft,
     db: Session = Depends(get_db),
@@ -464,7 +490,7 @@ def draft_practice(
     return {"id": practice.id, "status": practice.status, "slug": practice.slug, "page": page, "pending_action": _pending_action_result(action)}
 
 
-@app.get("/practices")
+@app.get("/practices", response_model=PracticesOut)
 def list_practices(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -826,45 +852,58 @@ def client_dashboard(
     })
 
 
-@app.post("/admin/therapists/{therapist_id}/verify")
+@app.get("/admin/therapists", response_model=AdminTherapistsOut)
+def admin_therapists(
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(UserRole.admin)),
+) -> dict[str, object]:
+    rows = (db.query(TherapistProfile, User, Practice).join(User, User.id == TherapistProfile.user_id)
+            .join(Practice, Practice.id == TherapistProfile.practice_id).order_by(TherapistProfile.id).all())
+    return {"items": [{"id": p.id, "name": u.name, "practice_id": pr.id, "practice_name": pr.name, "verified": p.verified}
+                      for p, u, pr in rows]}
+
+
+@app.post("/admin/therapists/{therapist_id}/verify", response_model=VerifyOut)
 def verify_therapist(
     therapist_id: int,
+    payload: VerifyIn | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.admin)),
 ) -> dict[str, object]:
     profile = db.query(TherapistProfile).filter(TherapistProfile.id == therapist_id).first()
     if profile is None:
         raise HTTPException(status_code=404, detail="Therapist profile not found")
-    profile.verified = True
+    profile.verified = payload.verified if payload else True
     db.add(AuditLog(action="therapist.verify", actor_id=current_user.id, entity_type="therapist_profile",
-                    entity_id=profile.id, details={"verified": True}))
+                    entity_id=profile.id, details={"verified": profile.verified}))
     db.commit()
     return {"id": profile.id, "verified": profile.verified}
 
 
-@app.post("/admin/practices/{practice_id}/verify")
+@app.post("/admin/practices/{practice_id}/verify", response_model=VerifyOut)
 def verify_practice(
     practice_id: int,
+    payload: VerifyIn | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.admin)),
 ) -> dict[str, object]:
     record = db.query(Practice).filter(Practice.id == practice_id).first()
     if not record:
         raise HTTPException(status_code=404, detail="Practice not found")
-    record.verified = True
+    record.verified = payload.verified if payload else True
     db.add(AuditLog(
         action="practice.verify",
         actor_id=current_user.id,
         entity_type="practice",
         entity_id=record.id,
-        details={"verified": True},
+        details={"verified": record.verified},
     ))
     db.commit()
     db.refresh(record)
     return {"id": record.id, "status": record.status, "verified": record.verified}
 
 
-@app.get("/pending-actions")
+@app.get("/pending-actions", response_model=OwnerActionsOut)
 def list_pending_actions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -985,7 +1024,7 @@ def contact_practice(payload: PracticeContact) -> dict[str, str]:
     return {"status": "sent", "message": "Contact request sent."}
 
 
-@app.post("/practices/{practice_id}/draft-with-agent")
+@app.post("/practices/{practice_id}/draft-with-agent", response_model=PracticeDraftOut)
 def draft_practice_with_agent(
     practice_id: int,
     payload: dict[str, object],
@@ -1027,7 +1066,7 @@ def draft_practice_with_agent(
     return {"id": practice.id, "status": practice.status, "slug": practice.slug, "page": result["page"], "run_id": result.get("run_id"), "pending_action": _pending_action_result(action)}
 
 
-@app.get("/practices/{practice_id}/agent-runs")
+@app.get("/practices/{practice_id}/agent-runs", response_model=AgentRunsOut)
 def practice_agent_runs(
     practice_id: int,
     db: Session = Depends(get_db),
@@ -1270,8 +1309,34 @@ def therapist_alerts(
     rows = (db.query(Alert).filter(Alert.therapist_user_id == current_user.id)
             .order_by(Alert.acknowledged.asc(), Alert.created_at.desc()).all())
     return {"items": [{"id": r.id, "client_id": r.client_id, "type": r.type, "priority": r.priority,
-                       "payload": r.payload, "acknowledged": r.acknowledged, "created_at": r.created_at.isoformat()}
+                       "payload": r.payload, "acknowledged": r.acknowledged,
+                       "acknowledged_at": r.acknowledged_at.isoformat() if r.acknowledged_at else None,
+                       "created_at": r.created_at.isoformat()}
                       for r in rows]}
+
+
+@app.post("/alerts/{alert_id}/acknowledge", response_model=AlertItem)
+def acknowledge_alert(
+    alert_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.therapist)),
+) -> dict[str, object]:
+    alert = db.query(Alert).filter(Alert.id == alert_id).with_for_update().first()
+    if alert is None:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    if alert.therapist_user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    replay = alert.acknowledged
+    if not replay:
+        alert.acknowledged = True
+        alert.acknowledged_at = datetime.now(timezone.utc)
+    db.add(AuditLog(action="alert.acknowledge", actor_id=current_user.id, entity_type="alert", entity_id=alert.id,
+                    details={"type": alert.type, "idempotent_replay": replay}))
+    db.commit()
+    return {"id": alert.id, "client_id": alert.client_id, "type": alert.type, "priority": alert.priority,
+            "payload": alert.payload, "acknowledged": alert.acknowledged,
+            "acknowledged_at": alert.acknowledged_at.isoformat() if alert.acknowledged_at else None,
+            "created_at": alert.created_at.isoformat()}
 
 
 @app.get("/therapists/me/agent-runs", response_model=AgentRunsOut)

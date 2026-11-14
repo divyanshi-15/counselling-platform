@@ -11,6 +11,38 @@ import { AiBadge, InferredBadge, Shell, type Schemas } from "./common";
 type Item = Schemas["TherapistActionItem"];
 const TITLES: Record<string, string> = { release_exercise: "Release exercise to client", apply_plan_update: "Update case plan", copilot_briefing: "Briefing draft" };
 
+function Side({ title, snap, other }: { title: string; snap: Schemas["PlanSnapshot"]; other: Schemas["PlanSnapshot"] }) {
+  const goalChanged = (g: string) => !other.goals.includes(g);
+  return (
+    <div className="space-y-2 rounded border bg-background p-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
+      <p><span className="text-muted-foreground">Approach:</span> <span className={snap.approach !== other.approach ? "bg-amber-100 px-1" : ""}>{snap.approach}</span></p>
+      <div>
+        <p className="text-muted-foreground">Goals:</p>
+        <ul className="list-disc pl-5">{snap.goals.map((g) => <li key={g} className={goalChanged(g) ? "bg-amber-100" : ""}>{g}</li>)}</ul>
+      </div>
+      <p className="whitespace-pre-wrap text-xs">{snap.formulation}</p>
+    </div>
+  );
+}
+
+function WhatChanges({ diff }: { diff: Schemas["PlanDiff"] }) {
+  return (
+    <div className="space-y-2 rounded-md border-2 border-primary bg-primary/5 p-3" aria-label="What changes">
+      <p className="text-xs font-semibold uppercase tracking-wide">What changes</p>
+      {diff.stale && <p role="alert" className="text-sm font-medium text-destructive">The plan changed since this draft; approving will be refused. Reject it and re-run the check.</p>}
+      <p className="text-sm">
+        {diff.changed.length ? `Changed: ${diff.changed.join(", ")}.` : "No change."}
+        {!diff.changed.includes("goals") && !diff.changed.includes("approach") && " Goals and approach stay as they are; only the formulation text is extended."}
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Side title="Before (current version)" snap={diff.before} other={diff.after} />
+        <Side title="After (new version)" snap={diff.after} other={diff.before} />
+      </div>
+    </div>
+  );
+}
+
 function Detail({ a }: { a: Item }) {
   const p = a.payload;
   if (a.type === "apply_plan_update") {
@@ -59,6 +91,7 @@ function Row({ a, onDone }: { a: Item; onDone: () => void }) {
       </CardHeader>
       <CardContent className="space-y-3">
         <Detail a={a} />
+        {a.diff && <WhatChanges diff={a.diff} />}
         <div className={reaches ? "rounded-md border-2 border-primary bg-primary/5 p-3" : "rounded-md border border-dashed bg-muted p-3"}>
           <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide"><Eye className="h-4 w-4" /> What reaches the client</p>
           <p className="text-sm">{a.client_view.note}</p>

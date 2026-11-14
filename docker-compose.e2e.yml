@@ -1,0 +1,17 @@
+# Used only by `make e2e` (separate compose project, throwaway DB, canned LLM, plain-HTTP site on :8081).
+services:
+  api:
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-counselling}
+      APP_ENV: development
+      FAKE_LLM: "1"
+      DEMO_MODE: "1"
+      SCHEDULER_ENABLED: "0"
+      ANTHROPIC_API_KEY: ""
+      API_KEY: ""
+      SMTP_HOST: ""
+  caddy:
+    environment:
+      DOMAIN: ":80"
+    ports: !override
+      - "8081:80"

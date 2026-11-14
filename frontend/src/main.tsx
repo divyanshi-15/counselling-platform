@@ -8,7 +8,8 @@ import Home from "@/pages/Home";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import PracticePage from "@/pages/PracticePage";
-import RoleHome from "@/pages/RoleHome";
+import Owner from "@/pages/owner/Owner";
+import Admin from "@/pages/admin/Admin";
 import ClientDashboard from "@/pages/client/Dashboard";
 import Book from "@/pages/client/Book";
 import Intake from "@/pages/client/Intake";
@@ -42,7 +43,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="/therapist/bookings" element={<Bookings />} />
             <Route path="/therapist/bookings/:bookingId" element={<BookingDetail />} />
             <Route path="/therapist/clients/:clientId" element={<TherapistClient />} />
-            {["owner", "admin"].map((r) => <Route key={r} path={`/${r}`} element={<RoleHome />} />)}
+            <Route path="/owner" element={<Owner />} />
+            <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<p>Page not found.</p>} />
           </Route>
         </Routes>

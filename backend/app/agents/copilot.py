@@ -19,7 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from backend.app import rag
+from backend.app import fake_llm, rag
 from backend.app.agents.launch import _budget_exceeded, _cached_model_output, _record_token_usage, _write_cache
 from backend.app.citations import CitationError, Suggestion, validate_suggestions
 from backend.app.clinical import phq9_item9_positive, scan_client_text
@@ -91,6 +91,8 @@ class Briefing(BaseModel):
 
 def call_model(system: str, blocks: list[tuple[str, bool]], *, max_tokens: int) -> str | None:
     """blocks: (text, cacheable). Returns None when AI is unavailable or over budget."""
+    if fake_llm.enabled():
+        return fake_llm.complete(system, "\n".join(text for text, _ in blocks))
     api_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("API_KEY")
     if not api_key or _budget_exceeded():
         return None

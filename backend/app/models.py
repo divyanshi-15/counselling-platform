@@ -255,6 +255,7 @@ class Alert(Base):
     priority: Mapped[str] = mapped_column(String(16), nullable=False, default="normal")
     payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     acknowledged: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utcnow)
     # monitoring alerts only: "monitor:<client>:<date>:<type>"; risk alerts leave it NULL
     dedupe_key: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True)

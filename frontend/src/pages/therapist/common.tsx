@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { Navigate, NavLink } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Loading } from "@/components/states";
+import { Button } from "@/components/ui/button";
+import { ErrorMsg, Loading } from "@/components/states";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import type { Schemas } from "../client/common";
@@ -66,5 +69,21 @@ export function RiskAlerts({ alerts, names, children }: { alerts: Schemas["Alert
         </div>
       ))}
     </section>
+  );
+}
+
+export function AckButton({ id, onDone }: { id: number; onDone: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  async function ack() {
+    setBusy(true); setError(null);
+    try { await api(`/alerts/${id}/acknowledge`, { method: "POST" }); onDone(); }
+    catch (e) { setError(e); } finally { setBusy(false); }
+  }
+  return (
+    <div className="mt-2">
+      <Button variant="outline" disabled={busy} onClick={() => void ack()}>{busy ? "Acknowledging…" : "Acknowledge"}</Button>
+      {error != null && <ErrorMsg error={error} />}
+    </div>
   );
 }

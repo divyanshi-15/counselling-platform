@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, ErrorMsg, Loading } from "@/components/states";
 import { api } from "@/lib/api";
 import { useFetch } from "@/lib/useFetch";
-import { AiBadge, InferredBadge, RiskAlerts, Shell, SupportedBadge, fmt, type Schemas } from "./common";
+import { AckButton, AiBadge, InferredBadge, RiskAlerts, Shell, SupportedBadge, fmt, type Schemas } from "./common";
 
 type Briefing = Schemas["BriefingItem"];
 
@@ -108,7 +108,7 @@ function Body() {
   return (
     <div className="space-y-5">
       {alerts.error != null && <ErrorMsg error={alerts.error} />}
-      {alerts.data && <RiskAlerts alerts={alerts.data.items} names={names} />}
+      {alerts.data && <RiskAlerts alerts={alerts.data.items} names={names}>{(a) => <AckButton id={a.id} onDone={alerts.reload} />}</RiskAlerts>}
 
       <section className="rounded-lg border bg-gradient-to-br from-primary/10 to-transparent p-4 sm:p-6">
         <h1 className="text-2xl font-semibold">Prepare my day</h1>
@@ -136,6 +136,9 @@ function Body() {
               <li key={a.id} className="rounded-md border p-3 text-sm">
                 <span className="font-medium">{nm(a.client_id)}</span> · {String(a.payload.finding ?? a.type)}
                 {a.payload.detail != null && <span className="text-muted-foreground"> — {String(a.payload.detail)}</span>}
+                {a.acknowledged
+                  ? <p className="mt-1 text-xs text-muted-foreground">Acknowledged{a.acknowledged_at ? ` ${new Date(a.acknowledged_at).toLocaleString()}` : ""}</p>
+                  : <AckButton id={a.id} onDone={alerts.reload} />}
               </li>
             ))}
           </ul>

@@ -448,6 +448,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/therapists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Therapists */
+        get: operations["admin_therapists_admin_therapists_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/therapists/{therapist_id}/verify": {
         parameters: {
             query?: never;
@@ -794,6 +811,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/alerts/{alert_id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Acknowledge Alert */
+        post: operations["acknowledge_alert_alerts__alert_id__acknowledge_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/therapists/me/agent-runs": {
         parameters: {
             query?: never;
@@ -815,6 +849,24 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdminTherapistItem */
+        AdminTherapistItem: {
+            /** Id */
+            id: number;
+            /** Name */
+            name?: string | null;
+            /** Practice Id */
+            practice_id: number;
+            /** Practice Name */
+            practice_name: string;
+            /** Verified */
+            verified: boolean;
+        };
+        /** AdminTherapistsOut */
+        AdminTherapistsOut: {
+            /** Items */
+            items: components["schemas"]["AdminTherapistItem"][];
+        };
         /** AgentRunItem */
         AgentRunItem: {
             /** Run Id */
@@ -849,6 +901,8 @@ export interface components {
             };
             /** Acknowledged */
             acknowledged: boolean;
+            /** Acknowledged At */
+            acknowledged_at?: string | null;
             /** Created At */
             created_at: string;
         };
@@ -1271,6 +1325,32 @@ export interface components {
             /** Drafted */
             drafted: number;
         };
+        /** OwnerActionItem */
+        OwnerActionItem: {
+            /** Id */
+            id: number;
+            /** Type */
+            type: string;
+            /** Status */
+            status: string;
+            /** Practice Id */
+            practice_id: number;
+            /** Idempotency Key */
+            idempotency_key: string;
+            /** Decided By */
+            decided_by?: number | null;
+            /** Decided At */
+            decided_at?: string | null;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+        };
+        /** OwnerActionsOut */
+        OwnerActionsOut: {
+            /** Items */
+            items: components["schemas"]["OwnerActionItem"][];
+        };
         /** PendingActionOut */
         PendingActionOut: {
             /** Id */
@@ -1294,6 +1374,36 @@ export interface components {
             id: number;
             /** Name */
             name?: string | null;
+        };
+        /**
+         * PlanDiff
+         * @description Case plan before and after approving an apply_plan_update action (server-computed, same code as the apply).
+         */
+        PlanDiff: {
+            before: components["schemas"]["PlanSnapshot"];
+            after: components["schemas"]["PlanSnapshot"];
+            /** Changed */
+            changed: string[];
+            /**
+             * Stale
+             * @default false
+             */
+            stale: boolean;
+        };
+        /** PlanSnapshot */
+        PlanSnapshot: {
+            /** Approach */
+            approach?: string | null;
+            /**
+             * Goals
+             * @default []
+             */
+            goals: string[];
+            /**
+             * Formulation
+             * @default
+             */
+            formulation: string;
         };
         /** PracticeContact */
         PracticeContact: {
@@ -1339,6 +1449,39 @@ export interface components {
             /** Tagline */
             tagline?: string | null;
         };
+        /** PracticeDraftOut */
+        PracticeDraftOut: {
+            /** Id */
+            id: number;
+            /** Status */
+            status: string;
+            /** Slug */
+            slug: string;
+            /** Page */
+            page: {
+                [key: string]: unknown;
+            };
+            /** Run Id */
+            run_id?: string | null;
+            pending_action: components["schemas"]["PendingActionOut"];
+        };
+        /** PracticeItemOut */
+        PracticeItemOut: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /** Status */
+            status: string;
+            /** Verified */
+            verified: boolean;
+            /** Page */
+            page: {
+                [key: string]: unknown;
+            };
+        };
         /** PracticeRef */
         PracticeRef: {
             /** Id */
@@ -1347,6 +1490,11 @@ export interface components {
             name: string;
             /** Slug */
             slug: string;
+        };
+        /** PracticesOut */
+        PracticesOut: {
+            /** Items */
+            items: components["schemas"]["PracticeItemOut"][];
         };
         /** PrepareDayItem */
         PrepareDayItem: {
@@ -1469,6 +1617,7 @@ export interface components {
             /** Client Name */
             client_name?: string | null;
             client_view: components["schemas"]["ClientView"];
+            diff?: components["schemas"]["PlanDiff"] | null;
         };
         /** TherapistActionsOut */
         TherapistActionsOut: {
@@ -1594,6 +1743,23 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** VerifyIn */
+        VerifyIn: {
+            /**
+             * Verified
+             * @default true
+             */
+            verified: boolean;
+        };
+        /** VerifyOut */
+        VerifyOut: {
+            /** Id */
+            id: number;
+            /** Verified */
+            verified: boolean;
+            /** Status */
+            status?: string | null;
         };
     };
     responses: never;
@@ -1914,9 +2080,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["PracticeDraftOut"];
                 };
             };
             /** @description Validation Error */
@@ -1945,9 +2109,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["PracticesOut"];
                 };
             };
         };
@@ -2412,13 +2574,11 @@ export interface operations {
             };
         };
     };
-    verify_therapist_admin_therapists__therapist_id__verify_post: {
+    admin_therapists_admin_therapists_get: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                therapist_id: number;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -2429,9 +2589,33 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AdminTherapistsOut"];
+                };
+            };
+        };
+    };
+    verify_therapist_admin_therapists__therapist_id__verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                therapist_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["VerifyIn"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifyOut"];
                 };
             };
             /** @description Validation Error */
@@ -2454,7 +2638,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["VerifyIn"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -2462,9 +2650,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["VerifyOut"];
                 };
             };
             /** @description Validation Error */
@@ -2493,9 +2679,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OwnerActionsOut"];
                 };
             };
         };
@@ -2624,9 +2808,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["PracticeDraftOut"];
                 };
             };
             /** @description Validation Error */
@@ -2657,9 +2839,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AgentRunsOut"];
                 };
             };
             /** @description Validation Error */
@@ -3107,6 +3287,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AlertsOut"];
+                };
+            };
+        };
+    };
+    acknowledge_alert_alerts__alert_id__acknowledge_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alert_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

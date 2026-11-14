@@ -410,10 +410,25 @@ class ClientView(_Out):
     note: str
 
 
+class PlanSnapshot(_Out):
+    approach: str | None = None
+    goals: list[str] = []
+    formulation: str = ""
+
+
+class PlanDiff(_Out):
+    """Case plan before and after approving an apply_plan_update action (server-computed, same code as the apply)."""
+    before: PlanSnapshot
+    after: PlanSnapshot
+    changed: list[str]  # subset of approach, goals, formulation
+    stale: bool = False  # the plan changed since the draft; approving will be refused
+
+
 class TherapistActionItem(PendingActionOut):
     payload: dict[str, object]
     client_name: str | None = None
     client_view: ClientView
+    diff: PlanDiff | None = None
 
 
 class TherapistActionsOut(_Out):
@@ -427,6 +442,7 @@ class AlertItem(_Out):
     priority: str
     payload: dict[str, object]
     acknowledged: bool
+    acknowledged_at: str | None = None
     created_at: str
 
 
@@ -444,3 +460,58 @@ class AgentRunItem(_Out):
 
 class AgentRunsOut(_Out):
     items: list[AgentRunItem]
+
+
+# ---------- owner / admin responses ----------
+
+class VerifyIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    verified: bool = True
+
+
+class VerifyOut(_Out):
+    id: int
+    verified: bool
+    status: str | None = None
+
+
+class PracticeItemOut(_Out):
+    id: int
+    name: str
+    slug: str
+    status: str
+    verified: bool
+    page: dict[str, object]
+
+
+class PracticesOut(_Out):
+    items: list[PracticeItemOut]
+
+
+class OwnerActionItem(PendingActionOut):
+    payload: dict[str, object]
+
+
+class OwnerActionsOut(_Out):
+    items: list[OwnerActionItem]
+
+
+class PracticeDraftOut(_Out):
+    id: int
+    status: str
+    slug: str
+    page: dict[str, object]
+    run_id: str | None = None
+    pending_action: PendingActionOut
+
+
+class AdminTherapistItem(_Out):
+    id: int
+    name: str | None = None
+    practice_id: int
+    practice_name: str
+    verified: bool
+
+
+class AdminTherapistsOut(_Out):
+    items: list[AdminTherapistItem]

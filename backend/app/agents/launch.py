@@ -10,6 +10,7 @@ from typing import Any
 from uuid import uuid4
 
 import httpx
+from backend.app import fake_llm
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 MODEL_FAST = os.getenv("MODEL_FAST", "claude-haiku-5-5")
@@ -115,6 +116,8 @@ def _write_cache(model: str, prompt: str, payload: dict[str, Any]) -> None:
 
 
 def _request_page_json(prompt: str, *, max_tokens: int) -> str | None:
+    if fake_llm.enabled():
+        return fake_llm.complete(PAGE_SYSTEM, prompt)
     api_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("API_KEY")
     if not api_key or _budget_exceeded():
         return None
@@ -162,6 +165,8 @@ def _generate_validated_page(prompt: str, fallback: dict[str, Any], *, max_token
 
 
 def evaluate_claims_with_model(prompt: str, model: str | None = None) -> dict[str, Any]:
+    if fake_llm.enabled():
+        return {"status": "ok", "passed": True, "reasons": []}
     current_model = model or MODEL_FAST
     cache_hit = _cached_model_output(current_model, prompt)
     if cache_hit is not None:
