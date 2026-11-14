@@ -191,3 +191,43 @@ def train_risk_classifier() -> tuple[object, object, dict[str, float]]:
 def predict_risk(text: str, vectorizer: object, model: object) -> bool:
     transformed = vectorizer.transform([text])
     return bool(model.predict(transformed)[0])
+
+
+# ---------- post-check on clinical AI output (copilot, monitoring) ----------
+
+_DISORDERS = (r"(major depressi\w*|depressive disorder|generali[sz]ed anxiety( disorder)?|\bgad\b|ptsd|bipolar|\bocd\b|"
+              r"adhd|schizo\w*|borderline|personality disorder|panic disorder|insomnia disorder|psychosis|\w+ disorder)")
+DIAGNOSIS_PATTERNS = [
+    r"\bdiagnos(is|ed|e|es|ing)\b",
+    r"\bmeets? (the )?(dsm|icd|criteria)\b",
+    r"\b(has|have|is suffering from|suffers from|presents with|consistent with|indicative of)\s+(a |an )?" + _DISORDERS,
+    r"\b(is|are)\s+(clinically\s+)?(depressed|bipolar|psychotic|schizophrenic)\b",
+]
+MEDICATION_PATTERNS = [
+    r"\b(supplements?|melatonin|ashwagandha|magnesium|vitamin\s*[a-z0-9]+|omega-?3|st\.? john'?s wort|cbd|"
+    r"ssris?|snris?|sertraline|fluoxetine|escitalopram|benzodiazepines?|antidepressants?|anxiolytics?|"
+    r"medications?|medicines?|tablets?|pills?|dosage|doses?|\d+\s?mg)\b",
+]
+
+
+def clinical_output_violations(text: str) -> list[str]:
+    """Deterministic post-check: no diagnostic conclusions, no supplement/medication content in model-written text."""
+    normalized = _normalise(text)
+    found = []
+    for pattern in DIAGNOSIS_PATTERNS:
+        if m := re.search(pattern, normalized):
+            found.append(f"diagnostic conclusion: '{m.group(0)}'")
+    for pattern in MEDICATION_PATTERNS:
+        if m := re.search(pattern, normalized):
+            found.append(f"medication/supplement content: '{m.group(0)}'")
+    return found
+
+
+def free_text_values(value: object) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        return [t for v in value.values() for t in free_text_values(v)]
+    if isinstance(value, list):
+        return [t for v in value for t in free_text_values(v)]
+    return []

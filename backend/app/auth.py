@@ -7,11 +7,12 @@ from argon2 import PasswordHasher
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.app.config import settings
 from backend.app.db import get_db
-from backend.app.models import User, UserRole
+from backend.app.models import AvailabilitySlot, Booking, CasePlan, TherapistProfile, User, UserRole
 
 pwd_context = PasswordHasher()
 security = HTTPBearer(auto_error=False)
@@ -118,3 +119,29 @@ def can_access_practice_owner_data(user: User, owner_user_id: int) -> bool:
     if user.role == "practice_owner":
         return user.id == owner_user_id
     return False
+
+
+def therapist_has_client(db: Session, therapist_user_id: int, client_id: int) -> bool:
+    """A therapist may read a client only with a booking or a case plan between them."""
+    booked = db.scalar(
+        select(Booking.id)
+        .join(AvailabilitySlot, AvailabilitySlot.id == Booking.availability_slot_id)
+        .join(TherapistProfile, TherapistProfile.id == AvailabilitySlot.therapist_id)
+        .where(TherapistProfile.user_id == therapist_user_id, Booking.client_id == client_id)
+        .limit(1)
+    )
+    if booked is not None:
+        return True
+    return db.scalar(select(CasePlan.id).where(CasePlan.therapist_user_id == therapist_user_id,
+                                               CasePlan.client_id == client_id).limit(1)) is not None
+
+
+def require_therapist_of_client(
+    client_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+) -> User:
+    """Clinical routes: only the client's own therapist. Owners, admins, other therapists and clients get 403."""
+    if user.role != UserRole.therapist or not therapist_has_client(db, user.id, client_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    return user

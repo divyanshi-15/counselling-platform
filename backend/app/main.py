@@ -14,6 +14,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from backend.app.agents.copilot import CopilotError, prepare_my_day
 from backend.app.agents.launch import run_launch_agent
 from backend.app.auth import (
     create_access_token,
@@ -21,11 +22,18 @@ from backend.app.auth import (
     get_optional_current_user,
     hash_password,
     require_roles,
+    require_therapist_of_client,
     verify_password,
 )
 from backend.app.db import engine, get_db
+from backend.app.clinical import assessment_total, phq9_item9_positive, raise_risk_alert, scan_client_text
 from backend.app.models import (
     AgentRun,
+    Alert,
+    Assessment,
+    CasePlan,
+    CopilotBriefing,
+    TherapySession,
     AuditLog,
     AvailabilitySlot,
     Booking,
@@ -40,7 +48,10 @@ from backend.app.models import (
 from backend.app.safety import check_claims, render_prompt_data, risk_check, validate_ai_output
 from backend.app.schemas import (
     MessageResponse,
+    AssessmentIn,
     AvailabilitySlotIn,
+    CasePlanIn,
+    SessionNotesIn,
     BookingIn,
     IntakeFormIn,
     IntakeResponseIn,
@@ -99,14 +110,34 @@ def _pending_action_result(action: PendingAction) -> dict[str, object]:
     }
 
 
+OWNER_ACTION_TYPES = {"publish_page"}
+THERAPIST_ACTION_TYPES = {"copilot_briefing"}
+
+
 def _get_owner_pending_action(db: Session, action_id: int, user: User) -> PendingAction:
     action = db.query(PendingAction).filter(PendingAction.id == action_id).with_for_update().first()
     if action is None:
         raise HTTPException(status_code=404, detail="Pending action not found")
+    if action.type in THERAPIST_ACTION_TYPES:
+        if user.role != UserRole.therapist or action.assignee_user_id != user.id:
+            raise HTTPException(status_code=403, detail="Access denied")
+        return action
     practice = db.query(Practice).filter(Practice.id == action.practice_id).first()
-    if user.role != UserRole.practice_owner or practice is None or practice.owner_id != user.id:
+    if action.type not in OWNER_ACTION_TYPES or user.role != UserRole.practice_owner or practice is None or practice.owner_id != user.id:
         raise HTTPException(status_code=403, detail="Access denied")
     return action
+
+
+def _decide_briefing(db: Session, action: PendingAction, user: User, decision: str) -> None:
+    """Therapist decision on a copilot briefing. Marks the draft only; nothing is sent to the client."""
+    briefing = db.query(CopilotBriefing).filter(CopilotBriefing.id == action.payload.get("briefing_id"),
+                                                CopilotBriefing.therapist_user_id == user.id).first()
+    if briefing is None:
+        raise HTTPException(status_code=409, detail="Briefing draft is unavailable")
+    briefing.status = decision
+    action.status = decision
+    action.decided_by = user.id
+    action.decided_at = datetime.utcnow()
 
 
 def _check_action_key(action: PendingAction, idempotency_key: str | None) -> None:
@@ -601,6 +632,11 @@ def submit_booking_intake_response(
         raise HTTPException(status_code=409, detail="Intake response already submitted")
     response = IntakeResponse(booking_id=booking.id, client_id=current_user.id, answers_json=payload.answers)
     db.add(response)
+    risk = scan_client_text(payload.answers)
+    if risk:
+        db.flush()
+        raise_risk_alert(db, therapist_user_id=profile.user_id, client_id=current_user.id,
+                         source="intake_response", source_id=response.id, match=risk["match"])
     try:
         db.commit()
     except IntegrityError as exc:
@@ -608,7 +644,8 @@ def submit_booking_intake_response(
         raise HTTPException(status_code=409, detail="Intake response already submitted") from exc
     db.refresh(response)
     return {"id": response.id, "booking_id": response.booking_id, "answers": response.answers_json,
-            "submitted_at": response.submitted_at.isoformat()}
+            "submitted_at": response.submitted_at.isoformat(),
+            "safety": {"flagged": bool(risk), "message": risk["message"] if risk else None}}
 
 
 @app.get("/bookings/{booking_id}/intake-response")
@@ -703,7 +740,7 @@ def list_pending_actions(
     rows = (
         db.query(PendingAction)
         .join(Practice, Practice.id == PendingAction.practice_id)
-        .filter(Practice.owner_id == current_user.id)
+        .filter(Practice.owner_id == current_user.id, PendingAction.type.in_(OWNER_ACTION_TYPES))
         .order_by(PendingAction.created_at.desc(), PendingAction.id.desc())
         .all()
     )
@@ -718,7 +755,11 @@ def approve_pending_action(
     current_user: User = Depends(get_current_user),
 ) -> dict[str, object]:
     action = _get_owner_pending_action(db, action_id, current_user)
-    if action.status == "pending":
+    if action.status == "pending" and action.type == "copilot_briefing":
+        _check_action_key(action, idempotency_key)
+        _decide_briefing(db, action, current_user, "approved")
+        replay = False
+    elif action.status == "pending":
         _check_action_key(action, idempotency_key)
         if action.type != "publish_page":
             raise HTTPException(status_code=422, detail="Unsupported pending action type")
@@ -756,6 +797,8 @@ def reject_pending_action(
     action = _get_owner_pending_action(db, action_id, current_user)
     if action.status == "pending":
         _check_action_key(action, idempotency_key)
+        if action.type == "copilot_briefing":
+            _decide_briefing(db, action, current_user, "rejected")
         action.status = "rejected"
         action.decided_by = current_user.id
         action.decided_at = datetime.utcnow()
@@ -851,7 +894,7 @@ def practice_agent_runs(
     if practice.owner_id != current_user.id and current_user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    rows = db.query(AgentRun).filter(AgentRun.practice_id == practice_id).order_by(AgentRun.step.asc()).all()
+    rows = db.query(AgentRun).filter(AgentRun.practice_id == practice_id, AgentRun.agent == "launch").order_by(AgentRun.step.asc()).all()
     return {"items": [{"run_id": row.run_id, "step": row.step, "tool": row.tool, "summary": row.summary, "created_at": row.created_at.isoformat()} for row in rows]}
 
 
@@ -877,3 +920,209 @@ def demo_ai_output_validator(text: str) -> MessageResponse:
     if not valid:
         raise HTTPException(status_code=422, detail=reason)
     return MessageResponse(message="Approved")
+
+
+# ---------- 4b: session notes, assessments, case plans, copilot (therapist of the client only) ----------
+
+def _therapist_booking(db: Session, booking_id: int, user: User) -> tuple[Booking, TherapistProfile]:
+    if user.role != UserRole.therapist:
+        raise HTTPException(status_code=403, detail="Access denied")
+    booking, _, profile = _booking_for_participant(db, booking_id, user)
+    return booking, profile
+
+
+def _session_payload(row: TherapySession) -> dict[str, object]:
+    return {"id": row.id, "booking_id": row.booking_id, "client_id": row.client_id, "source": row.note_source,
+            "raw_notes": row.raw_notes, "structured": row.structured_json, "structured_status": row.structured_status,
+            "risk_flag": row.risk_flag, "updated_at": row.updated_at.isoformat()}
+
+
+@app.put("/bookings/{booking_id}/session-notes")
+def save_session_notes(
+    booking_id: int,
+    payload: SessionNotesIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, object]:
+    booking, profile = _therapist_booking(db, booking_id, current_user)
+    row = db.query(TherapySession).filter(TherapySession.booking_id == booking.id).first()
+    if row is None:
+        row = TherapySession(booking_id=booking.id, client_id=booking.client_id, therapist_user_id=current_user.id)
+    row.raw_notes = payload.raw_notes
+    row.note_source = payload.source
+    row.structured_json = None  # any AI structuring is stale once notes change
+    row.structured_status = "none"
+    row.updated_at = datetime.now(timezone.utc)
+    risk = scan_client_text(payload.raw_notes)  # transcripts contain client speech
+    row.risk_flag = bool(risk)
+    db.add(row)
+    db.flush()
+    if risk:
+        raise_risk_alert(db, therapist_user_id=current_user.id, client_id=booking.client_id,
+                         source="session_notes", source_id=row.id, match=risk["match"])
+    db.commit()
+    return _session_payload(row) | {"safety": {"flagged": bool(risk), "message": risk["message"] if risk else None}}
+
+
+@app.get("/bookings/{booking_id}/session-notes")
+def get_session_notes(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, object]:
+    booking, _ = _therapist_booking(db, booking_id, current_user)
+    row = db.query(TherapySession).filter(TherapySession.booking_id == booking.id).first()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Session notes not found")
+    return _session_payload(row)
+
+
+@app.post("/clients/{client_id}/assessments")
+def record_assessment(
+    client_id: int,
+    payload: AssessmentIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_therapist_of_client),
+) -> dict[str, object]:
+    try:
+        total = assessment_total(payload.type, payload.item_scores)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    row = Assessment(client_id=client_id, recorded_by=current_user.id, type=payload.type,
+                     item_scores=payload.item_scores, total=total,
+                     taken_at=payload.taken_at or datetime.now(timezone.utc))
+    db.add(row)
+    db.flush()
+    flagged = phq9_item9_positive(payload.type, payload.item_scores)
+    if flagged:
+        raise_risk_alert(db, therapist_user_id=current_user.id, client_id=client_id,
+                         source="phq9_item9", source_id=row.id, match="PHQ-9 item 9 > 0")
+    db.commit()
+    return {"id": row.id, "type": row.type, "total": row.total, "item_scores": row.item_scores,
+            "taken_at": row.taken_at.isoformat(), "risk_alert": flagged}
+
+
+@app.get("/clients/{client_id}/assessments")
+def list_assessments(
+    client_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_therapist_of_client),
+) -> dict[str, object]:
+    rows = db.query(Assessment).filter(Assessment.client_id == client_id).order_by(Assessment.taken_at.asc()).all()
+    return {"items": [{"id": r.id, "type": r.type, "total": r.total, "item_scores": r.item_scores,
+                       "taken_at": r.taken_at.isoformat()} for r in rows]}
+
+
+def _plan_payload(row: CasePlan) -> dict[str, object]:
+    return {"id": row.id, "client_id": row.client_id, "version": row.version, "approach": row.approach,
+            "formulation_text": row.formulation_text, "goals": row.goals_json,
+            "approved_at": row.approved_at.isoformat() if row.approved_at else None,
+            "created_at": row.created_at.isoformat()}
+
+
+@app.post("/clients/{client_id}/case-plans")
+def create_case_plan_version(
+    client_id: int,
+    payload: CasePlanIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_therapist_of_client),
+) -> dict[str, object]:
+    """Formulation is written by the therapist; each save is a new immutable version."""
+    latest = (db.query(CasePlan).filter(CasePlan.client_id == client_id, CasePlan.therapist_user_id == current_user.id)
+              .order_by(CasePlan.version.desc()).with_for_update().first())
+    row = CasePlan(client_id=client_id, therapist_user_id=current_user.id, version=(latest.version + 1) if latest else 1,
+                   approach=payload.approach, formulation_text=payload.formulation_text,
+                   goals_json=[g.model_dump() for g in payload.goals],
+                   approved_at=datetime.now(timezone.utc) if payload.approve else None)
+    db.add(row)
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Case plan version conflict; retry") from exc
+    return _plan_payload(row)
+
+
+@app.post("/clients/{client_id}/case-plans/{plan_id}/approve")
+def approve_case_plan(
+    client_id: int,
+    plan_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_therapist_of_client),
+) -> dict[str, object]:
+    row = db.query(CasePlan).filter(CasePlan.id == plan_id, CasePlan.client_id == client_id,
+                                    CasePlan.therapist_user_id == current_user.id).first()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Case plan not found")
+    if row.approved_at is None:
+        row.approved_at = datetime.now(timezone.utc)
+        db.commit()
+    return _plan_payload(row)
+
+
+@app.get("/clients/{client_id}/case-plans")
+def list_case_plans(
+    client_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_therapist_of_client),
+) -> dict[str, object]:
+    rows = (db.query(CasePlan).filter(CasePlan.client_id == client_id, CasePlan.therapist_user_id == current_user.id)
+            .order_by(CasePlan.version.desc()).all())
+    return {"items": [_plan_payload(r) for r in rows]}
+
+
+@app.post("/therapists/me/prepare-my-day")
+def prepare_my_day_endpoint(
+    hours: int = Query(default=24, ge=1, le=168),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.therapist)),
+) -> dict[str, object]:
+    try:
+        return {"items": prepare_my_day(db, current_user, hours=hours)}
+    except CopilotError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.get("/therapists/me/briefings")
+def list_briefings(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.therapist)),
+) -> dict[str, object]:
+    rows = (db.query(CopilotBriefing).filter(CopilotBriefing.therapist_user_id == current_user.id)
+            .order_by(CopilotBriefing.created_at.desc()).limit(50).all())
+    return {"items": [{"id": r.id, "client_id": r.client_id, "status": r.status, "run_id": r.run_id,
+                       "briefing": r.briefing_json, "created_at": r.created_at.isoformat()} for r in rows]}
+
+
+@app.get("/therapists/me/pending-actions")
+def therapist_pending_actions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.therapist)),
+) -> dict[str, object]:
+    rows = (db.query(PendingAction).filter(PendingAction.assignee_user_id == current_user.id,
+                                           PendingAction.type.in_(THERAPIST_ACTION_TYPES))
+            .order_by(PendingAction.created_at.desc()).all())
+    return {"items": [_pending_action_result(r) | {"payload": r.payload} for r in rows]}
+
+
+@app.get("/therapists/me/alerts")
+def therapist_alerts(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.therapist)),
+) -> dict[str, object]:
+    rows = (db.query(Alert).filter(Alert.therapist_user_id == current_user.id)
+            .order_by(Alert.acknowledged.asc(), Alert.created_at.desc()).all())
+    return {"items": [{"id": r.id, "client_id": r.client_id, "type": r.type, "priority": r.priority,
+                       "payload": r.payload, "acknowledged": r.acknowledged, "created_at": r.created_at.isoformat()}
+                      for r in rows]}
+
+
+@app.get("/therapists/me/agent-runs")
+def therapist_agent_runs(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.therapist)),
+) -> dict[str, object]:
+    rows = (db.query(AgentRun).filter(AgentRun.actor_user_id == current_user.id, AgentRun.agent == "copilot")
+            .order_by(AgentRun.created_at.desc(), AgentRun.step.asc()).limit(200).all())
+    return {"items": [{"run_id": r.run_id, "step": r.step, "tool": r.tool, "summary": r.summary,
+                       "created_at": r.created_at.isoformat()} for r in rows]}

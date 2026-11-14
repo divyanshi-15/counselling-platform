@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -81,3 +82,26 @@ class IntakeResponseIn(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+class SessionNotesIn(BaseModel):
+    raw_notes: str = Field(min_length=1, max_length=50000)
+    source: Literal["typed", "transcript"] = "typed"
+
+
+class AssessmentIn(BaseModel):
+    type: Literal["PHQ9", "GAD7"]
+    item_scores: list[int]
+    taken_at: datetime | None = None
+
+
+class CaseGoal(BaseModel):
+    id: str = Field(min_length=1, max_length=40)
+    text: str = Field(min_length=1, max_length=500)
+
+
+class CasePlanIn(BaseModel):
+    approach: str = Field(min_length=1, max_length=32)
+    formulation_text: str = Field(min_length=1, max_length=20000)
+    goals: list[CaseGoal] = Field(default_factory=list, max_length=12)
+    approve: bool = False

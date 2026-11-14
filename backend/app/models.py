@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import Boolean, Computed, DateTime, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.app.db import Base
@@ -110,6 +112,8 @@ class PendingAction(Base):
     decided_by: Mapped[int | None] = mapped_column(Integer, nullable=True)
     decided_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    # Clinical actions are decided by this therapist only; practice owners only see publish_page.
+    assignee_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
 
 
 class AgentRun(Base):
@@ -122,6 +126,8 @@ class AgentRun(Base):
     tool: Mapped[str] = mapped_column(String(64), nullable=False)
     summary: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    agent: Mapped[str] = mapped_column(String(32), nullable=False, default="launch", server_default="launch")
+    actor_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
 
 
 class AuditLog(Base):
@@ -134,3 +140,126 @@ class AuditLog(Base):
     entity_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     details: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+EMBEDDING_DIM = 384
+
+
+class KbDocument(Base):
+    __tablename__ = "kb_documents"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    slug: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    approach: Mapped[str] = mapped_column(String(32), nullable=False)
+    language: Mapped[str] = mapped_column(String(16), nullable=False)
+    source_inspired_by: Mapped[str] = mapped_column(Text, nullable=False)
+    licence: Mapped[str] = mapped_column(String(100), nullable=False, default="original, for demo")
+    reviewed_by: Mapped[str] = mapped_column(String(150), nullable=False, default="UNREVIEWED")
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+
+class KbChunk(Base):
+    __tablename__ = "kb_chunks"
+    __table_args__ = (
+        Index("ix_kb_chunks_approach_language", "approach", "language"),
+        Index("ix_kb_chunks_tsv", "tsv", postgresql_using="gin"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    document_id: Mapped[int] = mapped_column(ForeignKey("kb_documents.id", ondelete="CASCADE"), nullable=False, index=True)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    approach: Mapped[str] = mapped_column(String(32), nullable=False)
+    language: Mapped[str] = mapped_column(String(16), nullable=False)
+    topic_tags: Mapped[list[str]] = mapped_column(ARRAY(String(64)), nullable=False, default=list)
+    embedding: Mapped[list[float]] = mapped_column(Vector(EMBEDDING_DIM), nullable=False)
+    tsv: Mapped[str] = mapped_column(TSVECTOR, Computed("to_tsvector('english', text)", persisted=True))
+
+
+class CaseMemoryChunk(Base):
+    __tablename__ = "case_memory_chunks"
+    __table_args__ = (
+        Index("ix_case_memory_client_therapist", "client_id", "therapist_user_id"),
+        Index("ix_case_memory_tsv", "tsv", postgresql_using="gin"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    client_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    therapist_user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    source_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    source_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    embedding: Mapped[list[float]] = mapped_column(Vector(EMBEDDING_DIM), nullable=False)
+    tsv: Mapped[str] = mapped_column(TSVECTOR, Computed("to_tsvector('english', text)", persisted=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+
+class TherapySession(Base):
+    __tablename__ = "sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    booking_id: Mapped[int] = mapped_column(ForeignKey("bookings.id", ondelete="CASCADE"), unique=True, nullable=False)
+    client_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    therapist_user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    note_source: Mapped[str] = mapped_column(String(16), nullable=False, default="typed")
+    raw_notes: Mapped[str] = mapped_column(Text, nullable=False)
+    structured_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    structured_status: Mapped[str] = mapped_column(String(16), nullable=False, default="none")
+    risk_flag: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+
+class CasePlan(Base):
+    __tablename__ = "case_plans"
+    __table_args__ = (UniqueConstraint("client_id", "therapist_user_id", "version", name="uq_case_plan_version"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    client_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    therapist_user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    approach: Mapped[str] = mapped_column(String(32), nullable=False)
+    formulation_text: Mapped[str] = mapped_column(Text, nullable=False)
+    goals_json: Mapped[list[dict]] = mapped_column(JSON, nullable=False, default=list)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+
+class Assessment(Base):
+    __tablename__ = "assessments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    client_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    recorded_by: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    type: Mapped[str] = mapped_column(String(8), nullable=False)
+    item_scores: Mapped[list[int]] = mapped_column(JSON, nullable=False)
+    total: Mapped[int] = mapped_column(Integer, nullable=False)
+    taken_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class Alert(Base):
+    __tablename__ = "alerts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    therapist_user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    client_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    type: Mapped[str] = mapped_column(String(16), nullable=False)
+    priority: Mapped[str] = mapped_column(String(16), nullable=False, default="normal")
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    acknowledged: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+
+class CopilotBriefing(Base):
+    __tablename__ = "copilot_briefings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    therapist_user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    client_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    run_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    input_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft")
+    briefing_json: Mapped[dict] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
