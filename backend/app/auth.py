@@ -66,6 +66,26 @@ def get_current_user(
     return user
 
 
+def get_optional_current_user(
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(security)] = None,
+) -> User | None:
+    token = request.cookies.get("access_token")
+    if not token and credentials:
+        token = credentials.credentials
+    if not token:
+        return None
+    payload = decode_access_token(token)
+    email = payload.get("sub")
+    if not email:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    return user
+
+
 def require_roles(*roles: UserRole | str):
     def dependency(user: Annotated[User, Depends(get_current_user)]) -> User:
         normalized = {getattr(role, "value", role) for role in roles}

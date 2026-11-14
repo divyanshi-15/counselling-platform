@@ -18,6 +18,7 @@ from backend.app.agents.launch import run_launch_agent
 from backend.app.auth import (
     create_access_token,
     get_current_user,
+    get_optional_current_user,
     hash_password,
     require_roles,
     verify_password,
@@ -213,8 +214,8 @@ def _send_booking_confirmation(client: User, therapist: User, practice: Practice
                 message["From"] = os.getenv("SMTP_FROM", smtp_user)
                 message["To"] = recipient
                 message.set_content(
-                    f"Practice: {practice.name}\nSession time: {starts_at}\n"
-                    "Demo: use fictional information only."
+                    f"Practice: {practice.name}\nTherapist: {therapist.name or therapist.email}\n"
+                    f"Session time: {starts_at}\n"
                 )
                 connection.send_message(message)
     except (OSError, smtplib.SMTPException):
@@ -436,7 +437,13 @@ def public_therapists(
 
 
 @app.get("/therapists/{therapist_id}/availability")
-def public_therapist_availability(therapist_id: int, db: Session = Depends(get_db)) -> dict[str, object]:
+def public_therapist_availability(
+    therapist_id: int,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_current_user),
+) -> dict[str, object]:
+    if current_user is not None and current_user.role == UserRole.practice_owner:
+        raise HTTPException(status_code=403, detail="Access denied")
     if _public_therapist_query(db, therapist_id).first() is None:
         raise HTTPException(status_code=404, detail="Therapist not found")
     booked_slot_ids = db.query(Booking.availability_slot_id)
