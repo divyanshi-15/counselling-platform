@@ -72,3 +72,20 @@ def test_ai_output_rejects_diagnostic_and_supplement_language() -> None:
 
 def test_safety_suite_has_30_examples() -> None:
     assert len(RISK_CASES) + len(SAFE_CASES) == 30
+
+
+import pytest
+from app.safety import risk_scan
+
+
+@pytest.mark.parametrize("text", ["About 5", "Twice a week", "Yes", "Mornings", "No", "3"])
+def test_short_answers_never_trigger(text):
+    assert not risk_check(text)["flagged"]
+    assert not risk_scan(text)["flagged"]
+
+
+@pytest.mark.parametrize("text", ["I want to die", "मैं मरना चाहता हूँ", "main marna chahta hoon"])
+def test_short_risk_phrases_still_hit_layer1(text):
+    assert risk_check(text)["layer"] == 1
+    assert risk_scan(text)["layer"] == 1
+    assert risk_scan(text, layer2=False)["layer"] == 1

@@ -44,9 +44,6 @@ COST CONTROLS
 - AI down → safety path and manual workflows still work
 
 CURRENT STATE
-Done: 1, 2/2b, 2c, 3, 4a (kb/ 12 entries, `make kb`, hybrid RRF retrieval, citation validator, per-client case memory), 4b (sessions, case_plans, assessments, alerts, copilot_briefings; copilot agent; therapist inbox/alerts/agent-runs). 83 tests passing.
-Embedding model is baked into the image at /opt/fastembed; tests use FakeEmbedder. Run tests with `--build` (image installs backend non-editable).
-Remaining:
-- 4c Exercises (thought_record, brain_dump + Kannada), release via approval inbox, exercise runner (fixed template; only save_checkin and flag_risk), check-ins, client-side risk flow.
-- Frontend demo path: public list/page, client dashboard + exercise page + Jitsi iframe, therapist notes/case plan/Prepare my day/approval inbox/alerts, owner onboarding chat + preview/publish, admin verify toggle, Agent activity panel.
-- 5 Monitoring: APScheduler nightly + "Run overnight check now"; deterministic plateau/drift (PHQ-9/GAD-7 slope over 2 weeks, homework <50%, goal untouched 3 sessions); model only drafts plan-update text → alert + pending_action. Seed (2 practices, 3 therapists, 4 clients, plateau scores, notes, KB, demo logins), safety tests (30 phrases), claims bait; README (diagram, run, eval table incl. KB threshold calibration, guardrails, roadmap: payments, calendar sync, meeting bot, DPDP review).
+Done: 1-4b, hardening, 5a (monitoring agent, scheduler, seed), safety fix: layer 2 skips <4 words and numeric/date values (`risk_scan(layer2=False)` for single-choice); layer 1 always runs. Migration 008. Run tests with `--build`.
+Remaining: 4c gaps (brain_dump exercise, Kannada/Hindi templates); frontend demo path; 5b safety tests (30 phrases), claims bait, README (diagram, KB calibration, guardrails).
+Env: OVERNIGHT_HOUR_UTC (21), SCHEDULER_ENABLED=0 disables job (off in test). Dep: apscheduler<4.

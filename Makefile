@@ -6,7 +6,7 @@ up:
 	docker compose up --build -d
 
 seed:
-	$(PYTHON) backend/scripts/seed.py
+	docker compose run --build --rm api sh -c 'alembic -c backend/alembic.ini upgrade head && python -m backend.scripts.seed $(ARGS)'
 
 kb:
 	docker compose run --build --rm api sh -c 'alembic -c backend/alembic.ini upgrade head && python -m backend.scripts.load_kb'

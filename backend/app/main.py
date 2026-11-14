@@ -4,6 +4,7 @@ import json
 import os
 import re
 import smtplib
+from contextlib import asynccontextmanager
 from email.message import EmailMessage
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -16,6 +17,8 @@ from sqlalchemy.orm import Session
 
 from backend.app.agents.copilot import CopilotError, prepare_my_day
 from backend.app.agents.launch import run_launch_agent
+from backend.app.agents.monitor import run_overnight_check
+from backend.app.scheduler import start_scheduler
 from backend.app.auth import (
     therapist_has_client,
     create_access_token,
@@ -70,7 +73,17 @@ from backend.app.schemas import (
     UserOut,
 )
 
-app = FastAPI(title="Counselling Practice Platform")
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    scheduler = start_scheduler()
+    try:
+        yield
+    finally:
+        if scheduler is not None:
+            scheduler.shutdown(wait=False)
+
+
+app = FastAPI(title="Counselling Practice Platform", lifespan=lifespan)
 app.include_router(exercises_router)
 
 
@@ -118,7 +131,7 @@ def _pending_action_result(action: PendingAction) -> dict[str, object]:
 
 
 OWNER_ACTION_TYPES = {"publish_page"}
-THERAPIST_ACTION_TYPES = {"copilot_briefing", "release_exercise"}
+THERAPIST_ACTION_TYPES = {"copilot_briefing", "release_exercise", "apply_plan_update"}
 
 
 def _get_owner_pending_action(db: Session, action_id: int, user: User) -> PendingAction:
@@ -158,6 +171,25 @@ def _release_exercise(db: Session, action: PendingAction, user: User) -> None:
     action.status = "approved"
     action.decided_by = user.id
     action.decided_at = datetime.now(timezone.utc)
+
+
+def _apply_plan_update(db: Session, action: PendingAction, user: User) -> None:
+    """Therapist approval creates a new case_plan version. Refuses if the plan changed since the draft."""
+    client_id = action.payload.get("client_id")
+    if not isinstance(client_id, int) or not therapist_has_client(db, user.id, client_id):
+        raise HTTPException(status_code=409, detail="Plan update is unavailable")
+    latest = (db.query(CasePlan).filter(CasePlan.client_id == client_id, CasePlan.therapist_user_id == user.id)
+              .order_by(CasePlan.version.desc()).with_for_update().first())
+    if latest is None or latest.id != action.payload.get("base_plan_id"):
+        raise HTTPException(status_code=409, detail="The plan changed since this draft; reject it and re-run the check")
+    now = datetime.now(timezone.utc)
+    db.add(CasePlan(client_id=client_id, therapist_user_id=user.id, version=latest.version + 1,
+                    approach=latest.approach, goals_json=latest.goals_json, approved_at=now,
+                    formulation_text=f"{latest.formulation_text}\n\nPlan update ({now.date().isoformat()}, "
+                                     f"drafted by monitoring, approved by therapist): {action.payload.get('update_text', '')}"))
+    action.status = "approved"
+    action.decided_by = user.id
+    action.decided_at = now
 
 
 def _check_action_key(action: PendingAction, idempotency_key: str | None) -> None:
@@ -784,6 +816,10 @@ def approve_pending_action(
         _check_action_key(action, idempotency_key)
         _release_exercise(db, action, current_user)
         replay = False
+    elif action.status == "pending" and action.type == "apply_plan_update":
+        _check_action_key(action, idempotency_key)
+        _apply_plan_update(db, action, current_user)
+        replay = False
     elif action.status == "pending":
         _check_action_key(action, idempotency_key)
         if action.type != "publish_page":
@@ -1112,6 +1148,17 @@ def prepare_my_day_endpoint(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
+@app.post("/therapist/overnight-check")
+def overnight_check(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.therapist)),
+) -> dict[str, object]:
+    try:
+        return run_overnight_check(db, current_user)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
 @app.get("/therapists/me/briefings")
 def list_briefings(
     db: Session = Depends(get_db),
@@ -1151,7 +1198,8 @@ def therapist_agent_runs(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.therapist)),
 ) -> dict[str, object]:
-    rows = (db.query(AgentRun).filter(AgentRun.actor_user_id == current_user.id, AgentRun.agent == "copilot")
+    rows = (db.query(AgentRun).filter(AgentRun.actor_user_id == current_user.id,
+                                         AgentRun.agent.in_(("copilot", "monitor")))
             .order_by(AgentRun.created_at.desc(), AgentRun.step.asc()).limit(200).all())
     return {"items": [{"run_id": r.run_id, "step": r.step, "tool": r.tool, "summary": r.summary,
                        "created_at": r.created_at.isoformat()} for r in rows]}

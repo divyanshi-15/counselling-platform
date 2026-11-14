@@ -38,13 +38,14 @@ flowchart LR
 
 Two layers, either one triggers the fixed crisis message (Tele-MANAS 14416 / 1-800-891-4416) and a high-priority therapist alert. No model call, no API key needed.
 Layer 1: keyword/pattern match (EN/HI/KN, native + romanised). Layer 2: multilingual-e5-small embeddings + logistic regression (threshold 0.5), trained on 60 hand-written synthetic phrases (30 risk / 30 non-risk incl. idioms such as "this deadline is killing me").
+Short-text rule: layer 2 does not run on inputs under 4 words or on numeric/date values (and `risk_scan(..., layer2=False)` skips it for single-choice fields); layer 1 always runs, so "I want to die" is still caught. The table below applies this rule.
 Held-out = 18 of the 60 phrases (stratified 70/30 split, fixed seed), real embedder. Reproduce: `docker compose run --rm api python -m backend.scripts.eval_risk`.
 
 | Detector | Precision | Recall |
 | --- | --- | --- |
 | Layer 1 only | 1.00 | 0.89 |
-| Layer 2 only | 0.67 | 0.67 |
-| Layer 1 OR layer 2 (deployed) | 0.75 | 1.00 |
+| Layer 2 only (short-text rule) | 0.67 | 0.44 |
+| Layer 1 OR layer 2 (deployed) | 0.82 | 1.00 |
 
 Hard negatives (15 benign phrases with risk-like words, `make risk-report`): layer 1 fires on 0/15 (asserted in tests). Layer 2 (report only) fires on 1/15 ("I'm dying to see my friends", 0.59 vs threshold 0.5); the next-highest are 0.48 ("I'd die of embarrassment...", "I'm starving to death...") and 0.44, so several sit near the threshold. Expect some false alerts from idioms; accepted on purpose.
 
@@ -112,9 +113,21 @@ Result: in-domain 0.791-0.880, out-of-domain 0.749-0.844. The sets **overlap** (
 - Meeting bot notes capture
 - DPDP review and retention policy
 
-## Demo users
+## Demo data and logins
 
-- Admin: admin@example.com / admin123
-- Practice owner: owner@example.com / owner123
-- Therapist: therapist@example.com / therapist123
-- Client: client@example.com / client123
+`make seed` (idempotent, loads the KB, `make seed ARGS=--check` also prints retrieval margins with the real embedder). All people are fictional.
+
+| Role | Login | Password | Notes |
+|---|---|---|---|
+| Admin | admin@example.com | admin123 | verify toggle |
+| Practice owner | owner@example.com | owner123 | Demo Calm Minds Practice (published + verified) |
+| Practice owner | owner2@example.com | owner123 | Demo Harbour Counselling (draft) |
+| Therapist | therapist@example.com | therapist123 | clients Alpha, Beta |
+| Therapist | therapist2@example.com | therapist123 | client Gamma |
+| Therapist | therapist3@example.com | therapist123 | client Delta (practice 2, unverified) |
+| Client | client@example.com | client123 | Alpha: PHQ-9/GAD-7 plateau, 1 of 4 exercises done, racing thoughts at night |
+| Client | client2@example.com / client3@example.com / client4@example.com | client123 | improving, no alerts |
+
+## Monitoring (overnight check)
+
+Nightly APScheduler job (21:00 UTC, `OVERNIGHT_HOUR_UTC`; single worker plus a Postgres advisory lock) or `POST /therapist/overnight-check`. Code, not the model, flags per client: PHQ-9/GAD-7 slope over 14 days better than -1 point/week not reached (needs two readings at least 7 days apart, latest score 5 or more), under 50% of exercises completed in 14 days (2 or more assigned), a plan goal with no keyword overlap in the last 3 session notes. The model (`MODEL_FAST`, cached, 400 tokens, Pydantic-validated, diagnosis/medication post-check) only drafts the plan-update wording; without AI, or for a risk-flagged client, a fixed template is used. Each finding makes an alert (unique per client, date, type) and one `apply_plan_update` pending action; only the assigned therapist's approval creates a new `case_plans` version, and only if the plan has not changed since the draft.

@@ -49,6 +49,7 @@ RISK_KEYWORDS = {
         "don't want to be here",
         "dont want to be here",
         "better off without me",
+        "tired of having to fight through every day",
     ],
     "hi": [
         "मैं खुदकुशी करना चाहता हूँ",
@@ -73,6 +74,9 @@ RISK_KEYWORDS = {
         "खुद को खत्म",
         "खुद को नुकसान",
         "सब खत्म कर",
+        "काश मैं सो जाऊँ और फिर कभी न उठूँ",
+        "हर दिन लड़ते लड़ते अब थक गया हूँ",
+        "हर दिन लड़ते-लड़ते अब थक गया हूँ",
     ],
     "hi_roman": [
         "marna chahta",
@@ -224,7 +228,8 @@ def evaluate_classifier(embedder) -> dict[str, object]:
     texts, labels = POSITIVE + NEGATIVE, [1] * len(POSITIVE) + [0] * len(NEGATIVE)
     x_train, x_test, y_train, y_test = train_test_split(texts, labels, test_size=0.3, stratify=labels, random_state=42)
     model = fit_classifier(embedder, x_train, y_train)
-    l2 = [int(model.predict_proba([v])[0][1] >= RISK_THRESHOLD) for v in _embed(embedder, [_normalise(t) for t in x_test])]
+    l2 = [int(layer2_applies(t) and model.predict_proba([v])[0][1] >= RISK_THRESHOLD)
+          for t, v in zip(x_test, _embed(embedder, [_normalise(t) for t in x_test]))]
     both = [int(bool(a or risk_check(t)["flagged"])) for a, t in zip(l2, x_test)]
     def pr(pred):
         return {"precision": round(float(precision_score(y_test, pred, zero_division=0)), 3),
@@ -245,10 +250,21 @@ def _get_classifier(embedder) -> LogisticRegression:
     return _classifier[1]
 
 
-def risk_scan(text: str) -> dict[str, object]:
-    """Layer 1 OR layer 2 (local embeddings + logistic regression). A hit from either is a hit. No LLM involved."""
+LAYER2_MIN_WORDS = 4
+_STRUCTURED = re.compile(r"^[\d\s.,:/+\-]+$")  # numeric or date-like values (e.g. "3", "2026-11-15", "10:30")
+
+
+def layer2_applies(text: str) -> bool:
+    """Layer 2 only judges free text of >= 4 words; never numeric/date values. Layer 1 is unaffected."""
+    t = (text or "").strip()
+    return len(t.split()) >= LAYER2_MIN_WORDS and not _STRUCTURED.match(t)
+
+
+def risk_scan(text: str, *, layer2: bool = True) -> dict[str, object]:
+    """Layer 1 OR layer 2 (local embeddings + logistic regression). A hit from either is a hit. No LLM involved.
+    Pass layer2=False for single-choice fields; layer 1 always runs."""
     result = risk_check(text)
-    if result["flagged"] or not (text or "").strip():
+    if result["flagged"] or not layer2 or not layer2_applies(text):
         return result
     try:
         from backend.app.embeddings import get_embedder
