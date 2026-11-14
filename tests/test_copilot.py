@@ -151,6 +151,27 @@ def test_practice_owner_denied_clinical_data(world, monkeypatch) -> None:
     assert client.post(f"/pending-actions/{action_id}/approve", headers=owner | {"Idempotency-Key": key}).status_code == 403
 
 
+def test_practice_owner_cannot_see_copilot_actions_briefings_or_runs(world, monkeypatch) -> None:
+    client, w = world
+    _setup_case(client, w)
+    monkeypatch.setattr(copilot, "call_model", FakeModel([GOOD]))
+    item = client.post("/therapists/me/prepare-my-day", headers=_h(w["ta"])).json()["items"][0]
+    action_id = item["pending_action_id"]
+    owner = _h(w["owner"])
+    # therapist sees them (sanity), owner is refused on every therapist-side listing
+    assert client.get("/therapists/me/briefings", headers=_h(w["ta"])).json()["items"]
+    assert client.get("/therapists/me/agent-runs", headers=_h(w["ta"])).json()["items"]
+    for path in ("/therapists/me/pending-actions", "/therapists/me/briefings", "/therapists/me/agent-runs"):
+        assert client.get(path, headers=owner).status_code == 403, path
+    # owner-facing listings never include copilot rows
+    assert action_id not in [a["id"] for a in client.get("/pending-actions", headers=owner).json()["items"]]
+    with SessionLocal() as db:
+        copilot_run_ids = {r.run_id for r in db.query(AgentRun).filter(AgentRun.agent == "copilot")}
+    assert copilot_run_ids
+    runs = client.get(f"/practices/{w['practice'].id}/agent-runs", headers=owner).json()["items"]
+    assert not copilot_run_ids & {r["run_id"] for r in runs}
+
+
 def test_client_cannot_read_own_clinical_records_via_therapist_routes(world) -> None:
     client, w = world
     _setup_case(client, w)

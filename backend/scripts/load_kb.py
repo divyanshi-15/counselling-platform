@@ -9,9 +9,10 @@ from backend.app.rag import load_kb
 
 
 def main() -> None:
-    kb_dir = sys.argv[1] if len(sys.argv) > 1 else settings.kb_dir
+    args = [a for a in sys.argv[1:] if a != "--force"]
+    kb_dir = args[0] if args else settings.kb_dir
     with SessionLocal() as db:
-        print(load_kb(db, kb_dir))
+        print(load_kb(db, kb_dir, force="--force" in sys.argv))
 
 
 if __name__ == "__main__":

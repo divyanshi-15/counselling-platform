@@ -29,3 +29,11 @@ Grounding brings attention back to the present moment through the senses. It can
 5. Notice two things you can smell, or recall two smells you like.
 6. Notice one thing you can taste, or take a sip of water.
 7. Say the date, where you are, and that you are safe right now, if that is true.
+
+## Also described as
+- feel unreal or far away
+- panicky and scattered
+- mind is all over the place
+- flashbacks or sudden fear
+- need to feel present
+- head spinning

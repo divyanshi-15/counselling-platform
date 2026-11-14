@@ -29,3 +29,11 @@ People cope better when they feel connected. Social support planning helps someo
 5. Decide what you will do: a message, a call, a short visit, or joining an activity.
 6. Plan what you might say, if that helps.
 7. Afterwards, note how it went and choose a next step.
+
+## Also described as
+- feel lonely
+- no one to talk to
+- feel isolated
+- don't want to burden anyone
+- lost touch with friends
+- need people around me

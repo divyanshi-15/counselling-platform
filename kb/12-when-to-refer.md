@@ -30,3 +30,11 @@ Self-help skills have limits. This entry outlines signs that a person needs more
 5. Help them contact a trusted person who can be with them.
 6. Inform the responsible therapist straight away and record what happened.
 7. Arrange a follow-up with a qualified professional as soon as possible.
+
+## Also described as
+- things are getting worse
+- not improving with support
+- feel unsafe
+- thoughts of not wanting to be here
+- need more help than this
+- when to see a doctor

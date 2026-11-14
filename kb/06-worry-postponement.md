@@ -29,3 +29,11 @@ Worry postponement teaches that worry can be scheduled rather than obeyed the mo
 5. For each worry, ask whether it still matters and whether there is anything you can do.
 6. If yes, plan one small action; if not, let it go for now.
 7. When the time is up, stop and move to an absorbing activity.
+
+## Also described as
+- can't stop worrying
+- mind racing at night
+- worrying about everything
+- what-if thoughts
+- lie awake worrying
+- anxious thoughts all day

@@ -45,6 +45,7 @@ from backend.app.models import (
     User,
     UserRole,
 )
+from backend.app.rag import index_session_notes
 from backend.app.safety import check_claims, render_prompt_data, risk_check, validate_ai_output
 from backend.app.schemas import (
     MessageResponse,
@@ -106,7 +107,7 @@ def _pending_action_result(action: PendingAction) -> dict[str, object]:
         "practice_id": action.practice_id,
         "idempotency_key": action.idempotency_key,
         "decided_by": action.decided_by,
-        "decided_at": action.decided_at.isoformat() if action.decided_at else None,
+        "decided_at": (action.decided_at.replace(tzinfo=timezone.utc).isoformat() if action.decided_at else None),  # naive column stores UTC
     }
 
 
@@ -137,7 +138,7 @@ def _decide_briefing(db: Session, action: PendingAction, user: User, decision: s
     briefing.status = decision
     action.status = decision
     action.decided_by = user.id
-    action.decided_at = datetime.utcnow()
+    action.decided_at = datetime.now(timezone.utc)
 
 
 def _check_action_key(action: PendingAction, idempotency_key: str | None) -> None:
@@ -771,7 +772,7 @@ def approve_pending_action(
         practice.status = "published"
         action.status = "approved"
         action.decided_by = current_user.id
-        action.decided_at = datetime.utcnow()
+        action.decided_at = datetime.now(timezone.utc)
         replay = False
     else:
         replay = True
@@ -801,7 +802,7 @@ def reject_pending_action(
             _decide_briefing(db, action, current_user, "rejected")
         action.status = "rejected"
         action.decided_by = current_user.id
-        action.decided_at = datetime.utcnow()
+        action.decided_at = datetime.now(timezone.utc)
         replay = False
     else:
         replay = True
@@ -957,6 +958,7 @@ def save_session_notes(
     row.risk_flag = bool(risk)
     db.add(row)
     db.flush()
+    index_session_notes(db, current_user, booking.client_id, row.id, payload.raw_notes)
     if risk:
         raise_risk_alert(db, therapist_user_id=current_user.id, client_id=booking.client_id,
                          source="session_notes", source_id=row.id, match=risk["match"])

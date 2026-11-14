@@ -34,6 +34,59 @@ flowchart LR
 | Access-control tests | passing |
 | Claims screening | passing |
 
+## RAG calibration
+
+Real `multilingual-e5-small` (`query: ` / `passage: ` prefixes), top-1 cosine similarity against the 12-entry KB (each entry includes an "Also described as" section of lay phrases).
+Reproduce with `make kb` then `make calibrate`. **The threshold must be recalibrated whenever KB entries change** (e.g. after clinician edits): rerun `make calibrate` and update `KB_MIN_SIMILARITY` and the recorded scores in `tests/test_rag.py`.
+
+| In-domain query | Top-1 sim | Full-text hit |
+| --- | --- | --- |
+| anxiety at night | 0.839 | yes |
+| can't stop worrying | 0.830 | yes |
+| low motivation | 0.846 | yes |
+| breathing for panic | 0.868 | yes |
+| trouble falling asleep | 0.859 | yes |
+| feeling overwhelmed and stressed | 0.839 | yes |
+| grounding when I feel panicky | 0.880 | yes |
+| how to challenge negative thoughts | 0.850 | yes |
+| I feel lonely and want support | 0.817 | yes |
+| managing intense emotions | 0.860 | yes |
+| mind racing at night | 0.791 | yes |
+| no energy to do anything | 0.818 | no |
+| can't switch off before bed | 0.851 | yes |
+| Client reports lying awake for hours with worries about exams. Sleep has been around five hours. She tries to scroll on her phone in bed. | 0.827 | yes |
+| Client describes withdrawing from friends and staying in most days. Mood is low and he says nothing feels worth doing. Homework on activity scheduling was not attempted. | 0.859 | yes |
+| Client had a panic episode on the bus this week, heart racing and tight chest. Wants something to use in the moment. | 0.838 | yes |
+| Client feels intense anger after arguments and acts rashly. Struggles to name what she is feeling. | 0.831 | yes |
+| Client faces several work and money problems at once and feels stuck. Does not know where to begin. | 0.841 | yes |
+| Client has little contact with family and says there is no one to talk to. Feels like a burden. Scores unchanged over two weeks. | 0.844 | yes |
+| Client repeatedly thinks 'I will fail everything' before presentations and spirals. Wants to examine these thoughts. | 0.835 | yes |
+
+| Out-of-domain query | Top-1 sim | Full-text hit |
+| --- | --- | --- |
+| best pizza recipe | 0.805 | no |
+| football score | 0.798 | no |
+| how to change a car tyre | 0.801 | no |
+| weather in Paris tomorrow | 0.761 | yes |
+| stock market news | 0.782 | no |
+| cheap flights to Goa | 0.749 | no |
+| python list comprehension | 0.821 | yes |
+| latest smartphone reviews | 0.804 | yes |
+| how to bake sourdough bread | 0.798 | no |
+| cricket world cup schedule | 0.773 | no |
+| sleep tracker app reviews | 0.832 | yes |
+| gym workout plan | 0.844 | yes |
+| how to file taxes | 0.825 | no |
+| best mattress to buy online | 0.814 | no |
+| how to learn guitar chords | 0.811 | no |
+| meditation app subscription price | 0.818 | no |
+| yoga mat sale near me | 0.772 | yes |
+| Summarise the quarterly sales report and list the top three regions by revenue. Include a chart of monthly growth. | 0.796 | yes |
+| Write a cover letter for a software engineer job at a bank. Mention five years of Java experience. | 0.803 | no |
+| Plan a three-day trip to Jaipur with hotels and restaurants. Budget is around twenty thousand rupees. | 0.780 | yes |
+
+Result: in-domain 0.791-0.880, out-of-domain 0.749-0.844. The sets **overlap** (margin = min in-domain - max out-of-domain = **-0.053**), because near-miss queries such as "gym workout plan" (0.844) and "sleep tracker app reviews" (0.832) score above weaker in-domain phrases like "mind racing at night" (0.791). The script picks the threshold with best balanced accuracy and widest local gap: `KB_MIN_SIMILARITY` = **0.826** (gap around it only 0.002), giving 17/20 in-domain pass and 2/20 out-of-domain pass (false passes: "gym workout plan", "sleep tracker app reviews"). Full-text hits do not separate the sets. Similarity alone cannot cleanly gate near-miss queries; the copilot's citation validator and therapist review remain the backstop.
+
 ## Roadmap
 
 - Payments and scheduling integration

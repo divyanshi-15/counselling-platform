@@ -29,3 +29,11 @@ When someone spends many hours awake in bed, the bed can become linked with frus
 5. Repeat steps 3 and 4 as needed.
 6. Get up at the same time every morning, including weekends.
 7. Avoid daytime naps, or keep any nap short and early.
+
+## Also described as
+- can't fall asleep
+- lie awake in bed
+- wake up in the night
+- bed feels like a place of stress
+- scrolling in bed
+- sleeping badly

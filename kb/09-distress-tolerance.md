@@ -29,3 +29,11 @@ Distress tolerance skills help a person get through a very intense emotional mom
 5. Slow your breathing, making the out-breath longer than the in-breath.
 6. Soothe your senses with something comforting: a familiar smell, soft fabric, or calming sound.
 7. Once the intensity drops, decide on one helpful next step.
+
+## Also described as
+- feelings are too intense
+- about to explode
+- want to do something rash
+- can't cope right now
+- overwhelming urge
+- emotions out of control

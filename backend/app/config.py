@@ -17,7 +17,7 @@ class Settings:
     embedding_model: str = os.getenv("EMBEDDING_MODEL", "intfloat/multilingual-e5-small")
     fastembed_cache: str = os.getenv("FASTEMBED_CACHE_PATH", "/opt/fastembed")
     kb_dir: str = os.getenv("KB_DIR", "kb")
-    kb_min_similarity: float = float(os.getenv("KB_MIN_SIMILARITY", "0.80"))
+    kb_min_similarity: float = float(os.getenv("KB_MIN_SIMILARITY", "0.826"))
 
 
 settings = Settings()

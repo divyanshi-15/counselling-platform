@@ -12,7 +12,7 @@ from backend.app.citations import NO_SUPPORT, CitationError, Suggestion, validat
 from backend.app.db import SessionLocal, engine
 from backend.app.embeddings import get_embedder
 from backend.app.models import (AvailabilitySlot, Booking, KbChunk, KbDocument, Practice, TherapistProfile, User)
-from backend.app.rag import add_case_memory, load_kb, parse_kb_file, retrieve_case_memory, retrieve_knowledge
+from backend.app.rag import add_case_memory, index_session_notes, load_kb, parse_kb_file, retrieve_case_memory, retrieve_knowledge
 
 KB_DIR = Path(__file__).resolve().parents[1] / "kb"
 
@@ -212,3 +212,52 @@ def test_kb_migration_columns_types_and_indexes() -> None:
     assert cols["tsv"] == ("tsvector", "ALWAYS")
     assert {"ix_kb_chunks_tsv", "ix_kb_chunks_approach_language"} <= kb_idx
     assert any(fk["constrained_columns"] == ["client_id"] and fk["referred_table"] == "users" for fk in mem_fks)
+
+
+# ---------- RAG calibration ----------
+
+RECORDED_IN_DOMAIN = [0.839, 0.83, 0.846, 0.868, 0.859, 0.839, 0.88, 0.85, 0.817, 0.86, 0.791, 0.818, 0.851, 0.827, 0.859, 0.838, 0.831, 0.841, 0.844, 0.835]
+RECORDED_OUT_OF_DOMAIN = [0.805, 0.798, 0.801, 0.761, 0.782, 0.749, 0.821, 0.804, 0.798, 0.773, 0.832, 0.844, 0.825, 0.814, 0.811, 0.818, 0.772, 0.796, 0.803, 0.78]  # 20 queries incl. "best pizza recipe"; near-misses (gym 0.844, sleep tracker 0.832) still pass
+
+
+def test_default_threshold_rejects_all_recorded_out_of_domain_scores() -> None:
+    """Real e5 top-1 scores recorded by backend/scripts/calibrate_rag.py (README 'RAG calibration')."""
+    from backend.app.config import settings
+    t = settings.kb_min_similarity
+    assert RECORDED_OUT_OF_DOMAIN[0] < t  # best pizza recipe
+    assert sum(s >= t for s in RECORDED_OUT_OF_DOMAIN) <= 2
+    assert sum(s >= t for s in RECORDED_IN_DOMAIN) >= 17
+
+
+def test_pizza_query_returns_empty_through_default_pipeline() -> None:
+    with SessionLocal() as db:
+        load_kb(db, KB_DIR)
+        assert retrieve_knowledge(db, "best pizza recipe", language="en") == []
+
+
+# ---------- session notes -> case memory ----------
+
+def test_saving_session_notes_indexes_memory_per_client(case_scenario) -> None:
+    from fastapi.testclient import TestClient
+    from backend.app.auth import create_access_token
+    from backend.app.main import app
+    from backend.app.models import CaseMemoryChunk
+    db, therapist, other_therapist, client_a, client_b, _ = case_scenario
+    booking = db.scalars(select(Booking).join(AvailabilitySlot, AvailabilitySlot.id == Booking.availability_slot_id)
+                         .join(TherapistProfile, TherapistProfile.id == AvailabilitySlot.therapist_id)
+                         .where(Booking.client_id == client_a.id, TherapistProfile.user_id == therapist.id)).first()
+    hdr = {"Authorization": f"Bearer {create_access_token(therapist.email, therapist.role)}"}
+    with TestClient(app) as http:
+        r = http.put(f"/bookings/{booking.id}/session-notes", headers=hdr,
+                     json={"raw_notes": "Client reports zebra phobia flares on weekends.\n\nWe practised paced breathing.", "source": "typed"})
+        assert r.status_code == 200, r.text
+        http.put(f"/bookings/{booking.id}/session-notes", headers=hdr,
+                 json={"raw_notes": "Client reports zebra phobia flares on weekends.", "source": "typed"})
+    db.expire_all()
+    rows = db.scalars(select(CaseMemoryChunk).where(CaseMemoryChunk.source_type == "session_note",
+                                                    CaseMemoryChunk.source_id.is_not(None),
+                                                    CaseMemoryChunk.client_id == client_a.id)).all()
+    assert len(rows) == 1 and all(r.client_id == client_a.id for r in rows)  # re-save replaced, not duplicated
+    assert retrieve_case_memory(db, therapist, client_a.id, "zebra phobia weekends", min_similarity=0.1)
+    # client B (same therapist) never sees client A's notes
+    assert retrieve_case_memory(db, therapist, client_b.id, "zebra phobia weekends", min_similarity=0.0) == []

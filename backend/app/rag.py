@@ -16,7 +16,8 @@ from backend.app.embeddings import get_embedder
 from backend.app.models import CaseMemoryChunk, KbChunk, KbDocument, User
 
 APPROACHES = {"CBT", "DBT", "CBT-I", "PM+", "general"}
-REQUIRED_SECTIONS = ("Purpose", "Typically used when", "Cautions / when NOT to use", "Steps")
+REQUIRED_SECTIONS = ("Purpose", "Typically used when", "Cautions / when NOT to use", "Steps",
+                     "Also described as")
 LICENCE = "original, for demo"
 RRF_K = 60
 CANDIDATE_POOL = 20
@@ -63,11 +64,11 @@ def parse_kb_file(path: Path) -> dict:
     }
 
 
-def load_kb(db: Session, kb_dir: str | Path = settings.kb_dir) -> dict[str, int]:
+def load_kb(db: Session, kb_dir: str | Path = settings.kb_dir, force: bool = False) -> dict[str, int]:
     """Idempotent: one chunk per entry; unchanged files are not re-embedded."""
     entries = [parse_kb_file(p) for p in sorted(Path(kb_dir).glob("*.md"))]
     existing = {d.slug: d for d in db.scalars(select(KbDocument).where(KbDocument.slug.in_([e["slug"] for e in entries])))}
-    changed = [e for e in entries if e["slug"] not in existing or existing[e["slug"]].content_hash != e["content_hash"]]
+    changed = [e for e in entries if force or e["slug"] not in existing or existing[e["slug"]].content_hash != e["content_hash"]]
     chunk_texts = [f"{e['title']}\n\n{e['body']}" for e in changed]
     vectors = get_embedder().embed_passages(chunk_texts) if changed else []
     for entry, chunk_text, vector in zip(changed, chunk_texts, vectors):
@@ -167,6 +168,34 @@ def add_case_memory(db: Session, user: User, client_id: int, text_: str, source_
     db.commit()
     db.refresh(row)
     return row
+
+
+def _chunk_notes(notes: str, max_chars: int = 600) -> list[str]:
+    chunks, cur = [], ""
+    for para in re.split(r"\n\s*\n|(?<=[.!?])\s+", notes.strip()):
+        para = para.strip()
+        if not para:
+            continue
+        if cur and len(cur) + len(para) + 1 > max_chars:
+            chunks.append(cur)
+            cur = ""
+        cur = f"{cur} {para}".strip()
+    if cur:
+        chunks.append(cur)
+    return chunks
+
+
+def index_session_notes(db: Session, user: User, client_id: int, session_id: int, notes: str) -> int:
+    """Replace this session's memory chunks with fresh embeddings. Caller commits."""
+    _require_case_access(db, user, client_id)
+    db.query(CaseMemoryChunk).filter(CaseMemoryChunk.source_type == "session_note",
+                                     CaseMemoryChunk.source_id == session_id).delete()
+    chunks = _chunk_notes(notes)
+    vectors = get_embedder().embed_passages(chunks) if chunks else []
+    for chunk, vector in zip(chunks, vectors):
+        db.add(CaseMemoryChunk(client_id=client_id, therapist_user_id=user.id, source_type="session_note",
+                               source_id=session_id, text=chunk, embedding=vector))
+    return len(chunks)
 
 
 def retrieve_case_memory(db: Session, user: User, client_id: int, query: str, k: int = 5,

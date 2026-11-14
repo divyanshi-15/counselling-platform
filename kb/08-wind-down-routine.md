@@ -29,3 +29,11 @@ A wind-down routine creates a buffer between the busy day and sleep. Doing the s
 5. Keep caffeine and heavy meals for earlier in the day.
 6. Follow the same order of steps each night so it becomes familiar.
 7. Go to bed when you feel sleepy, and keep your wake-up time steady.
+
+## Also described as
+- can't switch off at night
+- tired but wired
+- trouble winding down
+- mind busy at bedtime
+- restless evenings
+- irregular sleep routine

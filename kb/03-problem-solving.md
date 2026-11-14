@@ -30,3 +30,11 @@ When problems pile up, they can feel like one heavy fog. Structured problem-solv
 6. Weigh the pros and cons of the most realistic few and pick one.
 7. Break it into small steps and decide when you will do the first one.
 8. Afterwards, review what happened and adjust the plan.
+
+## Also described as
+- overwhelmed by a problem
+- don't know where to start
+- stuck on a decision
+- everything feels too much to sort out
+- problems piling up
+- can't see a way forward

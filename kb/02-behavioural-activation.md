@@ -29,3 +29,11 @@ Low mood often leads people to do less, and doing less tends to keep mood low. B
 5. Do the activity even if motivation is low, then rate your mood afterwards.
 6. Review the week: what helped, what got in the way.
 7. Gradually add or adjust activities, keeping steps realistic.
+
+## Also described as
+- no motivation
+- can't get out of bed
+- nothing feels worth doing
+- I've stopped doing things I enjoy
+- feel low and flat
+- staying in all day

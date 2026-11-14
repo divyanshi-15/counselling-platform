@@ -29,3 +29,11 @@ An emotion check-in is a short, regular pause to notice and name what one is fee
 5. Note what was happening just before: place, people, thoughts.
 6. Ask what this emotion might need from you right now, such as rest, connection, or action.
 7. Record it briefly so you can look back at patterns later.
+
+## Also described as
+- don't know what I'm feeling
+- feel numb
+- moods up and down
+- can't put feelings into words
+- something feels off
+- need to check in with myself

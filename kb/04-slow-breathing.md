@@ -29,3 +29,11 @@ Slow, steady breathing gives the body a signal that it can settle. It is a porta
 5. Breathe out slowly through your mouth for a count of about four or five, a little longer than the in-breath.
 6. Continue for two to five minutes, letting the rhythm stay relaxed.
 7. Notice how your body feels now compared with when you started.
+
+## Also described as
+- heart racing
+- panic attack
+- can't catch my breath
+- feel tense and on edge
+- chest feels tight
+- need to calm down quickly

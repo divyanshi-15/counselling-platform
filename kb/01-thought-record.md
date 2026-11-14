@@ -29,3 +29,11 @@ A thought record helps a person slow down a moment of strong feeling and look at
 5. List what does not quite fit with it, or what a friend might say.
 6. Write a more balanced thought that takes both lists into account.
 7. Re-rate the feeling and note anything you might do next.
+
+## Also described as
+- my thoughts spiral
+- I keep thinking the worst
+- harsh voice in my head
+- I always assume I'll fail
+- negative thoughts won't stop
+- I get upset and don't know why
