@@ -26,11 +26,12 @@ services:
       - .env
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://postgres:postgres@postgres:5432/counselling}
+      TRUST_PROXY: "1"  # only Caddy can reach the api; honour its X-Forwarded-For
     depends_on:
       postgres:
         condition: service_healthy
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     networks:
       - appnet
 

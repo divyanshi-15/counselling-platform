@@ -23,8 +23,9 @@ from backend.app import rag
 from backend.app.agents.launch import _budget_exceeded, _cached_model_output, _record_token_usage, _write_cache
 from backend.app.citations import CitationError, Suggestion, validate_suggestions
 from backend.app.clinical import phq9_item9_positive, scan_client_text
-from backend.app.models import (AgentRun, Assessment, AvailabilitySlot, Booking, CasePlan, CopilotBriefing,
-                                IntakeResponse, PendingAction, TherapistProfile, TherapySession, User)
+from backend.app.models import (AgentRun, Assessment, AvailabilitySlot, Booking, CasePlan, CopilotBriefing, Exercise,
+                                IntakeResponse, KbChunk, KbDocument, PendingAction, TherapistProfile, TherapySession,
+                                User)
 from backend.app.safety import clinical_output_violations, render_prompt_data
 
 MODEL = os.getenv("MODEL_FAST", "claude-haiku-5-5")
@@ -333,6 +334,38 @@ def _run(db: Session, loop: _Loop, therapist_user_id: int, client_id: int, start
                     retrieved=[{"id": h.id, "title": h.title, "similarity": round(h.similarity, 3)} for h in retrieved])
 
 
+def _release_candidates(db: Session, suggestions: list[Suggestion]) -> list[tuple[str, int]]:
+    """(exercise slug, suggestion index) for suggestions whose cited KB entry has a library exercise. First wins."""
+    ids = {i for s in suggestions for i in s.chunk_ids}
+    if not ids:
+        return []
+    rows = db.execute(select(KbChunk.id, Exercise.slug).join(KbDocument, KbDocument.id == KbChunk.document_id)
+                      .join(Exercise, Exercise.kb_slug == KbDocument.slug).where(KbChunk.id.in_(ids))).all()
+    by_chunk = {chunk_id: slug for chunk_id, slug in rows}
+    out: dict[str, int] = {}
+    for idx, sug in enumerate(suggestions):
+        for chunk_id in sug.chunk_ids:
+            if chunk_id in by_chunk:
+                out.setdefault(by_chunk[chunk_id], idx)
+    return list(out.items())
+
+
+def _queue_exercise_releases(db: Session, therapist: User, practice_id: int, client_id: int, briefing_id: int,
+                             suggestions: list[Suggestion]) -> None:
+    """draft_exercises output -> release_exercise pending_actions. Nothing reaches the client until approval."""
+    open_actions = db.scalars(select(PendingAction).where(PendingAction.type == "release_exercise",
+                                                          PendingAction.assignee_user_id == therapist.id,
+                                                          PendingAction.status == "pending")).all()
+    already = {a.payload.get("exercise") for a in open_actions if a.payload.get("client_id") == client_id}
+    for slug, idx in _release_candidates(db, suggestions):
+        if slug in already:
+            continue
+        db.add(PendingAction(practice_id=practice_id, type="release_exercise", assignee_user_id=therapist.id,
+                             status="pending", idempotency_key=f"release:{therapist.id}:{client_id}:{slug}:{briefing_id}",
+                             payload={"client_id": client_id, "exercise": slug, "briefing_id": briefing_id,
+                                      "suggestion_index": idx}))
+
+
 # ---------- "Prepare my day": persist drafts + pending actions + agent runs ----------
 
 def _input_hash(db: Session, therapist_user_id: int, client_id: int, starts_at: str) -> str:
@@ -395,6 +428,8 @@ def prepare_my_day(db: Session, therapist: User, *, hours: int = 24, max_calls: 
                                    assignee_user_id=therapist.id, status="pending", idempotency_key=key,
                                    payload={"briefing_id": row.id, "client_id": client_id})
             db.add(action)
+            if briefing.status in ("ok", "manual"):
+                _queue_exercise_releases(db, therapist, profile.practice_id, client_id, row.id, briefing.suggestions)
         try:
             db.commit()
         except IntegrityError:  # concurrent double-click produced the same key first

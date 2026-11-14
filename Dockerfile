@@ -21,4 +21,6 @@ RUN pip install .[dev]
 
 EXPOSE 8000
 
-CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# --workers 1 is required: the rate limiter keeps its counters in process memory and the
+# APScheduler nightly job must run exactly once; more workers would split limits and duplicate jobs.
+CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

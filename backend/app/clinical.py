@@ -4,7 +4,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from backend.app.models import Alert
-from backend.app.safety import free_text_values, risk_check
+from backend.app.safety import free_text_values, risk_scan
 
 ASSESSMENT_ITEMS = {"PHQ9": 9, "GAD7": 7}
 
@@ -12,16 +12,20 @@ ASSESSMENT_ITEMS = {"PHQ9": 9, "GAD7": 7}
 def scan_client_text(value: object) -> dict | None:
     """Run the safety layer over every free-text string in value. Returns the first hit, else None."""
     for text in free_text_values(value):
-        result = risk_check(text)
+        result = risk_scan(text)
         if result["flagged"]:
-            return result
+            return result | {"text": text}
     return None
 
 
 def raise_risk_alert(db: Session, *, therapist_user_id: int, client_id: int, source: str,
-                     source_id: int | None, match: str | None) -> Alert:
-    alert = Alert(therapist_user_id=therapist_user_id, client_id=client_id, type="risk", priority="high",
-                  payload={"source": source, "source_id": source_id, "match": match})
+                     source_id: int | None, match: str | None, text: str | None = None) -> Alert:
+    # payload["text"] (the triggering words) is shown only to the assigned therapist via /therapists/me/alerts;
+    # it must never be logged or put into emails/notifications.
+    payload = {"source": source, "source_id": source_id, "match": match}
+    if text:
+        payload["text"] = text
+    alert = Alert(therapist_user_id=therapist_user_id, client_id=client_id, type="risk", priority="high", payload=payload)
     db.add(alert)
     return alert
 

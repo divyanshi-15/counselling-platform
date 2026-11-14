@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from backend.app.agents.copilot import CopilotError, prepare_my_day
 from backend.app.agents.launch import run_launch_agent
 from backend.app.auth import (
+    therapist_has_client,
     create_access_token,
     get_current_user,
     get_optional_current_user,
@@ -31,6 +32,8 @@ from backend.app.models import (
     AgentRun,
     Alert,
     Assessment,
+    Assignment,
+    Exercise,
     CasePlan,
     CopilotBriefing,
     TherapySession,
@@ -45,8 +48,10 @@ from backend.app.models import (
     User,
     UserRole,
 )
+from backend.app.exercises import approved_exercises, router as exercises_router, with_notice
+from backend.app.ratelimit import client_rate_limit, contact_rate_limit
 from backend.app.rag import index_session_notes
-from backend.app.safety import check_claims, render_prompt_data, risk_check, validate_ai_output
+from backend.app.safety import CRISIS_MESSAGE, check_claims, render_prompt_data, risk_scan, validate_ai_output
 from backend.app.schemas import (
     MessageResponse,
     AssessmentIn,
@@ -66,6 +71,7 @@ from backend.app.schemas import (
 )
 
 app = FastAPI(title="Counselling Practice Platform")
+app.include_router(exercises_router)
 
 
 def _slugify(raw: str) -> str:
@@ -112,7 +118,7 @@ def _pending_action_result(action: PendingAction) -> dict[str, object]:
 
 
 OWNER_ACTION_TYPES = {"publish_page"}
-THERAPIST_ACTION_TYPES = {"copilot_briefing"}
+THERAPIST_ACTION_TYPES = {"copilot_briefing", "release_exercise"}
 
 
 def _get_owner_pending_action(db: Session, action_id: int, user: User) -> PendingAction:
@@ -137,6 +143,19 @@ def _decide_briefing(db: Session, action: PendingAction, user: User, decision: s
         raise HTTPException(status_code=409, detail="Briefing draft is unavailable")
     briefing.status = decision
     action.status = decision
+    action.decided_by = user.id
+    action.decided_at = datetime.now(timezone.utc)
+
+
+def _release_exercise(db: Session, action: PendingAction, user: User) -> None:
+    """Therapist approval creates the assignment. action.status gates replays, pending_action_id is unique."""
+    client_id = action.payload.get("client_id")
+    exercise = db.query(Exercise).filter(Exercise.slug == action.payload.get("exercise")).first()
+    if exercise is None or not isinstance(client_id, int) or not therapist_has_client(db, user.id, client_id):
+        raise HTTPException(status_code=409, detail="Exercise release is unavailable")
+    db.add(Assignment(client_id=client_id, therapist_user_id=user.id, exercise_id=exercise.id,
+                      pending_action_id=action.id, status="assigned"))
+    action.status = "approved"
     action.decided_by = user.id
     action.decided_at = datetime.now(timezone.utc)
 
@@ -538,7 +557,7 @@ def therapist_bookings(
                       for booking, slot, client in rows]}
 
 
-@app.post("/bookings")
+@app.post("/bookings", dependencies=[Depends(client_rate_limit)])
 def create_booking(
     payload: BookingIn,
     db: Session = Depends(get_db),
@@ -613,7 +632,7 @@ def get_booking_intake_form(
     return {"booking_id": booking.id, "fields": form.fields_json}
 
 
-@app.post("/bookings/{booking_id}/intake-response")
+@app.post("/bookings/{booking_id}/intake-response", dependencies=[Depends(client_rate_limit)])
 def submit_booking_intake_response(
     booking_id: int,
     payload: IntakeResponseIn,
@@ -637,16 +656,16 @@ def submit_booking_intake_response(
     if risk:
         db.flush()
         raise_risk_alert(db, therapist_user_id=profile.user_id, client_id=current_user.id,
-                         source="intake_response", source_id=response.id, match=risk["match"])
+                         source="intake_response", source_id=response.id, match=risk["match"], text=risk["text"])
     try:
         db.commit()
     except IntegrityError as exc:
         db.rollback()
         raise HTTPException(status_code=409, detail="Intake response already submitted") from exc
     db.refresh(response)
-    return {"id": response.id, "booking_id": response.booking_id, "answers": response.answers_json,
-            "submitted_at": response.submitted_at.isoformat(),
-            "safety": {"flagged": bool(risk), "message": risk["message"] if risk else None}}
+    return with_notice({"id": response.id, "booking_id": response.booking_id, "answers": response.answers_json,
+                        "submitted_at": response.submitted_at.isoformat(),
+                        "safety": {"flagged": bool(risk), "message": CRISIS_MESSAGE if risk else None}})
 
 
 @app.get("/bookings/{booking_id}/intake-response")
@@ -663,7 +682,7 @@ def get_booking_intake_response(
             "answers": response.answers_json, "submitted_at": response.submitted_at.isoformat()}
 
 
-@app.get("/client/dashboard")
+@app.get("/client/dashboard", dependencies=[Depends(client_rate_limit)])
 def client_dashboard(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.client)),
@@ -682,15 +701,16 @@ def client_dashboard(
     upcoming = next((row for row in rows if row[0].status == "confirmed" and row[1].starts_at >= now), None)
     selected = upcoming or (rows[-1] if rows else None)
     if selected is None:
-        return {"practice": None, "therapist": None, "upcoming_session": None, "approved_exercises": []}
+        return with_notice({"practice": None, "therapist": None, "upcoming_session": None,
+                            "approved_exercises": approved_exercises(db, current_user.id)})
     booking, slot, profile, therapist_user, practice = selected
-    return {
+    return with_notice({
         "practice": {"id": practice.id, "name": practice.name, "slug": practice.slug},
         "therapist": _therapist_payload(profile, therapist_user, practice),
         "upcoming_session": ({"id": booking.id, "starts_at": slot.starts_at.isoformat(),
                               "ends_at": slot.ends_at.isoformat(), "status": booking.status} if upcoming else None),
-        "approved_exercises": [],
-    }
+        "approved_exercises": approved_exercises(db, current_user.id),
+    })
 
 
 @app.post("/admin/therapists/{therapist_id}/verify")
@@ -760,6 +780,10 @@ def approve_pending_action(
         _check_action_key(action, idempotency_key)
         _decide_briefing(db, action, current_user, "approved")
         replay = False
+    elif action.status == "pending" and action.type == "release_exercise":
+        _check_action_key(action, idempotency_key)
+        _release_exercise(db, action, current_user)
+        replay = False
     elif action.status == "pending":
         _check_action_key(action, idempotency_key)
         if action.type != "publish_page":
@@ -818,8 +842,11 @@ def reject_pending_action(
     return _pending_action_result(action)
 
 
-@app.post("/practices/contact")
+@app.post("/practices/contact", dependencies=[Depends(contact_rate_limit)])
 def contact_practice(payload: PracticeContact) -> dict[str, str]:
+    if scan_client_text({"name": payload.name, "message": payload.message}):
+        # Fixed crisis text; the message is not forwarded. No client/therapist is known here, so no alert row.
+        return {"status": "crisis", "message": CRISIS_MESSAGE}
     smtp_host = os.getenv("SMTP_HOST")
     smtp_user = os.getenv("SMTP_USER")
     smtp_pass = os.getenv("SMTP_PASS")
@@ -901,7 +928,7 @@ def practice_agent_runs(
 
 @app.post("/demo/safety-check")
 def demo_safety_check(text: str) -> dict[str, object]:
-    result = risk_check(text)
+    result = risk_scan(text)
     return {
         "flagged": result["flagged"],
         "message": result["message"],
@@ -961,7 +988,7 @@ def save_session_notes(
     index_session_notes(db, current_user, booking.client_id, row.id, payload.raw_notes)
     if risk:
         raise_risk_alert(db, therapist_user_id=current_user.id, client_id=booking.client_id,
-                         source="session_notes", source_id=row.id, match=risk["match"])
+                         source="session_notes", source_id=row.id, match=risk["match"], text=risk["text"])
     db.commit()
     return _session_payload(row) | {"safety": {"flagged": bool(risk), "message": risk["message"] if risk else None}}
 

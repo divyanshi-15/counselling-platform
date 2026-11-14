@@ -34,6 +34,24 @@ flowchart LR
 | Access-control tests | passing |
 | Claims screening | passing |
 
+## Risk triage evaluation (SYNTHETIC, demonstration only)
+
+Two layers, either one triggers the fixed crisis message (Tele-MANAS 14416 / 1-800-891-4416) and a high-priority therapist alert. No model call, no API key needed.
+Layer 1: keyword/pattern match (EN/HI/KN, native + romanised). Layer 2: multilingual-e5-small embeddings + logistic regression (threshold 0.5), trained on 60 hand-written synthetic phrases (30 risk / 30 non-risk incl. idioms such as "this deadline is killing me").
+Held-out = 18 of the 60 phrases (stratified 70/30 split, fixed seed), real embedder. Reproduce: `docker compose run --rm api python -m backend.scripts.eval_risk`.
+
+| Detector | Precision | Recall |
+| --- | --- | --- |
+| Layer 1 only | 1.00 | 0.89 |
+| Layer 2 only | 0.67 | 0.67 |
+| Layer 1 OR layer 2 (deployed) | 0.75 | 1.00 |
+
+Hard negatives (15 benign phrases with risk-like words, `make risk-report`): layer 1 fires on 0/15 (asserted in tests). Layer 2 (report only) fires on 1/15 ("I'm dying to see my friends", 0.59 vs threshold 0.5); the next-highest are 0.48 ("I'd die of embarrassment...", "I'm starving to death...") and 0.44, so several sit near the threshold. Expect some false alerts from idioms; accepted on purpose.
+
+Independent check: if `tests/risk_independent.csv` exists (one risk phrase per row, first column), `make risk-report` prints every phrase the scan misses. Not a failing test. The file is not present yet.
+
+Caveats: 18 held-out phrases is far too small for any real claim, and layer 1's patterns were written by the same author as the phrases. False alerts are accepted on purpose: a missed risk costs more than an unnecessary alert. Not clinically validated.
+
 ## RAG calibration
 
 Real `multilingual-e5-small` (`query: ` / `passage: ` prefixes), top-1 cosine similarity against the 12-entry KB (each entry includes an "Also described as" section of lay phrases).

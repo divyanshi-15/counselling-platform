@@ -267,3 +267,41 @@ class CopilotBriefing(Base):
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft")
     briefing_json: Mapped[dict] = mapped_column(JSON, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utcnow)
+
+
+class Exercise(Base):
+    """Fixed, hand-written library. Hindi/Kannada columns are filled later (nullable on purpose)."""
+    __tablename__ = "exercises"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    slug: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    kb_slug: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    title_en: Mapped[str] = mapped_column(String(255), nullable=False)
+    template_en: Mapped[dict] = mapped_column(JSON, nullable=False)
+    title_hi: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    template_hi: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    title_kn: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    template_kn: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+
+
+class Assignment(Base):
+    __tablename__ = "assignments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    client_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    therapist_user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    exercise_id: Mapped[int] = mapped_column(ForeignKey("exercises.id", ondelete="RESTRICT"), nullable=False)
+    # unique: one approved release action creates at most one assignment
+    pending_action_id: Mapped[int] = mapped_column(ForeignKey("pending_actions.id", ondelete="CASCADE"), unique=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="assigned")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utcnow)
+
+
+class Checkin(Base):
+    __tablename__ = "checkins"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    assignment_id: Mapped[int] = mapped_column(ForeignKey("assignments.id", ondelete="CASCADE"), nullable=False, index=True)
+    responses_json: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    flagged: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utcnow)

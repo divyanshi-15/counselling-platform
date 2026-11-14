@@ -27,6 +27,18 @@ def fake_embedder():
 	original = embeddings.FastEmbedEmbedder
 	embeddings.FastEmbedEmbedder = _forbidden
 	embeddings.set_embedder(embeddings.FakeEmbedder())
+	# FakeEmbedder is lexical: unrelated text scores ~0.5, so tests use a stricter cut-off than production (0.5).
+	from backend.app import safety
+	safety.RISK_THRESHOLD = 0.75
 	yield
 	embeddings.FastEmbedEmbedder = original
 	embeddings.set_embedder(None)
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limits():
+	from backend.app import ratelimit
+
+	ratelimit.reset()
+	yield
+	ratelimit.reset()
