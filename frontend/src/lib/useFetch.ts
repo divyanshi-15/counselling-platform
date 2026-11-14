@@ -5,7 +5,8 @@ export function useFetch<T>(path: string, params?: Record<string, string | numbe
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
-  const key = path + JSON.stringify(params ?? {});
+  const [tick, setTick] = useState(0);
+  const key = path + JSON.stringify(params ?? {}) + tick;
   useEffect(() => {
     let live = true;
     setLoading(true);
@@ -17,5 +18,5 @@ export function useFetch<T>(path: string, params?: Record<string, string | numbe
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
-  return { data, error, loading };
+  return { data, error, loading, reload: () => setTick((t) => t + 1) };
 }

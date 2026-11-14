@@ -815,6 +815,48 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AgentRunItem */
+        AgentRunItem: {
+            /** Run Id */
+            run_id: string;
+            /** Step */
+            step: number;
+            /** Tool */
+            tool: string;
+            /** Summary */
+            summary: string;
+            /** Created At */
+            created_at: string;
+        };
+        /** AgentRunsOut */
+        AgentRunsOut: {
+            /** Items */
+            items: components["schemas"]["AgentRunItem"][];
+        };
+        /** AlertItem */
+        AlertItem: {
+            /** Id */
+            id: number;
+            /** Client Id */
+            client_id: number;
+            /** Type */
+            type: string;
+            /** Priority */
+            priority: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Acknowledged */
+            acknowledged: boolean;
+            /** Created At */
+            created_at: string;
+        };
+        /** AlertsOut */
+        AlertsOut: {
+            /** Items */
+            items: components["schemas"]["AlertItem"][];
+        };
         /** ApprovedExercise */
         ApprovedExercise: {
             /** Assignment Id */
@@ -839,6 +881,26 @@ export interface components {
             item_scores: number[];
             /** Taken At */
             taken_at?: string | null;
+        };
+        /** AssessmentOut */
+        AssessmentOut: {
+            /** Id */
+            id: number;
+            /** Type */
+            type: string;
+            /** Total */
+            total: number;
+            /** Item Scores */
+            item_scores: number[];
+            /** Taken At */
+            taken_at: string;
+            /** Risk Alert */
+            risk_alert?: boolean | null;
+        };
+        /** AssessmentsOut */
+        AssessmentsOut: {
+            /** Items */
+            items: components["schemas"]["AssessmentOut"][];
         };
         /** AssignmentsOut */
         AssignmentsOut: {
@@ -887,6 +949,83 @@ export interface components {
             /** Confirmation Email */
             confirmation_email: string;
         };
+        /** BriefingBody */
+        BriefingBody: {
+            /** Client Id */
+            client_id: number;
+            /** Session Starts At */
+            session_starts_at: string;
+            /** Status */
+            status: string;
+            /** Summary */
+            summary: string;
+            /** Summary Label */
+            summary_label?: string | null;
+            /**
+             * Risk Flags
+             * @default []
+             */
+            risk_flags: string[];
+            /**
+             * Scores
+             * @default {}
+             */
+            scores: {
+                [key: string]: unknown;
+            };
+            /** Plan */
+            plan?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Retrieved
+             * @default []
+             */
+            retrieved: components["schemas"]["RetrievedRef"][];
+            /**
+             * Suggestions
+             * @default []
+             */
+            suggestions: components["schemas"]["BriefingSuggestion"][];
+        };
+        /** BriefingItem */
+        BriefingItem: {
+            /** Id */
+            id: number;
+            /** Client Id */
+            client_id: number;
+            /** Status */
+            status: string;
+            /** Run Id */
+            run_id: string;
+            briefing: components["schemas"]["BriefingBody"];
+            /** Created At */
+            created_at: string;
+        };
+        /** BriefingSuggestion */
+        BriefingSuggestion: {
+            /** Text */
+            text: string;
+            /**
+             * Chunk Ids
+             * @default []
+             */
+            chunk_ids: number[];
+            /**
+             * Note Quotes
+             * @default []
+             */
+            note_quotes: string[];
+            /** Label */
+            label?: ("SUPPORTED" | "INFERRED") | null;
+            /** Support Note */
+            support_note?: string | null;
+        };
+        /** BriefingsOut */
+        BriefingsOut: {
+            /** Items */
+            items: components["schemas"]["BriefingItem"][];
+        };
         /** CaseGoal */
         CaseGoal: {
             /** Id */
@@ -907,6 +1046,30 @@ export interface components {
              * @default false
              */
             approve: boolean;
+        };
+        /** CasePlanOut */
+        CasePlanOut: {
+            /** Id */
+            id: number;
+            /** Client Id */
+            client_id: number;
+            /** Version */
+            version: number;
+            /** Approach */
+            approach: string;
+            /** Formulation Text */
+            formulation_text: string;
+            /** Goals */
+            goals: components["schemas"]["CaseGoal"][];
+            /** Approved At */
+            approved_at?: string | null;
+            /** Created At */
+            created_at: string;
+        };
+        /** CasePlansOut */
+        CasePlansOut: {
+            /** Items */
+            items: components["schemas"]["CasePlanOut"][];
         };
         /** CheckinIn */
         CheckinIn: {
@@ -944,6 +1107,26 @@ export interface components {
             upcoming_session: components["schemas"]["UpcomingSession"] | null;
             /** Approved Exercises */
             approved_exercises: components["schemas"]["ApprovedExercise"][];
+        };
+        /**
+         * ClientView
+         * @description Exactly what the client would see if this action is approved.
+         */
+        ClientView: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "exercise" | "nothing";
+            /** Title */
+            title?: string | null;
+            /**
+             * Fields
+             * @default []
+             */
+            fields: string[];
+            /** Note */
+            note: string;
         };
         /** DashboardTherapist */
         DashboardTherapist: {
@@ -1068,6 +1251,50 @@ export interface components {
             /** Message */
             message: string;
         };
+        /** OvernightFlag */
+        OvernightFlag: {
+            /** Client Id */
+            client_id: number;
+            /** Findings */
+            findings: string[];
+        };
+        /** OvernightOut */
+        OvernightOut: {
+            /** Run Id */
+            run_id: string;
+            /** Summary */
+            summary: string;
+            /** Clients Checked */
+            clients_checked: number;
+            /** Flagged */
+            flagged: components["schemas"]["OvernightFlag"][];
+            /** Drafted */
+            drafted: number;
+        };
+        /** PendingActionOut */
+        PendingActionOut: {
+            /** Id */
+            id: number;
+            /** Type */
+            type: string;
+            /** Status */
+            status: string;
+            /** Practice Id */
+            practice_id: number;
+            /** Idempotency Key */
+            idempotency_key: string;
+            /** Decided By */
+            decided_by?: number | null;
+            /** Decided At */
+            decided_at?: string | null;
+        };
+        /** PersonRef */
+        PersonRef: {
+            /** Id */
+            id: number;
+            /** Name */
+            name?: string | null;
+        };
         /** PracticeContact */
         PracticeContact: {
             /** Name */
@@ -1121,6 +1348,35 @@ export interface components {
             /** Slug */
             slug: string;
         };
+        /** PrepareDayItem */
+        PrepareDayItem: {
+            /** Client Id */
+            client_id: number;
+            /** Briefing Id */
+            briefing_id?: number | null;
+            /** Pending Action Id */
+            pending_action_id?: number | null;
+            /** Status */
+            status?: string | null;
+            /** Reused */
+            reused: boolean;
+            /** Error */
+            error?: string | null;
+        };
+        /** PrepareDayOut */
+        PrepareDayOut: {
+            /** Items */
+            items: components["schemas"]["PrepareDayItem"][];
+        };
+        /** RetrievedRef */
+        RetrievedRef: {
+            /** Id */
+            id: number;
+            /** Title */
+            title: string;
+            /** Similarity */
+            similarity?: number | null;
+        };
         /** RoomOut */
         RoomOut: {
             /** Room Name */
@@ -1136,6 +1392,37 @@ export interface components {
              * @enum {string}
              */
             source: "typed" | "transcript";
+        };
+        /** SessionNotesOut */
+        SessionNotesOut: {
+            /** Id */
+            id: number;
+            /** Booking Id */
+            booking_id: number;
+            /** Client Id */
+            client_id: number;
+            /** Source */
+            source: string;
+            /** Raw Notes */
+            raw_notes: string;
+            /** Structured */
+            structured?: {
+                [key: string]: unknown;
+            } | null;
+            /** Structured Status */
+            structured_status: string;
+            /** Risk Flag */
+            risk_flag: boolean;
+            /** Updated At */
+            updated_at: string;
+            safety?: components["schemas"]["SessionSafety"] | null;
+        };
+        /** SessionSafety */
+        SessionSafety: {
+            /** Flagged */
+            flagged: boolean;
+            /** Message */
+            message?: string | null;
         };
         /** SlotOut */
         SlotOut: {
@@ -1159,6 +1446,52 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** TherapistActionItem */
+        TherapistActionItem: {
+            /** Id */
+            id: number;
+            /** Type */
+            type: string;
+            /** Status */
+            status: string;
+            /** Practice Id */
+            practice_id: number;
+            /** Idempotency Key */
+            idempotency_key: string;
+            /** Decided By */
+            decided_by?: number | null;
+            /** Decided At */
+            decided_at?: string | null;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Client Name */
+            client_name?: string | null;
+            client_view: components["schemas"]["ClientView"];
+        };
+        /** TherapistActionsOut */
+        TherapistActionsOut: {
+            /** Items */
+            items: components["schemas"]["TherapistActionItem"][];
+        };
+        /** TherapistBookingItem */
+        TherapistBookingItem: {
+            /** Id */
+            id: number;
+            /** Status */
+            status: string;
+            /** Starts At */
+            starts_at: string;
+            /** Ends At */
+            ends_at: string;
+            client: components["schemas"]["PersonRef"];
+        };
+        /** TherapistBookingsOut */
+        TherapistBookingsOut: {
+            /** Items */
+            items: components["schemas"]["TherapistBookingItem"][];
+        };
         /** TherapistProfileIn */
         TherapistProfileIn: {
             /** Practice Id */
@@ -1174,6 +1507,23 @@ export interface components {
             languages?: string[];
             /** Fee */
             fee: number;
+        };
+        /** TherapistProfileOut */
+        TherapistProfileOut: {
+            /** Id */
+            id: number;
+            /** Practice Id */
+            practice_id: number;
+            /** Bio */
+            bio?: string | null;
+            /** Approaches */
+            approaches?: string[] | null;
+            /** Languages */
+            languages?: string[] | null;
+            /** Fee */
+            fee?: number | null;
+            /** Verified */
+            verified: boolean;
         };
         /** UpcomingSession */
         UpcomingSession: {
@@ -1687,9 +2037,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TherapistProfileOut"];
                 };
             };
         };
@@ -1843,9 +2191,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TherapistBookingsOut"];
                 };
             };
         };
@@ -2173,9 +2519,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["PendingActionOut"];
                 };
             };
             /** @description Validation Error */
@@ -2208,9 +2552,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["PendingActionOut"];
                 };
             };
             /** @description Validation Error */
@@ -2445,9 +2787,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SessionNotesOut"];
                 };
             };
             /** @description Validation Error */
@@ -2482,9 +2822,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SessionNotesOut"];
                 };
             };
             /** @description Validation Error */
@@ -2515,9 +2853,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AssessmentsOut"];
                 };
             };
             /** @description Validation Error */
@@ -2552,9 +2888,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AssessmentOut"];
                 };
             };
             /** @description Validation Error */
@@ -2585,9 +2919,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CasePlansOut"];
                 };
             };
             /** @description Validation Error */
@@ -2622,9 +2954,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CasePlanOut"];
                 };
             };
             /** @description Validation Error */
@@ -2656,9 +2986,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CasePlanOut"];
                 };
             };
             /** @description Validation Error */
@@ -2689,9 +3017,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["PrepareDayOut"];
                 };
             };
             /** @description Validation Error */
@@ -2720,9 +3046,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OvernightOut"];
                 };
             };
         };
@@ -2742,9 +3066,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["BriefingsOut"];
                 };
             };
         };
@@ -2764,9 +3086,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TherapistActionsOut"];
                 };
             };
         };
@@ -2786,9 +3106,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AlertsOut"];
                 };
             };
         };
@@ -2808,9 +3126,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AgentRunsOut"];
                 };
             };
         };

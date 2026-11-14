@@ -347,3 +347,13 @@ def test_intake_and_notes_alerts_carry_text_for_therapist(world, monkeypatch) ->
         b = raise_risk_alert(db, therapist_user_id=w["ta"].id, client_id=w["ca"].id, source="t", source_id=1, match="m")
         assert a.payload["text"] == "hello" and "text" not in b.payload
         db.rollback()
+
+
+def test_inbox_preview_shows_exactly_what_client_gets(world, real_chunk, monkeypatch) -> None:
+    client, w = world
+    action = _draft_release(client, w, monkeypatch, real_chunk)
+    view = action["client_view"]
+    assert view["kind"] == "exercise" and view["title"] and view["fields"]
+    assert "Nothing else is sent" in view["note"]
+    other = client.get("/therapists/me/pending-actions", headers=_h(w["tb"])).json()["items"]
+    assert all(i["id"] != action["id"] for i in other)

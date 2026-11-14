@@ -249,3 +249,198 @@ class IntakeResponseOut(_Out):
 
 class RoomOut(_Out):
     room_name: str
+
+
+# ---------- responses (therapist-facing endpoints) ----------
+
+class TherapistProfileOut(_Out):
+    id: int
+    practice_id: int
+    bio: str | None = None
+    approaches: list[str] | None = None
+    languages: list[str] | None = None
+    fee: int | None = None
+    verified: bool
+
+
+class PersonRef(_Out):
+    id: int
+    name: str | None = None
+
+
+class TherapistBookingItem(_Out):
+    id: int
+    status: str
+    starts_at: str
+    ends_at: str
+    client: PersonRef
+
+
+class TherapistBookingsOut(_Out):
+    items: list[TherapistBookingItem]
+
+
+class SessionSafety(_Out):
+    flagged: bool
+    message: str | None = None
+
+
+class SessionNotesOut(_Out):
+    id: int
+    booking_id: int
+    client_id: int
+    source: str
+    raw_notes: str
+    structured: dict[str, object] | None = None
+    structured_status: str
+    risk_flag: bool
+    updated_at: str
+    safety: SessionSafety | None = None
+
+
+class AssessmentOut(_Out):
+    id: int
+    type: str
+    total: int
+    item_scores: list[int]
+    taken_at: str
+    risk_alert: bool | None = None
+
+
+class AssessmentsOut(_Out):
+    items: list[AssessmentOut]
+
+
+class CasePlanOut(_Out):
+    id: int
+    client_id: int
+    version: int
+    approach: str
+    formulation_text: str
+    goals: list[CaseGoal]
+    approved_at: str | None = None
+    created_at: str
+
+
+class CasePlansOut(_Out):
+    items: list[CasePlanOut]
+
+
+class BriefingSuggestion(_Out):
+    text: str
+    chunk_ids: list[int] = []
+    note_quotes: list[str] = []
+    label: Literal["SUPPORTED", "INFERRED"] | None = None
+    support_note: str | None = None
+
+
+class RetrievedRef(_Out):
+    id: int
+    title: str
+    similarity: float | None = None
+
+
+class BriefingBody(_Out):
+    client_id: int
+    session_starts_at: str
+    status: str
+    summary: str
+    summary_label: str | None = None
+    risk_flags: list[str] = []
+    scores: dict[str, object] = {}
+    plan: dict[str, object] | None = None
+    retrieved: list[RetrievedRef] = []
+    suggestions: list[BriefingSuggestion] = []
+
+
+class BriefingItem(_Out):
+    id: int
+    client_id: int
+    status: str
+    run_id: str
+    briefing: BriefingBody
+    created_at: str
+
+
+class BriefingsOut(_Out):
+    items: list[BriefingItem]
+
+
+class PrepareDayItem(_Out):
+    client_id: int
+    briefing_id: int | None = None
+    pending_action_id: int | None = None
+    status: str | None = None
+    reused: bool
+    error: str | None = None
+
+
+class PrepareDayOut(_Out):
+    items: list[PrepareDayItem]
+
+
+class OvernightFlag(_Out):
+    client_id: int
+    findings: list[str]
+
+
+class OvernightOut(_Out):
+    run_id: str
+    summary: str
+    clients_checked: int
+    flagged: list[OvernightFlag]
+    drafted: int
+
+
+class PendingActionOut(_Out):
+    id: int
+    type: str
+    status: str
+    practice_id: int
+    idempotency_key: str
+    decided_by: int | None = None
+    decided_at: str | None = None
+
+
+class ClientView(_Out):
+    """Exactly what the client would see if this action is approved."""
+    kind: Literal["exercise", "nothing"]
+    title: str | None = None
+    fields: list[str] = []
+    note: str
+
+
+class TherapistActionItem(PendingActionOut):
+    payload: dict[str, object]
+    client_name: str | None = None
+    client_view: ClientView
+
+
+class TherapistActionsOut(_Out):
+    items: list[TherapistActionItem]
+
+
+class AlertItem(_Out):
+    id: int
+    client_id: int
+    type: str
+    priority: str
+    payload: dict[str, object]
+    acknowledged: bool
+    created_at: str
+
+
+class AlertsOut(_Out):
+    items: list[AlertItem]
+
+
+class AgentRunItem(_Out):
+    run_id: str
+    step: int
+    tool: str
+    summary: str
+    created_at: str
+
+
+class AgentRunsOut(_Out):
+    items: list[AgentRunItem]

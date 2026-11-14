@@ -51,11 +51,14 @@ from backend.app.models import (
     User,
     UserRole,
 )
-from backend.app.exercises import approved_exercises, router as exercises_router, with_notice
+from backend.app.exercises import approved_exercises, template_for, router as exercises_router, with_notice
 from backend.app.ratelimit import client_rate_limit, contact_rate_limit
 from backend.app.rag import index_session_notes
 from backend.app.safety import CRISIS_MESSAGE, check_claims, render_prompt_data, risk_scan, validate_ai_output
 from backend.app.schemas import (
+    AgentRunsOut, AlertsOut, AssessmentOut, AssessmentsOut, BriefingsOut, CasePlanOut, CasePlansOut,
+    OvernightOut, PendingActionOut, PrepareDayOut, SessionNotesOut, TherapistActionsOut,
+    TherapistBookingsOut, TherapistProfileOut,
     MessageResponse,
     AssessmentIn,
     AvailabilityOut,
@@ -90,7 +93,7 @@ async def lifespan(_: FastAPI):
             scheduler.shutdown(wait=False)
 
 
-app = FastAPI(title="Counselling Practice Platform", lifespan=lifespan)
+app = FastAPI(title="Counselling Practice Platform", lifespan=lifespan, root_path="/api")
 app.include_router(exercises_router)
 
 
@@ -123,6 +126,23 @@ def _create_publish_action(db: Session, practice: Practice, page: dict[str, obje
     )
     db.add(action)
     return action
+
+
+def _action_preview(db: Session, action: PendingAction) -> dict[str, object]:
+    """Server-computed: who the action concerns and exactly what would reach the client on approval."""
+    client_id = action.payload.get("client_id")
+    client = db.query(User).filter(User.id == client_id).first() if isinstance(client_id, int) else None
+    if action.type == "release_exercise":
+        ex = db.query(Exercise).filter(Exercise.slug == action.payload.get("exercise")).first()
+        if ex is not None:
+            title, template = template_for(ex)
+            labels = [str(f.get("label", f.get("id", ""))) for f in (template.get("fields") or []) if isinstance(f, dict)]
+            view = {"kind": "exercise", "title": title, "fields": labels,
+                    "note": "Appears under \"Approved exercises\" on the client's dashboard. Nothing else is sent."}
+            return {"client_name": client.name if client else None, "client_view": view}
+    note = ("Nothing reaches the client. This adds a new version to your own case plan only."
+            if action.type == "apply_plan_update" else "Nothing reaches the client. This is a private briefing for you.")
+    return {"client_name": client.name if client else None, "client_view": {"kind": "nothing", "note": note}}
 
 
 def _pending_action_result(action: PendingAction) -> dict[str, object]:
@@ -544,7 +564,7 @@ def save_therapist_profile(
             "verified": profile.verified}
 
 
-@app.get("/therapists/me/profile")
+@app.get("/therapists/me/profile", response_model=TherapistProfileOut)
 def get_therapist_profile(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.therapist)),
@@ -617,7 +637,7 @@ def create_availability_slot(
     return {"id": slot.id, "therapist_id": profile.id, "starts_at": slot.starts_at.isoformat(), "ends_at": slot.ends_at.isoformat()}
 
 
-@app.get("/therapists/me/bookings")
+@app.get("/therapists/me/bookings", response_model=TherapistBookingsOut)
 def therapist_bookings(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.therapist)),
@@ -861,7 +881,7 @@ def list_pending_actions(
     return {"items": [_pending_action_result(row) | {"payload": row.payload} for row in rows]}
 
 
-@app.post("/pending-actions/{action_id}/approve")
+@app.post("/pending-actions/{action_id}/approve", response_model=PendingActionOut)
 def approve_pending_action(
     action_id: int,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
@@ -909,7 +929,7 @@ def approve_pending_action(
     return _pending_action_result(action)
 
 
-@app.post("/pending-actions/{action_id}/reject")
+@app.post("/pending-actions/{action_id}/reject", response_model=PendingActionOut)
 def reject_pending_action(
     action_id: int,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
@@ -1062,7 +1082,7 @@ def _session_payload(row: TherapySession) -> dict[str, object]:
             "risk_flag": row.risk_flag, "updated_at": row.updated_at.isoformat()}
 
 
-@app.put("/bookings/{booking_id}/session-notes")
+@app.put("/bookings/{booking_id}/session-notes", response_model=SessionNotesOut)
 def save_session_notes(
     booking_id: int,
     payload: SessionNotesIn,
@@ -1090,7 +1110,7 @@ def save_session_notes(
     return _session_payload(row) | {"safety": {"flagged": bool(risk), "message": risk["message"] if risk else None}}
 
 
-@app.get("/bookings/{booking_id}/session-notes")
+@app.get("/bookings/{booking_id}/session-notes", response_model=SessionNotesOut)
 def get_session_notes(
     booking_id: int,
     db: Session = Depends(get_db),
@@ -1103,7 +1123,7 @@ def get_session_notes(
     return _session_payload(row)
 
 
-@app.post("/clients/{client_id}/assessments")
+@app.post("/clients/{client_id}/assessments", response_model=AssessmentOut)
 def record_assessment(
     client_id: int,
     payload: AssessmentIn,
@@ -1128,7 +1148,7 @@ def record_assessment(
             "taken_at": row.taken_at.isoformat(), "risk_alert": flagged}
 
 
-@app.get("/clients/{client_id}/assessments")
+@app.get("/clients/{client_id}/assessments", response_model=AssessmentsOut)
 def list_assessments(
     client_id: int,
     db: Session = Depends(get_db),
@@ -1146,7 +1166,7 @@ def _plan_payload(row: CasePlan) -> dict[str, object]:
             "created_at": row.created_at.isoformat()}
 
 
-@app.post("/clients/{client_id}/case-plans")
+@app.post("/clients/{client_id}/case-plans", response_model=CasePlanOut)
 def create_case_plan_version(
     client_id: int,
     payload: CasePlanIn,
@@ -1169,7 +1189,7 @@ def create_case_plan_version(
     return _plan_payload(row)
 
 
-@app.post("/clients/{client_id}/case-plans/{plan_id}/approve")
+@app.post("/clients/{client_id}/case-plans/{plan_id}/approve", response_model=CasePlanOut)
 def approve_case_plan(
     client_id: int,
     plan_id: int,
@@ -1186,7 +1206,7 @@ def approve_case_plan(
     return _plan_payload(row)
 
 
-@app.get("/clients/{client_id}/case-plans")
+@app.get("/clients/{client_id}/case-plans", response_model=CasePlansOut)
 def list_case_plans(
     client_id: int,
     db: Session = Depends(get_db),
@@ -1197,7 +1217,7 @@ def list_case_plans(
     return {"items": [_plan_payload(r) for r in rows]}
 
 
-@app.post("/therapists/me/prepare-my-day")
+@app.post("/therapists/me/prepare-my-day", response_model=PrepareDayOut)
 def prepare_my_day_endpoint(
     hours: int = Query(default=24, ge=1, le=168),
     db: Session = Depends(get_db),
@@ -1209,7 +1229,7 @@ def prepare_my_day_endpoint(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-@app.post("/therapist/overnight-check")
+@app.post("/therapist/overnight-check", response_model=OvernightOut)
 def overnight_check(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.therapist)),
@@ -1220,7 +1240,7 @@ def overnight_check(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-@app.get("/therapists/me/briefings")
+@app.get("/therapists/me/briefings", response_model=BriefingsOut)
 def list_briefings(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.therapist)),
@@ -1231,7 +1251,7 @@ def list_briefings(
                        "briefing": r.briefing_json, "created_at": r.created_at.isoformat()} for r in rows]}
 
 
-@app.get("/therapists/me/pending-actions")
+@app.get("/therapists/me/pending-actions", response_model=TherapistActionsOut)
 def therapist_pending_actions(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.therapist)),
@@ -1239,10 +1259,10 @@ def therapist_pending_actions(
     rows = (db.query(PendingAction).filter(PendingAction.assignee_user_id == current_user.id,
                                            PendingAction.type.in_(THERAPIST_ACTION_TYPES))
             .order_by(PendingAction.created_at.desc()).all())
-    return {"items": [_pending_action_result(r) | {"payload": r.payload} for r in rows]}
+    return {"items": [_pending_action_result(r) | {"payload": r.payload} | _action_preview(db, r) for r in rows]}
 
 
-@app.get("/therapists/me/alerts")
+@app.get("/therapists/me/alerts", response_model=AlertsOut)
 def therapist_alerts(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.therapist)),
@@ -1254,7 +1274,7 @@ def therapist_alerts(
                       for r in rows]}
 
 
-@app.get("/therapists/me/agent-runs")
+@app.get("/therapists/me/agent-runs", response_model=AgentRunsOut)
 def therapist_agent_runs(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.therapist)),
