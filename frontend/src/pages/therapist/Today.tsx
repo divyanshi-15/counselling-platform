@@ -10,6 +10,7 @@ import { api } from "@/lib/api";
 import { useFetch } from "@/lib/useFetch";
 import { AckButton, AiBadge, InferredBadge, RiskAlerts, Shell, SupportedBadge, fmt, type Schemas } from "./common";
 import { TherapistAnalytics } from "./Analytics";
+import { MoodTrend } from "./Skills";
 
 type Briefing = Schemas["BriefingItem"];
 
@@ -62,6 +63,9 @@ function BriefingCard({ b, name }: { b: Briefing; name: string }) {
                 {scores.map(([k, v]) => <span key={k}>{k}: <span className="font-medium text-foreground">{typeof v === "object" ? JSON.stringify(v) : String(v)}</span></span>)}
               </p>
             )}
+            {d.mood_trend && d.mood_trend.count ? (
+              <div className="space-y-1"><h3 className="text-sm font-medium">Mood and sleep, last 14 days</h3><MoodTrend trend={d.mood_trend as never} /></div>
+            ) : null}
             {d.suggestions.length > 0 && (
               <div className="space-y-2">
                 <h3 className="text-sm font-medium">Suggestions for your review</h3>

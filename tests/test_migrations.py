@@ -51,3 +51,12 @@ def test_therapist_booking_migration_has_unique_constraints_and_foreign_keys() -
                for fk in response_fks)
     assert any(fk["constrained_columns"] == ["client_id"] and fk["referred_table"] == "users"
                for fk in response_fks)
+
+
+def test_skill_building_tables_exist_with_unique_keys() -> None:
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        assert {"mood_checkins", "journal_entries", "journeys", "journey_steps", "journey_assignments",
+                "journey_step_progress", "reminder_preferences", "reminder_log"} <= set(inspector.get_table_names())
+        mood_unique = {tuple(c["column_names"]) for c in inspector.get_unique_constraints("mood_checkins")}
+        assert ("client_id", "entry_date") in mood_unique

@@ -405,3 +405,100 @@ class Checkin(Base):
     responses_json: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     flagged: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utcnow)
+
+
+class MoodCheckin(Base):
+    """One row per client per day (upserted). The note is client free text and went through the safety check first."""
+    __tablename__ = "mood_checkins"
+    __table_args__ = (UniqueConstraint("client_id", "entry_date", name="uq_mood_client_day"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    client_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    entry_date: Mapped[date] = mapped_column(Date, nullable=False)
+    mood: Mapped[int] = mapped_column(Integer, nullable=False)
+    sleep_hours: Mapped[float] = mapped_column(Float, nullable=False)
+    note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utcnow)
+
+
+class JournalEntry(Base):
+    """Private by default; the therapist sees an entry only while shared is true."""
+    __tablename__ = "journal_entries"
+    __table_args__ = (UniqueConstraint("client_id", "idempotency_key", name="uq_journal_client_key"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    client_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    text: Mapped[str] = mapped_column(String(2000), nullable=False)
+    shared: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    idempotency_key: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utcnow)
+
+
+class Journey(Base):
+    """A programme: ordered weekly steps. created_by NULL = shared library template; otherwise the authoring therapist."""
+    __tablename__ = "journeys"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    slug: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
+    title_en: Mapped[str] = mapped_column(String(200), nullable=False)
+    title_hi: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utcnow)
+
+
+class JourneyStep(Base):
+    __tablename__ = "journey_steps"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    journey_id: Mapped[int] = mapped_column(ForeignKey("journeys.id", ondelete="CASCADE"), nullable=False, index=True)
+    week: Mapped[int] = mapped_column(Integer, nullable=False)
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    exercise_id: Mapped[int] = mapped_column(ForeignKey("exercises.id", ondelete="RESTRICT"), nullable=False)
+    text_en: Mapped[str] = mapped_column(String(400), nullable=False)
+    text_hi: Mapped[str | None] = mapped_column(String(400), nullable=True)
+
+
+class JourneyAssignment(Base):
+    __tablename__ = "journey_assignments"
+    __table_args__ = (UniqueConstraint("client_id", "idempotency_key", name="uq_journey_assignment_key"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    journey_id: Mapped[int] = mapped_column(ForeignKey("journeys.id", ondelete="CASCADE"), nullable=False, index=True)
+    client_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    therapist_user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    started_on: Mapped[date] = mapped_column(Date, nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utcnow)
+
+
+class JourneyStepProgress(Base):
+    __tablename__ = "journey_step_progress"
+    __table_args__ = (UniqueConstraint("assignment_id", "step_id", name="uq_journey_progress"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    assignment_id: Mapped[int] = mapped_column(ForeignKey("journey_assignments.id", ondelete="CASCADE"), nullable=False, index=True)
+    step_id: Mapped[int] = mapped_column(ForeignKey("journey_steps.id", ondelete="CASCADE"), nullable=False)
+    completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utcnow)
+
+
+class ReminderPreference(Base):
+    """Off by default: a row only exists once the client opts in or out."""
+    __tablename__ = "reminder_preferences"
+
+    client_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    daily_checkin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    exercise_nudges: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utcnow)
+
+
+class ReminderLog(Base):
+    """One row per send; the unique key makes every send idempotent."""
+    __tablename__ = "reminder_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    client_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    kind: Mapped[str] = mapped_column(String(24), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utcnow)

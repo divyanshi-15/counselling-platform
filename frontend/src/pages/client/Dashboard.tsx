@@ -5,9 +5,34 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, ErrorMsg, Loading } from "@/components/states";
 import { useFetch } from "@/lib/useFetch";
+import { useT, type Key } from "@/lib/i18n";
 import { fmt, RequireClient, type Schemas } from "./common";
+import { JourneyCard } from "./Skills";
 
 type Dash = Schemas["ClientDashboardOut"];
+
+function SkillSpace() {
+  const t = useT();
+  const journeys = useFetch<Schemas["ClientJourneysOut"]>("/client/journeys");
+  const tiles: [Key, Key, string][] = [
+    ["checkin", "checkinHint", "/client/check-in"], ["journal", "journalHint", "/client/journal"],
+    ["journeys", "journeysHint", "/client/journeys"], ["insights", "insightsHint", "/client/insights"],
+    ["reminders", "remindersHint", "/client/reminders"]];
+  return (
+    <section className="space-y-3" aria-label={t("space")}>
+      <h2 className="text-lg font-semibold">{t("space")}</h2>
+      {journeys.data?.items[0] && <JourneyCard j={journeys.data.items[0]} onChange={journeys.reload} />}
+      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+        {tiles.map(([title, hint, to]) => (
+          <Card key={to}><CardContent className="space-y-2 pt-4">
+            <p className="font-medium">{t(title)}</p><p className="text-sm text-muted-foreground">{t(hint)}</p>
+            <Button variant="outline" asChild><Link to={to}>{t("open")}</Link></Button>
+          </CardContent></Card>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function Body() {
   const { data, error, loading } = useFetch<Dash>("/client/dashboard");
@@ -41,6 +66,7 @@ function Body() {
         <p className="text-muted-foreground">Write down what is on your mind. It is shared with your therapist.</p>
         <Button variant="outline" asChild><Link to="/client/brain-dump">Write a brain dump</Link></Button>
       </CardContent></Card>
+      <SkillSpace />
       <section>
         <h2 className="mb-2 text-lg font-semibold">Approved exercises</h2>
         {data.approved_exercises.length === 0 ? <Empty>No exercises from your therapist yet.</Empty> : (

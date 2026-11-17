@@ -22,9 +22,9 @@ from sqlalchemy.orm import Session
 from backend.app import fake_llm, rag
 from backend.app.agents.launch import _budget_exceeded, _cached_model_output, _record_token_usage, _write_cache
 from backend.app.citations import CitationError, Suggestion, validate_suggestions
-from backend.app.clinical import phq9_item9_positive, scan_client_text
+from backend.app.clinical import mood_trend, phq9_item9_positive, scan_client_text
 from backend.app.models import (AgentRun, Assessment, Assignment, AvailabilitySlot, Booking, CasePlan, CopilotBriefing, Exercise,
-                                IntakeResponse, KbChunk, KbDocument, PendingAction, TherapistProfile, TherapySession,
+                                IntakeResponse, MoodCheckin, KbChunk, KbDocument, PendingAction, TherapistProfile, TherapySession,
                                 User)
 from backend.app.safety import clinical_output_violations, render_prompt_data
 
@@ -85,6 +85,7 @@ class Briefing(BaseModel):
     plan: dict[str, Any] | None = None
     retrieved: list[dict[str, Any]] = Field(default_factory=list)
     suggestions: list[Suggestion] = Field(default_factory=list)
+    mood_trend: dict[str, Any] | None = None  # 14-day mood/sleep numbers, read straight from the table (no model)
 
 
 # ---------- model call (disk cache, budget, prompt caching on system + retrieved chunks) ----------
@@ -276,6 +277,7 @@ def _run(db: Session, loop: _Loop, therapist_user_id: int, client_id: int, start
                                                       TherapySession.therapist_user_id == therapist_user_id)
                          .order_by(TherapySession.updated_at.desc()).limit(1)).first()
     notes_text = session.raw_notes if session else ""
+    trend = mood_trend(db, client_id, 14)
 
     risk_flags = []
     if intake["risk"]:
@@ -288,7 +290,7 @@ def _run(db: Session, loop: _Loop, therapist_user_id: int, client_id: int, start
         loop.steps.append({"run_id": loop.run_id, "step": loop.calls, "tool": "safety_stop",
                            "summary": "Risk flag present; stopped before any model call"})
         return Briefing(client_id=client_id, session_starts_at=starts_at, status="risk_stop", summary=RISK_STOP,
-                        risk_flags=risk_flags, scores=scores)
+                        risk_flags=risk_flags, scores=scores, mood_trend=trend)
 
     structured = loop.tool("structure_notes", lambda: structure_notes(db, session, max_tokens=max_tokens),
                            lambda r: "No notes on file" if session is None else
@@ -334,6 +336,7 @@ def _run(db: Session, loop: _Loop, therapist_user_id: int, client_id: int, start
 
     return Briefing(client_id=client_id, session_starts_at=starts_at, status=status, summary=summary,
                     summary_label="INFERRED" if status == "ok" else None, scores=scores, plan=plan, suggestions=validated,
+                    mood_trend=trend,
                     retrieved=[{"id": h.id, "title": h.title, "similarity": round(h.similarity, 3)} for h in retrieved])
 
 
@@ -399,8 +402,10 @@ def _input_hash(db: Session, therapist_user_id: int, client_id: int, starts_at: 
     intake = db.scalars(select(IntakeResponse.id).where(IntakeResponse.client_id == client_id)).all()
     assigned = db.execute(select(Assignment.id, Assignment.status).where(Assignment.client_id == client_id)
                           .order_by(Assignment.id)).all()
+    moods = [(m.entry_date.isoformat(), m.mood, m.sleep_hours) for m in db.scalars(
+        select(MoodCheckin).where(MoodCheckin.client_id == client_id).order_by(MoodCheckin.entry_date.desc()).limit(14))]
     key = json.dumps([therapist_user_id, client_id, starts_at, [tuple(a) for a in assigned], session.id if session else None,
-                      session.updated_at.isoformat() if session else None, plan, sorted(assessments), sorted(intake)])
+                      session.updated_at.isoformat() if session else None, plan, sorted(assessments), sorted(intake), moods])
     return hashlib.sha256(key.encode()).hexdigest()
 
 

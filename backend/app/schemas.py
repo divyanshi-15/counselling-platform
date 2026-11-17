@@ -371,6 +371,7 @@ class BriefingBody(_Out):
     plan: dict[str, object] | None = None
     retrieved: list[RetrievedRef] = []
     suggestions: list[BriefingSuggestion] = []
+    mood_trend: dict[str, object] | None = None
 
 
 class BriefingItem(_Out):
@@ -424,7 +425,7 @@ class PendingActionOut(_Out):
 
 class ClientView(_Out):
     """Exactly what the client would see if this action is approved."""
-    kind: Literal["exercise", "nothing"]
+    kind: Literal["exercise", "journey", "nothing"]
     title: str | None = None
     fields: list[str] = []
     note: str

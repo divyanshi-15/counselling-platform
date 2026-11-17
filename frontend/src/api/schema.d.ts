@@ -72,6 +72,246 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/client/mood": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Mood */
+        get: operations["list_mood_client_mood_get"];
+        /** Save Mood */
+        put: operations["save_mood_client_mood_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clients/{client_id}/mood-trend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Client Mood Trend */
+        get: operations["client_mood_trend_clients__client_id__mood_trend_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/client/journal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Journal */
+        get: operations["list_journal_client_journal_get"];
+        put?: never;
+        /** Add Journal Entry */
+        post: operations["add_journal_entry_client_journal_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/client/journal/{entry_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set Journal Sharing */
+        patch: operations["set_journal_sharing_client_journal__entry_id__patch"];
+        trace?: never;
+    };
+    "/clients/{client_id}/journal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Shared Journal
+         * @description Only entries the client chose to share. Private entries are never returned.
+         */
+        get: operations["shared_journal_clients__client_id__journal_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/client/insights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Insights
+         * @description Plain numbers over the last 30 days. No interpretation.
+         */
+        get: operations["insights_client_insights_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/client/reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Reminders */
+        get: operations["get_reminders_client_reminders_get"];
+        /** Set Reminders */
+        put: operations["set_reminders_client_reminders_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/client/journeys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Journeys */
+        get: operations["my_journeys_client_journeys_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/client/journeys/{assignment_id}/steps/{step_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete Step */
+        post: operations["complete_step_client_journeys__assignment_id__steps__step_id__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/therapists/me/journeys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Journey Library
+         * @description Library templates plus this therapist's own programmes.
+         */
+        get: operations["journey_library_therapists_me_journeys_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clients/{client_id}/journeys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Client Journeys */
+        get: operations["client_journeys_clients__client_id__journeys_get"];
+        put?: never;
+        /**
+         * Assign Journey
+         * @description A human therapist action: assigns a library template or a programme the therapist wrote.
+         */
+        post: operations["assign_journey_clients__client_id__journeys_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clients/{client_id}/journeys/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Propose Journey
+         * @description AI proposes a draft programme as a pending_action only. Nothing reaches the client until the therapist approves.
+         */
+        post: operations["propose_journey_clients__client_id__journeys_draft_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pending-actions/{action_id}/journey-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Edit Journey Draft */
+        put: operations["edit_journey_draft_pending_actions__action_id__journey_draft_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/analytics/therapist": {
         parameters: {
             query?: never;
@@ -1651,6 +1891,19 @@ export interface components {
             /** Items */
             items: components["schemas"]["AssessmentOut"][];
         };
+        /** AssignIn */
+        AssignIn: {
+            /** Template Id */
+            template_id?: number | null;
+            programme?: components["schemas"]["JourneyDraft"] | null;
+        };
+        /** AssignedOut */
+        AssignedOut: {
+            /** Assignment Id */
+            assignment_id: number;
+            /** Journey Id */
+            journey_id: number;
+        };
         /** AssignmentsOut */
         AssignmentsOut: {
             /** Notice */
@@ -1793,6 +2046,10 @@ export interface components {
              * @default []
              */
             suggestions: components["schemas"]["BriefingSuggestion"][];
+            /** Mood Trend */
+            mood_trend?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** BriefingItem */
         BriefingItem: {
@@ -1924,6 +2181,15 @@ export interface components {
             /** Approved Exercises */
             approved_exercises: components["schemas"]["ApprovedExercise"][];
         };
+        /** ClientJourneysOut */
+        ClientJourneysOut: {
+            /** Items */
+            items: components["schemas"]["JourneyView"][];
+            /** Notice */
+            notice: string;
+            /** Crisis Line */
+            crisis_line: string;
+        };
         /** ClientTrend */
         ClientTrend: {
             /** Client Id */
@@ -1942,7 +2208,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "exercise" | "nothing";
+            kind: "exercise" | "journey" | "nothing";
             /** Title */
             title?: string | null;
             /**
@@ -2076,6 +2342,32 @@ export interface components {
             /** Summary */
             summary: string;
         };
+        /** DraftEditOut */
+        DraftEditOut: {
+            /** Id */
+            id: number;
+            /** Status */
+            status: string;
+        };
+        /** DraftOut */
+        DraftOut: {
+            /** Status */
+            status: string;
+            /** Message */
+            message: string;
+            /** Pending Action Id */
+            pending_action_id?: number | null;
+        };
+        /** DraftRequest */
+        DraftRequest: {
+            /** Focus */
+            focus: string;
+            /**
+             * Weeks
+             * @default 3
+             */
+            weeks: number;
+        };
         /** EducationIn */
         EducationIn: {
             /** Degree */
@@ -2095,6 +2387,13 @@ export interface components {
             institution: string;
             /** Year */
             year: number;
+        };
+        /** ExerciseRef */
+        ExerciseRef: {
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
         };
         /** ExerciseTemplate */
         ExerciseTemplate: {
@@ -2131,6 +2430,41 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** InsightDay */
+        InsightDay: {
+            /** Date */
+            date: string;
+            /** Mood */
+            mood?: number | null;
+            /** Sleep Hours */
+            sleep_hours?: number | null;
+            /**
+             * Exercises Completed
+             * @default 0
+             */
+            exercises_completed: number;
+        };
+        /** InsightsOut */
+        InsightsOut: {
+            /** Notice */
+            notice: string;
+            /** Crisis Line */
+            crisis_line: string;
+            /** Days */
+            days: number;
+            /** Series */
+            series: components["schemas"]["InsightDay"][];
+            /** Checkins */
+            checkins: number;
+            /** Avg Mood */
+            avg_mood?: number | null;
+            /** Avg Sleep */
+            avg_sleep?: number | null;
+            /** Exercises Completed */
+            exercises_completed: number;
+            /** Exercises Assigned */
+            exercises_assigned: number;
         };
         /** IntakeField */
         IntakeField: {
@@ -2284,6 +2618,116 @@ export interface components {
              */
             expires_at: string;
         };
+        /** JournalIn */
+        JournalIn: {
+            /** Text */
+            text: string;
+            /**
+             * Shared
+             * @default false
+             */
+            shared: boolean;
+        };
+        /** JournalItem */
+        JournalItem: {
+            /** Id */
+            id: number;
+            /** Text */
+            text: string;
+            /** Shared */
+            shared: boolean;
+            /** Created At */
+            created_at: string;
+        };
+        /** JournalListOut */
+        JournalListOut: {
+            /** Notice */
+            notice: string;
+            /** Crisis Line */
+            crisis_line: string;
+            /** Items */
+            items: components["schemas"]["JournalItem"][];
+        };
+        /** JournalOut */
+        JournalOut: {
+            /** Notice */
+            notice: string;
+            /** Crisis Line */
+            crisis_line: string;
+            /** Status */
+            status: string;
+            /** Message */
+            message?: string | null;
+            entry?: components["schemas"]["JournalItem"] | null;
+        };
+        /** JournalShareIn */
+        JournalShareIn: {
+            /** Shared */
+            shared: boolean;
+        };
+        /** JourneyDraft */
+        JourneyDraft: {
+            /** Title En */
+            title_en: string;
+            /** Title Hi */
+            title_hi?: string | null;
+            /** Steps */
+            steps: components["schemas"]["StepIn"][];
+        };
+        /** JourneyView */
+        JourneyView: {
+            /** Assignment Id */
+            assignment_id: number;
+            /** Title */
+            title: string;
+            /** Weeks */
+            weeks: number;
+            /** Current Week */
+            current_week: number;
+            /** Completed */
+            completed: number;
+            /** Total */
+            total: number;
+            /** Started On */
+            started_on: string;
+            /** Current Steps */
+            current_steps: components["schemas"]["StepOut"][];
+            /** Weeks Progress */
+            weeks_progress: components["schemas"]["WeekProgress"][];
+        };
+        /** LibraryJourney */
+        LibraryJourney: {
+            /** Id */
+            id: number;
+            /** Title En */
+            title_en: string;
+            /** Title Hi */
+            title_hi?: string | null;
+            /** Weeks */
+            weeks: number;
+            /** Own */
+            own: boolean;
+            /** Steps */
+            steps: components["schemas"]["LibraryStep"][];
+        };
+        /** LibraryOut */
+        LibraryOut: {
+            /** Items */
+            items: components["schemas"]["LibraryJourney"][];
+            /** Exercises */
+            exercises: components["schemas"]["ExerciseRef"][];
+        };
+        /** LibraryStep */
+        LibraryStep: {
+            /** Week */
+            week: number;
+            /** Exercise */
+            exercise: string;
+            /** Text En */
+            text_en: string;
+            /** Text Hi */
+            text_hi?: string | null;
+        };
         /** LicenseIn */
         LicenseIn: {
             /** License Type */
@@ -2352,6 +2796,62 @@ export interface components {
             sessions: number;
             /** Revenue Inr */
             revenue_inr: number;
+        };
+        /** MoodEntry */
+        MoodEntry: {
+            /** Entry Date */
+            entry_date: string;
+            /** Mood */
+            mood: number;
+            /** Sleep Hours */
+            sleep_hours: number;
+            /** Note */
+            note?: string | null;
+        };
+        /** MoodIn */
+        MoodIn: {
+            /** Mood */
+            mood: number;
+            /** Sleep Hours */
+            sleep_hours: number;
+            /** Note */
+            note?: string | null;
+            /** Entry Date */
+            entry_date?: string | null;
+        };
+        /** MoodListOut */
+        MoodListOut: {
+            /** Notice */
+            notice: string;
+            /** Crisis Line */
+            crisis_line: string;
+            /** Items */
+            items: components["schemas"]["MoodEntry"][];
+        };
+        /** MoodOut */
+        MoodOut: {
+            /** Notice */
+            notice: string;
+            /** Crisis Line */
+            crisis_line: string;
+            /** Status */
+            status: string;
+            /** Message */
+            message?: string | null;
+            entry?: components["schemas"]["MoodEntry"] | null;
+        };
+        /** MoodTrendOut */
+        MoodTrendOut: {
+            /** Days */
+            days: number;
+            /** Count */
+            count: number;
+            /** Avg Mood */
+            avg_mood?: number | null;
+            /** Avg Sleep */
+            avg_sleep?: number | null;
+            /** Entries */
+            entries: components["schemas"]["TrendEntry"][];
         };
         /** MySlotOut */
         MySlotOut: {
@@ -2842,6 +3342,24 @@ export interface components {
             /** Items */
             items: components["schemas"]["QueueItem"][];
         };
+        /** RemindersIn */
+        RemindersIn: {
+            /** Daily Checkin */
+            daily_checkin: boolean;
+            /** Exercise Nudges */
+            exercise_nudges: boolean;
+        };
+        /** RemindersOut */
+        RemindersOut: {
+            /** Notice */
+            notice: string;
+            /** Crisis Line */
+            crisis_line: string;
+            /** Daily Checkin */
+            daily_checkin: boolean;
+            /** Exercise Nudges */
+            exercise_nudges: boolean;
+        };
         /** RequiredDocOut */
         RequiredDocOut: {
             /** Doc Type */
@@ -2981,6 +3499,20 @@ export interface components {
             page: components["schemas"]["PageOut"];
             preview: components["schemas"]["PublicPracticePage"];
         };
+        /** SharedJournalItem */
+        SharedJournalItem: {
+            /** Id */
+            id: number;
+            /** Text */
+            text: string;
+            /** Created At */
+            created_at: string;
+        };
+        /** SharedJournalOut */
+        SharedJournalOut: {
+            /** Items */
+            items: components["schemas"]["SharedJournalItem"][];
+        };
         /** SlotOut */
         SlotOut: {
             /** Id */
@@ -2996,6 +3528,32 @@ export interface components {
             specialisation: string;
             /** Bookings */
             bookings: number;
+        };
+        /** StepIn */
+        StepIn: {
+            /** Week */
+            week: number;
+            /** Exercise */
+            exercise: string;
+            /** Text En */
+            text_en: string;
+            /** Text Hi */
+            text_hi?: string | null;
+        };
+        /** StepOut */
+        StepOut: {
+            /** Id */
+            id: number;
+            /** Week */
+            week: number;
+            /** Text */
+            text: string;
+            /** Exercise */
+            exercise: string;
+            /** Exercise Title */
+            exercise_title: string;
+            /** Done */
+            done: boolean;
         };
         /** TemplateField */
         TemplateField: {
@@ -3071,6 +3629,28 @@ export interface components {
             /** Items */
             items: components["schemas"]["TherapistBookingItem"][];
         };
+        /** TherapistJourneyItem */
+        TherapistJourneyItem: {
+            /** Assignment Id */
+            assignment_id: number;
+            /** Title */
+            title: string;
+            /** Weeks */
+            weeks: number;
+            /** Current Week */
+            current_week: number;
+            /** Completed */
+            completed: number;
+            /** Total */
+            total: number;
+            /** Started On */
+            started_on: string;
+        };
+        /** TherapistJourneysOut */
+        TherapistJourneysOut: {
+            /** Items */
+            items: components["schemas"]["TherapistJourneyItem"][];
+        };
         /** TherapistProfileIn */
         TherapistProfileIn: {
             /**
@@ -3132,6 +3712,15 @@ export interface components {
         TokenIn: {
             /** Token */
             token: string;
+        };
+        /** TrendEntry */
+        TrendEntry: {
+            /** Date */
+            date: string;
+            /** Mood */
+            mood: number;
+            /** Sleep Hours */
+            sleep_hours: number;
         };
         /** UpcomingSession */
         UpcomingSession: {
@@ -3241,6 +3830,15 @@ export interface components {
             week_start: string;
             /** Bookings */
             bookings: number;
+        };
+        /** WeekProgress */
+        WeekProgress: {
+            /** Week */
+            week: number;
+            /** Completed */
+            completed: number;
+            /** Total */
+            total: number;
         };
     };
     responses: never;
@@ -3361,6 +3959,507 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BrainDumpOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_mood_client_mood_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MoodListOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_mood_client_mood_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoodIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MoodOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    client_mood_trend_clients__client_id__mood_trend_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                client_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MoodTrendOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_journal_client_journal_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JournalListOut"];
+                };
+            };
+        };
+    };
+    add_journal_entry_client_journal_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JournalIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JournalOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_journal_sharing_client_journal__entry_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JournalShareIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JournalItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    shared_journal_clients__client_id__journal_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                client_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharedJournalOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    insights_client_insights_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsightsOut"];
+                };
+            };
+        };
+    };
+    get_reminders_client_reminders_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemindersOut"];
+                };
+            };
+        };
+    };
+    set_reminders_client_reminders_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemindersIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemindersOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_journeys_client_journeys_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientJourneysOut"];
+                };
+            };
+        };
+    };
+    complete_step_client_journeys__assignment_id__steps__step_id__complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignment_id: number;
+                step_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JourneyView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    journey_library_therapists_me_journeys_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryOut"];
+                };
+            };
+        };
+    };
+    client_journeys_clients__client_id__journeys_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                client_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TherapistJourneysOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assign_journey_clients__client_id__journeys_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                client_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    propose_journey_clients__client_id__journeys_draft_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                client_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DraftRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_journey_draft_pending_actions__action_id__journey_draft_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JourneyDraft"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftEditOut"];
                 };
             };
             /** @description Validation Error */

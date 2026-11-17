@@ -18,6 +18,13 @@ CRISIS_MESSAGE = ("You are not alone, and your safety matters most right now. Pl
                   "(or 1-800-891-4416), or go to the nearest emergency service or a trusted person. "
                   "Your therapist has been alerted. This is a safety stop, not an assessment. "
                   "Skill-building support, not a replacement for therapy.")
+CRISIS_MESSAGE_HI = ("आप अकेले नहीं हैं, और अभी आपकी सुरक्षा सबसे ज़रूरी है। कृपया Tele-MANAS 14416 (या 1-800-891-4416) पर कॉल करें, "
+                     "या नज़दीकी आपातकालीन सेवा या किसी भरोसेमंद व्यक्ति से संपर्क करें। आपके थेरेपिस्ट को सूचित कर दिया गया है। "
+                     "यह एक सुरक्षा विराम है, कोई मूल्यांकन नहीं। कौशल-निर्माण सहायता, थेरेपी का विकल्प नहीं।")
+
+
+def crisis_message(language: str | None) -> str:
+    return CRISIS_MESSAGE_HI if language == "hi" else CRISIS_MESSAGE
 
 RISK_KEYWORDS = {
     "en": [

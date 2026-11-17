@@ -1,9 +1,12 @@
 """Deterministic clinical helpers shared by endpoints and agents. No LLM calls here."""
 from __future__ import annotations
 
+from datetime import date, timedelta
+
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.app.models import Alert
+from backend.app.models import Alert, MoodCheckin
 from backend.app.safety import free_text_values, risk_scan
 
 ASSESSMENT_ITEMS = {"PHQ9": 9, "GAD7": 7}
@@ -41,3 +44,17 @@ def assessment_total(kind: str, item_scores: list[int]) -> int:
 
 def phq9_item9_positive(kind: str, item_scores: list[int]) -> bool:
     return kind == "PHQ9" and len(item_scores) == 9 and item_scores[8] > 0
+
+
+def mood_trend(db: Session, client_id: int, days: int = 14, today: date | None = None) -> dict:
+    """Plain numbers only (mood 1-5, sleep hours): no interpretation. The free-text note is never included."""
+    end = today or date.today()
+    rows = db.scalars(select(MoodCheckin).where(MoodCheckin.client_id == client_id,
+                                                MoodCheckin.entry_date > end - timedelta(days=days),
+                                                MoodCheckin.entry_date <= end + timedelta(days=1))
+                      .order_by(MoodCheckin.entry_date.asc())).all()
+    n = len(rows)
+    return {"days": days, "count": n,
+            "avg_mood": round(sum(r.mood for r in rows) / n, 1) if n else None,
+            "avg_sleep": round(sum(r.sleep_hours for r in rows) / n, 1) if n else None,
+            "entries": [{"date": r.entry_date.isoformat(), "mood": r.mood, "sleep_hours": r.sleep_hours} for r in rows]}

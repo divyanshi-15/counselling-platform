@@ -351,3 +351,40 @@ CASES = {
     },
     "client12@example.com": None,  # signed up, has not booked yet
 }
+
+# Library programmes (English and Hindi step text). Steps point at existing exercises.
+JOURNEYS = [
+    {"slug": "managing-worry", "title_en": "Managing worry, 4 weeks", "title_hi": "चिंता को संभालना, 4 सप्ताह", "steps": [
+        (1, "worry_postponement", "Pick a 15-minute worry time each day and jot worries down for later.",
+         "हर दिन 15 मिनट का चिंता-समय चुनें और चिंताएँ बाद के लिए लिख लें।"),
+        (1, "thought_record", "Once this week, write down one worry and what you notice about it.",
+         "इस सप्ताह एक बार, कोई एक चिंता और उसके बारे में जो आपने देखा, लिखें।"),
+        (2, "worry_postponement", "Keep your worry time. Notice which worries felt smaller by the time it came.",
+         "अपना चिंता-समय जारी रखें। देखें कि कौन-सी चिंताएँ उस समय तक छोटी लगने लगीं।"),
+        (2, "thought_record", "Write one thought record on a worry from this week.",
+         "इस सप्ताह की किसी चिंता पर एक विचार रिकॉर्ड लिखें।"),
+        (3, "thought_record", "Try a thought record on a different kind of worry.",
+         "किसी दूसरी तरह की चिंता पर विचार रिकॉर्ड आज़माएँ।"),
+        (3, "worry_postponement", "Shorten your worry time to 10 minutes if that feels comfortable.",
+         "अगर ठीक लगे तो चिंता-समय घटाकर 10 मिनट करें।"),
+        (4, "worry_postponement", "Choose the worry-time length that suits you and keep it going.",
+         "चिंता-समय की वह अवधि चुनें जो आपके लिए ठीक हो और उसे जारी रखें।"),
+        (4, "thought_record", "Look back over your records and note what helped. Bring it to your session.",
+         "अपने रिकॉर्ड देखें और लिखें कि क्या काम आया। इसे सत्र में साथ लाएँ।"),
+    ]},
+    {"slug": "sleep-wind-down", "title_en": "Sleep wind-down, 3 weeks", "title_hi": "नींद से पहले का सुकून, 3 सप्ताह", "steps": [
+        (1, "worry_postponement", "Write tomorrow's worries on paper an hour before bed, then close the page.",
+         "सोने से एक घंटा पहले अगले दिन की चिंताएँ कागज़ पर लिखें और फिर पन्ना बंद कर दें।"),
+        (1, "thought_record", "If a thought keeps you up, jot it in a thought record instead of going over it again.",
+         "अगर कोई विचार जगाए रखे, तो उसे दोहराने के बजाय विचार रिकॉर्ड में लिख लें।"),
+        (2, "worry_postponement", "Keep your pre-bed writing time and keep it to ten minutes.",
+         "सोने से पहले लिखने का समय जारी रखें और उसे दस मिनट तक रखें।"),
+        (2, "thought_record", "Once this week, write a thought record about a night thought.",
+         "इस सप्ताह एक बार रात के किसी विचार पर विचार रिकॉर्ड लिखें।"),
+        (3, "worry_postponement", "Notice how your evenings feel now and adjust your writing time to suit you.",
+         "देखें कि अब आपकी शामें कैसी लगती हैं और लिखने का समय अपने हिसाब से बदलें।"),
+        (3, "thought_record", "Pick the note-taking habit that helped most and plan to keep it.",
+         "वह आदत चुनें जिससे सबसे ज़्यादा मदद मिली और उसे जारी रखने की योजना बनाएँ।"),
+    ]},
+]
+JOURNEY_ASSIGNMENT = {"client": "client5@example.com", "slug": "managing-worry", "started_days_ago": 9, "done_weeks": 1}

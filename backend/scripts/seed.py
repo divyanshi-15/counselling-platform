@@ -18,11 +18,11 @@ from backend.app.auth import hash_password
 from backend.app.config import settings
 from backend.app.db import SessionLocal
 from backend.app.models import (Alert, Assessment, Assignment, AvailabilitySlot, Booking, CasePlan, Checkin, Exercise,
-                                IntakeForm, IntakeResponse, PendingAction, Practice, PracticeInvite, TherapistEducation, TherapistLicense,
+                                IntakeForm, IntakeResponse, Journey, JourneyAssignment, JourneyStep, JourneyStepProgress, MoodCheckin, PendingAction, Practice, PracticeInvite, TherapistEducation, TherapistLicense,
                                 TherapistProfile, TherapySession, User, VerificationDocument)
 from backend.app.practice_setup import _hash_token, INVITE_DAYS, set_practice_status
 from backend.app.verification import OWNER_TYPE, set_status, store_document, upload_dir
-from backend.scripts.seed_data import (COMMON_PAGE, CASES, INTAKE_FIELDS, LOGINS, PENDING_THERAPIST, PRACTICE_SLUGS,
+from backend.scripts.seed_data import (COMMON_PAGE, CASES, INTAKE_FIELDS, JOURNEYS, JOURNEY_ASSIGNMENT, LOGINS, PENDING_THERAPIST, PRACTICE_SLUGS,
                                        PRACTICES, PRACTICE_DETAILS, SETUP_INVITE, SETUP_PRACTICE, THERAPISTS, VERIFICATION)
 
 def _items(total: int, n: int) -> list[int]:
@@ -280,6 +280,59 @@ def seed_history(db: Session, now: datetime, profiles: dict[str, TherapistProfil
         db.flush()
 
 
+MOOD_DAYS = 30
+
+
+def seed_mood(db: Session, now: datetime, client: User, spec: dict) -> None:
+    """30 days of mood/sleep for a client with history. Idempotent: skipped once the client has any entry.
+    Mood follows the client's latest PHQ-9 loosely; the day-to-day wobble is deterministic."""
+    if db.scalar(select(MoodCheckin.id).where(MoodCheckin.client_id == client.id).limit(1)) is not None:
+        return
+    latest = spec["phq9"][-1][1]
+    base = max(1.5, min(4.5, 5.0 - latest / 7))
+    for i in range(MOOD_DAYS):
+        day = (now - timedelta(days=MOOD_DAYS - 1 - i)).date()
+        if (i * 7 + client.id) % 11 == 0:
+            continue  # a few quiet days with no entry
+        wobble = ((i * 5 + client.id * 3) % 7 - 3) / 3
+        trend = (i - MOOD_DAYS / 2) / MOOD_DAYS * (1 if spec["phq9"][-1][1] < spec["phq9"][0][1] else 0)
+        mood = max(1, min(5, round(base + wobble * 0.8 + trend)))
+        sleep = round(max(3.5, min(9.0, 5.0 + (mood - 2.5) * 0.7 + ((i * 3 + client.id) % 5 - 2) * 0.25)) * 2) / 2
+        db.add(MoodCheckin(client_id=client.id, entry_date=day, mood=mood, sleep_hours=sleep,
+                           created_at=now - timedelta(days=MOOD_DAYS - 1 - i), updated_at=now - timedelta(days=MOOD_DAYS - 1 - i)))
+
+
+def seed_journeys(db: Session, now: datetime, users: dict[str, User]) -> None:
+    exercises = {e.slug: e.id for e in db.scalars(select(Exercise))}
+    for spec in JOURNEYS:
+        if db.scalar(select(Journey.id).where(Journey.slug == spec["slug"])) is not None:
+            continue
+        journey = Journey(slug=spec["slug"], title_en=spec["title_en"], title_hi=spec["title_hi"])
+        db.add(journey)
+        db.flush()
+        for pos, (week, slug, en, hi) in enumerate(spec["steps"]):
+            db.add(JourneyStep(journey_id=journey.id, week=week, position=pos, exercise_id=exercises[slug], text_en=en, text_hi=hi))
+        db.flush()
+    spec = JOURNEY_ASSIGNMENT
+    client = users[spec["client"]]
+    key = f"seed:journey:{client.id}:{spec['slug']}"
+    if db.scalar(select(JourneyAssignment.id).where(JourneyAssignment.client_id == client.id,
+                                                    JourneyAssignment.idempotency_key == key)) is not None:
+        return
+    plan = db.scalar(select(CasePlan).where(CasePlan.client_id == client.id).order_by(CasePlan.id.desc()))
+    if plan is None:
+        return
+    journey = db.scalar(select(Journey).where(Journey.slug == spec["slug"]))
+    started = (now - timedelta(days=spec["started_days_ago"])).date()
+    assignment = JourneyAssignment(journey_id=journey.id, client_id=client.id, therapist_user_id=plan.therapist_user_id,
+                                   started_on=started, idempotency_key=key, created_at=now - timedelta(days=spec["started_days_ago"]))
+    db.add(assignment)
+    db.flush()
+    for step in db.scalars(select(JourneyStep).where(JourneyStep.journey_id == journey.id, JourneyStep.week <= spec["done_weeks"])):
+        db.add(JourneyStepProgress(assignment_id=assignment.id, step_id=step.id,
+                                   completed_at=now - timedelta(days=spec["started_days_ago"] - step.week - step.position)))
+
+
 def seed(db: Session, *, load_kb: bool = True, now: datetime | None = None) -> None:
     now = now or datetime.now(timezone.utc)
     users = {email: _user(db, email, pw, role, name) for email, pw, role, name in LOGINS}
@@ -294,6 +347,10 @@ def seed(db: Session, *, load_kb: bool = True, now: datetime | None = None) -> N
     for idx, (email, spec) in enumerate(CASES.items()):
         if spec is not None:
             _seed_client(db, now, idx, users[email], users[spec["therapist"]], profiles[spec["therapist"]], spec)
+    for email, spec in CASES.items():
+        if spec is not None:
+            seed_mood(db, now, users[email], spec)
+    seed_journeys(db, now, users)
     seed_history(db, now, profiles)
     refresh_slots(db, list(profiles.values()), now)
     db.commit()

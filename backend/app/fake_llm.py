@@ -48,6 +48,14 @@ def complete(system: str, text: str) -> str:
                            "mood_tags": ["anxious", "tired"], "exercise_kb_slug": "worry-postponement",
                            "summary": "The client describes ongoing worry that is hard to put down. "
                                       "A short worry-postponement exercise may fit; please review."})
+    if system.startswith("You draft a short skill-building programme"):
+        return json.dumps({"title_en": "Settling worry, 2 weeks", "title_hi": "चिंता को शांत करना, 2 सप्ताह",
+                           "steps": [{"week": 1, "exercise": "worry_postponement",
+                                      "text_en": "Set a 15-minute worry time and jot worries down for later.",
+                                      "text_hi": "15 मिनट का चिंता-समय तय करें और चिंताएँ बाद के लिए लिख लें।"},
+                                     {"week": 2, "exercise": "thought_record",
+                                      "text_en": "Write down one worry and what you notice about it.",
+                                      "text_hi": "एक चिंता लिखें और उसके बारे में जो दिखे वह लिखें।"}]})
     if system.startswith("Check whether practice copy"):
         return json.dumps({"passed": True, "reasons": []})
     if system.startswith("You help a licensed therapist revise"):

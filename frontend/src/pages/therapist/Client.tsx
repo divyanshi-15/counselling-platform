@@ -9,6 +9,7 @@ import { Empty, ErrorMsg, Loading } from "@/components/states";
 import { api } from "@/lib/api";
 import { useFetch } from "@/lib/useFetch";
 import { Shell, fmt, type Schemas } from "./common";
+import { Journeys, MoodTrendCard, SharedJournal } from "./Skills";
 
 const ITEMS = { PHQ9: 9, GAD7: 7 } as const;
 
@@ -101,6 +102,9 @@ function Body() {
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">Client file #{clientId}</h1>
       <Card><CardHeader><CardTitle>PHQ-9 / GAD-7</CardTitle></CardHeader><CardContent><Assessments clientId={clientId} /></CardContent></Card>
+      <Card><CardHeader><CardTitle>Mood and sleep, last 14 days</CardTitle></CardHeader><CardContent><MoodTrendCard clientId={clientId} /></CardContent></Card>
+      <Card><CardHeader><CardTitle>Journeys</CardTitle></CardHeader><CardContent><Journeys clientId={clientId} /></CardContent></Card>
+      <Card><CardHeader><CardTitle>Shared journal entries</CardTitle></CardHeader><CardContent><SharedJournal clientId={clientId} /></CardContent></Card>
       <Card><CardHeader><CardTitle>Case plan</CardTitle></CardHeader><CardContent><CasePlan clientId={clientId} /></CardContent></Card>
     </div>
   );

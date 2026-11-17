@@ -24,6 +24,7 @@ import Intake from "@/pages/client/Intake";
 import Exercise from "@/pages/client/Exercise";
 import BrainDump from "@/pages/client/BrainDump";
 import Session from "@/pages/client/Session";
+import { CheckIn, Insights, Journal, Journeys, Reminders } from "@/pages/client/Skills";
 import Today from "@/pages/therapist/Today";
 import Inbox from "@/pages/therapist/Inbox";
 import Activity from "@/pages/therapist/Activity";
@@ -52,6 +53,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="/client/exercise/:assignmentId" element={<Exercise />} />
             <Route path="/client/brain-dump" element={<BrainDump />} />
             <Route path="/client/session/:bookingId" element={<Session />} />
+            <Route path="/client/check-in" element={<CheckIn />} />
+            <Route path="/client/journal" element={<Journal />} />
+            <Route path="/client/journeys" element={<Journeys />} />
+            <Route path="/client/insights" element={<Insights />} />
+            <Route path="/client/reminders" element={<Reminders />} />
             <Route path="/therapist" element={<Today />} />
             <Route path="/therapist/inbox" element={<Inbox />} />
             <Route path="/therapist/activity" element={<Activity />} />

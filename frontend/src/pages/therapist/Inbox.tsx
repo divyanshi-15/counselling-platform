@@ -8,9 +8,10 @@ import { Empty, ErrorMsg, Loading } from "@/components/states";
 import { api } from "@/lib/api";
 import { useFetch } from "@/lib/useFetch";
 import { AiBadge, InferredBadge, Shell, type Schemas } from "./common";
+import { JourneyDraftDetail, type Programme } from "./Skills";
 
 type Item = Schemas["TherapistActionItem"];
-const TITLES: Record<string, string> = { release_exercise: "Release exercise to client", apply_plan_update: "Update case plan", copilot_briefing: "Briefing draft", brain_dump: "Client brain dump" };
+const TITLES: Record<string, string> = { release_exercise: "Release exercise to client", apply_plan_update: "Update case plan", copilot_briefing: "Briefing draft", brain_dump: "Client brain dump", journey_draft: "Assign programme to client" };
 
 function Side({ title, snap, other }: { title: string; snap: Schemas["PlanSnapshot"]; other: Schemas["PlanSnapshot"] }) {
   const goalChanged = (g: string) => !other.goals.includes(g);
@@ -97,6 +98,7 @@ function BrainDumpDetail({ a, onSaved }: { a: Item; onSaved: () => void }) {
 function Detail({ a, onSaved }: { a: Item; onSaved: () => void }) {
   const p = a.payload;
   if (a.type === "brain_dump") return <BrainDumpDetail a={a} onSaved={onSaved} />;
+  if (a.type === "journey_draft") return <JourneyDraftDetail id={a.id} status={a.status} draft={p.draft as Programme} onSaved={onSaved} />;
   if (a.type === "apply_plan_update") {
     const findings = (p.findings ?? {}) as Record<string, unknown>;
     return (
@@ -131,7 +133,7 @@ function Row({ a, onDone }: { a: Item; onDone: () => void }) {
     try { await api(`/pending-actions/${a.id}/${what}`, { method: "POST", headers: { "Idempotency-Key": a.idempotency_key } }); onDone(); }
     catch (e) { setError(e); } finally { setBusy(false); }
   }
-  const reaches = a.client_view.kind === "exercise";
+  const reaches = a.client_view.kind !== "nothing";
   return (
     <Card className="overflow-hidden">
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">

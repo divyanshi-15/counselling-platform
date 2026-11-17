@@ -57,6 +57,8 @@ from backend.app.admin_queue import router as admin_queue_router
 from backend.app.verification import profile_dict, router as verification_router
 from backend.app.practice_setup import generate_unique_slug as _generate_unique_slug, router as practice_setup_router
 from backend.app.braindump import DraftEdit, router as braindump_router
+from backend.app.journeys import approve_journey_draft, router as journeys_router
+from backend.app.skills import router as skills_router
 from backend.app.exercises import approved_exercises, template_for, router as exercises_router, with_notice
 from backend.app.ratelimit import client_rate_limit, contact_rate_limit
 from backend.app.rag import index_session_notes
@@ -106,6 +108,8 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="Counselling Practice Platform", lifespan=lifespan, root_path="/api")
 app.include_router(exercises_router)
 app.include_router(braindump_router)
+app.include_router(skills_router)
+app.include_router(journeys_router)
 app.include_router(analytics_router)
 app.include_router(verification_router)
 app.include_router(admin_queue_router)
@@ -174,6 +178,13 @@ def _action_preview(db: Session, action: PendingAction) -> dict[str, object]:
             view = {"kind": "exercise", "title": title, "fields": labels,
                     "note": "Appears under \"Approved exercises\" on the client's dashboard. Nothing else is sent."}
             return {"client_name": client.name if client else None, "client_view": view}
+    if action.type == "journey_draft":
+        draft = action.payload.get("draft") if isinstance(action.payload.get("draft"), dict) else {}
+        steps = draft.get("steps") or []
+        return {"client_name": client.name if client else None,
+                "client_view": {"kind": "journey", "title": draft.get("title_en"),
+                                "fields": [f"Week {s.get('week')}: {s.get('text_en')}" for s in steps if isinstance(s, dict)],
+                                "note": "Appears on the client's dashboard as a programme starting today. Nothing else is sent."}}
     if action.type == "brain_dump":
         return {"client_name": client.name if client else None,
                 "client_view": {"kind": "nothing", "note": "Nothing reaches the client. Approving marks this note as reviewed."}}
@@ -198,7 +209,7 @@ def _pending_action_result(action: PendingAction) -> dict[str, object]:
 
 
 OWNER_ACTION_TYPES = {"publish_page"}
-THERAPIST_ACTION_TYPES = {"copilot_briefing", "release_exercise", "apply_plan_update", "brain_dump"}
+THERAPIST_ACTION_TYPES = {"copilot_briefing", "release_exercise", "apply_plan_update", "brain_dump", "journey_draft"}
 
 
 def _get_owner_pending_action(db: Session, action_id: int, user: User) -> PendingAction:
@@ -989,6 +1000,10 @@ def approve_pending_action(
     elif action.status == "pending" and action.type == "brain_dump":
         _check_action_key(action, idempotency_key)
         _approve_brain_dump(db, action, current_user)
+        replay = False
+    elif action.status == "pending" and action.type == "journey_draft":
+        _check_action_key(action, idempotency_key)
+        approve_journey_draft(db, action, current_user)
         replay = False
     elif action.status == "pending":
         _check_action_key(action, idempotency_key)

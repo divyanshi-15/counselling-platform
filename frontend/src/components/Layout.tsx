@@ -8,6 +8,8 @@ import { Wordmark } from "@/components/Wordmark";
 
 export const CRISIS_NOTICE = "If you are in crisis or thinking of harming yourself, call Tele-MANAS 14416 now.";
 export const SUPPORT_NOTICE = "This is skill-building support, not a replacement for therapy.";
+const CRISIS_NOTICE_HI = "अगर आप संकट में हैं या खुद को नुकसान पहुँचाने के बारे में सोच रहे हैं, तो अभी Tele-MANAS 14416 पर कॉल करें।";
+const SUPPORT_NOTICE_HI = "यह कौशल-निर्माण सहायता है, थेरेपी का विकल्प नहीं।";
 
 const TITLES: [string, string][] = [["/login", "Log in"], ["/signup", "Sign up"], ["/p/", "Practice"], ["/client", "My space"], ["/therapist", "Therapist"], ["/owner", "Practice owner"], ["/admin", "Admin"], ["/directory", "Find a therapist"], ["/therapists/", "Therapist profile"], ["/privacy", "Privacy"], ["/terms", "Terms"], ["/safety", "Safety"]];
 
@@ -41,8 +43,8 @@ export function Layout() {
       </header>
       {user?.role === "client" && (
         <div className="bg-muted border-b text-sm text-center px-4 py-2">
-          <p className="font-medium">{CRISIS_NOTICE}</p>
-          <p className="text-muted-foreground">{SUPPORT_NOTICE}</p>
+          <p className="font-medium">{user.language === "hi" ? CRISIS_NOTICE_HI : CRISIS_NOTICE}</p>
+          <p className="text-muted-foreground">{user.language === "hi" ? SUPPORT_NOTICE_HI : SUPPORT_NOTICE}</p>
         </div>
       )}
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
