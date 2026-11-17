@@ -2156,6 +2156,8 @@ export interface components {
             created_at: string;
             /** Email Status */
             email_status: string;
+            /** Invite Link */
+            invite_link?: string | null;
         };
         /** InviteDeclineOut */
         InviteDeclineOut: {
@@ -2972,8 +2974,6 @@ export interface components {
         };
         /** TherapistProfileIn */
         TherapistProfileIn: {
-            /** Practice Id */
-            practice_id: number;
             /**
              * Bio
              * @default

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { Bot, Check, Settings2, Sparkles, X } from "lucide-react";
+import { Bot, Check, Settings2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,17 +53,7 @@ function PublishRow({ a, practice, onDone }: { a: Schemas["OwnerActionItem"]; pr
   );
 }
 
-function PracticeCard({ p, onDraft }: { p: Schemas["PracticeItemOut"]; onDraft: () => void }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
-  const page = p.page as PracticePage;
-  async function draft() {
-    setBusy(true); setError(null);
-    try {
-      await api(`/practices/${p.id}/draft-with-agent`, { method: "POST", json: { name: p.name, location: page.location ?? "Bengaluru", languages: page.languages ?? [], specialties: page.specialties ?? [], approaches: page.approaches ?? [], fee_range: page.fee_range ?? "2000-3000", session_type: page.session_type ?? "online" } });
-      onDraft();
-    } catch (e) { setError(e); } finally { setBusy(false); }
-  }
+function PracticeCard({ p }: { p: Schemas["PracticeItemOut"] }) {
   return (
     <li className="space-y-2 rounded-md border p-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -71,10 +61,8 @@ function PracticeCard({ p, onDraft }: { p: Schemas["PracticeItemOut"]; onDraft: 
         <Badge>{p.status}</Badge>
         <Badge className={p.verified ? "border-emerald-400 text-emerald-800" : "text-muted-foreground"}>{p.verified ? "verified" : "not verified"}</Badge>
         <Button className="ml-auto" asChild><Link to={`/owner/setup/${p.id}`}><Settings2 className="h-4 w-4" />Practice setup</Link></Button>
-        <Button variant="outline" disabled={busy} onClick={() => void draft()}><Sparkles className="mr-2 h-4 w-4" />{busy ? "Drafting…" : "Draft with agent"}</Button>
       </div>
       {p.status === "published" && !p.verified && <p className="text-xs text-muted-foreground">Published, but not shown publicly until an admin verifies it.</p>}
-      {error != null && <ErrorMsg error={error} />}
     </li>
   );
 }
@@ -125,7 +113,7 @@ function Body() {
         <h2 className="text-lg font-semibold">My practices</h2>
         {practices.loading && !practices.data ? <Loading /> : practices.error != null ? <ErrorMsg error={practices.error} /> :
           !practices.data?.items.length ? <Empty>No practices yet. Start by setting one up above.</Empty> :
-            <ul className="space-y-2">{practices.data.items.map((p) => <PracticeCard key={p.id} p={p} onDraft={reload} />)}</ul>}
+            <ul className="space-y-2">{practices.data.items.map((p) => <PracticeCard key={p.id} p={p} />)}</ul>}
       </section>
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Pages waiting for your approval</h2>

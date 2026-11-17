@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 from uuid import uuid4
@@ -389,7 +390,8 @@ def test_invite_stores_only_a_hash_and_is_idempotent(world) -> None:
     key = uuid4().hex
     r, token = _invite(world, pid, "New.Person@Example.com", key)
     assert r.status_code == 201 and r.json()["status"] == "pending" and r.json()["email"] == "new.person@example.com"
-    assert r.json()["email_status"] == "sent" and "token" not in r.text
+    assert r.json()["email_status"] == "sent" and "token" not in r.json()
+    assert r.json()["invite_link"].endswith(f"/invitation#token={token}")  # the one and only time the link is returned
     exp = datetime.fromisoformat(r.json()["expires_at"])
     assert timedelta(days=6, hours=23) < exp - datetime.now(timezone.utc) <= timedelta(days=7)
     with SessionLocal() as db:
@@ -397,6 +399,7 @@ def test_invite_stores_only_a_hash_and_is_idempotent(world) -> None:
         assert row.token_hash != token and len(row.token_hash) == 64 and token not in (row.token_hash, row.email)
     again, token2 = _invite(world, pid, "new.person@example.com", key)  # replay: same invite, nothing sent
     assert again.status_code == 200 and again.json()["id"] == r.json()["id"] and again.json()["email_status"] == "already_sent" and token2 is None
+    assert again.json()["invite_link"] is None and token not in again.text
     with SessionLocal() as db:
         assert db.scalar(select(func.count()).select_from(PracticeInvite).where(PracticeInvite.practice_id == pid)) == 1
     assert _invite(world, pid, "new.person@example.com")[0].status_code == 409  # already pending
@@ -404,6 +407,7 @@ def test_invite_stores_only_a_hash_and_is_idempotent(world) -> None:
     assert client.post(f"/owner/practices/{pid}/invites", headers=world["h"]["owner"] | {"Idempotency-Key": "k"}, json={"email": "nope"}).status_code == 422
     setup = client.get(f"/owner/practices/{pid}/setup", headers=world["h"]["owner"]).json()
     assert [i["email"] for i in setup["invites"]] == ["new.person@example.com"]
+    assert token not in json.dumps(setup) and "invite_link" not in json.dumps(setup)  # never returned again
 
 
 def test_accept_links_the_therapist_and_the_token_is_single_use(world) -> None:
@@ -476,8 +480,11 @@ def test_decline_and_remove_from_team(world) -> None:
     assert client.get(f"/owner/practices/{pid}/setup", headers=h).json()["team"] == []
     assert client.delete(f"/owner/practices/{pid}/team/{tid}", headers=h).status_code == 404
     # a removed therapist cannot link themselves back without a new invitation
-    r = client.post("/therapists/me/profile", headers=world["h"]["invitee"], json={"practice_id": pid, "fee": 1000, "bio": "", "approaches": [], "languages": ["en"]})
+    r = client.post("/therapists/me/profile", headers=world["h"]["invitee"], json={"fee": 1000, "bio": "", "approaches": [], "languages": ["en"]})
     assert r.status_code == 409
+    assert client.post("/therapists/me/profile", headers=world["h"]["invitee"], json={"practice_id": pid, "fee": 1000}).status_code == 422
+    with SessionLocal() as db:
+        assert db.get(TherapistProfile, tid).left_practice_at is not None
 
 
 def test_removed_therapist_is_unlisted_but_keeps_their_care(world) -> None:
@@ -536,3 +543,68 @@ def test_seed_adds_a_draft_practice_with_ai_draft_and_pending_invite(private_upl
         with SessionLocal() as db:
             db.execute(delete(User).where(User.email == seed_mod.SETUP_INVITE["email"]))
             db.commit()
+
+
+# ---------- membership is invite-only; owners never change verification ----------
+
+def _on_public_page(pid: int, tid: int) -> bool:
+    return tid in [t["id"] for t in client.get("/therapists/public", params={"practice_id": pid}).json()["items"]]
+
+
+def test_therapist_cannot_link_to_any_practice_without_an_invite(world) -> None:
+    pid = _ready(world)
+    _verify(world, pid)
+    assert client.post(f"/owner/practices/{pid}/publish", headers=world["h"]["owner"]).status_code == 200
+    h = world["h"]["invitee"]  # a therapist with no profile at all
+    for body in ({"fee": 1000}, {"practice_id": pid, "fee": 1000}, {"practice_id": world["other_practice"], "fee": 1000}):
+        assert client.post("/therapists/me/profile", headers=h, json=body).status_code in (403, 422)
+    assert client.patch("/therapists/me/profile", headers=h, json={"practice_id": pid}).status_code in (403, 404, 422)
+    with SessionLocal() as db:
+        assert db.scalar(select(func.count()).select_from(TherapistProfile).join(User, User.id == TherapistProfile.user_id)
+                         .where(User.email == world["emails"]["invitee"])) == 0
+    # a therapist already on another practice cannot move themselves, nor onto a verified practice's page
+    other = world["h"]["other_ther"]
+    for body in ({"practice_id": pid, "fee": 1000}, {"practice_id": pid}):
+        assert client.post("/therapists/me/profile", headers=other, json=body).status_code == 422
+        assert client.patch("/therapists/me/profile", headers=other, json=body).status_code == 422
+    assert client.post("/therapists/me/profile", headers=other, json={"fee": 1200}).status_code == 200
+    assert client.get("/therapists/me/profile", headers=other).json()["practice_id"] != pid
+    assert not _on_public_page(pid, world["other_profile"])
+    # only the accepted invitation puts them on the page
+    _, token = _invite(world, pid, world["emails"]["invitee"])
+    tid = client.post("/invitations/accept", headers=h, json={"token": token}).json()["therapist_id"]
+    with SessionLocal() as db:
+        db.get(TherapistProfile, tid).verified = True
+        db.commit()
+    assert _on_public_page(pid, tid)
+    # removed: still unlinked after trying to save a profile again
+    client.delete(f"/owner/practices/{pid}/team/{tid}", headers=world["h"]["owner"])
+    assert client.post("/therapists/me/profile", headers=h, json={"fee": 1000}).status_code == 409
+    assert not _on_public_page(pid, tid)
+    assert client.get("/therapists/me/profile", headers=h).json()["practice_id"] == pid  # not re-pointed anywhere
+
+
+def test_no_owner_action_changes_verification_status(world) -> None:
+    pid = _ready(world)
+    _verify(world, pid)
+    owner = world["h"]["owner"]
+
+    def state():
+        with SessionLocal() as db:
+            p = db.get(Practice, pid)
+            return p.verified, p.verification_status
+
+    assert state() == (True, "verified")
+    steps = [
+        ("put", f"/owner/practices/{pid}/details", {"json": DETAILS | {"city": "Mumbai"}}),
+        ("put", f"/owner/practices/{pid}/page", {"json": {"tagline": "A calm place", "text": "x" * 60}}),
+        ("post", f"/owner/practices/{pid}/page/generate", {"json": {}}),
+        ("post", f"/owner/practices/{pid}/publish", {}),
+        ("post", f"/practices/{pid}/draft-with-agent", {"json": {"name": "Setup Practice"}}),
+    ]
+    for method, url, kw in steps:
+        getattr(client, method)(url, headers=owner, **kw)
+        assert state() == (True, "verified"), url
+    r, _ = _invite(world, pid, "someone.new@example.com")
+    client.post(f"/owner/practices/{pid}/invites/{r.json()['id']}/revoke", headers=owner)
+    assert state() == (True, "verified")

@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Circle, FileText, Mail, Sparkles, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, Copy, FileText, Mail, Sparkles, Trash2, Upload } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { RichEditor, RichText } from "@/components/RichText";
 import { Badge } from "@/components/ui/badge";
@@ -191,18 +191,28 @@ function TeamStep({ s, reload }: { s: Setup; reload: () => void }) {
   const { busy, error, run } = useAction();
   const [email, setEmail] = useState("");
   const [note, setNote] = useState<string | null>(null);
+  const [link, setLink] = useState<string | null>(null);  // shown once; held only in this component
+  const [copied, setCopied] = useState(false);
   const key = useRef(crypto.randomUUID());  // one key per invitation attempt: a retry of the same click never sends twice
   const [confirmId, setConfirmId] = useState<number | null>(null);
   return (
     <div className="space-y-4">
       <Panel title="Invite a therapist" hint="They get a single-use link by email that expires in 7 days. They log in or sign up with this email address, then accept.">
-        <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => { e.preventDefault(); setNote(null);
+        <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => { e.preventDefault(); setNote(null); setLink(null); setCopied(false);
           void run(() => api<Schemas["InviteCreateOut"]>(`/owner/practices/${s.id}/invites`, { method: "POST", json: { email }, headers: { "Idempotency-Key": key.current } }),
-            (r) => { setNote(EMAIL_NOTE[r.email_status] ?? "Invitation created."); setEmail(""); key.current = crypto.randomUUID(); reload(); }); }}>
+            (r) => { setNote(EMAIL_NOTE[r.email_status] ?? "Invitation created."); setLink(r.invite_link ?? null); setEmail(""); key.current = crypto.randomUUID(); reload(); }); }}>
           <div className="min-w-56 flex-1 space-y-1"><Label htmlFor="inv-email">Therapist email</Label><Input id="inv-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
           <Button disabled={busy}><Mail className="h-4 w-4" />{busy ? "Sending…" : "Send invitation"}</Button>
         </form>
         {note && <p role="status" className="text-sm text-emerald-700">{note}</p>}
+        {link && (
+          <div className="space-y-1 rounded-md border p-3 text-sm">
+            <p className="text-muted-foreground">This link is shown once</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <code aria-label="Invitation link" className="min-w-0 flex-1 break-all rounded bg-muted px-2 py-1 text-xs">{link}</code>
+              <Button type="button" variant="outline" onClick={() => void navigator.clipboard.writeText(link).then(() => setCopied(true))}><Copy className="h-4 w-4" />{copied ? "Copied" : "Copy"}</Button>
+            </div>
+          </div>)}
         {error != null && <ErrorMsg error={error} />}
       </Panel>
       <Panel title="Pending invitations">

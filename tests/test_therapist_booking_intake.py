@@ -107,7 +107,7 @@ def make_intake_and_booking(scenario, therapist: str, slot: AvailabilitySlot, cl
 def test_therapist_can_manage_own_profile_but_owner_cannot(scenario) -> None:
     client = scenario["client"]
     response = client.post("/therapists/me/profile", json={
-        "practice_id": scenario["practice_a"].id, "bio": "Updated", "approaches": ["CBT"],
+        "bio": "Updated", "approaches": ["CBT"],
         "languages": ["en"], "fee": 2500,
     }, headers=headers(scenario, "therapist_a"))
     assert response.status_code == 200
@@ -136,7 +136,7 @@ def test_practice_owner_cannot_access_another_practices_bookings_or_intake(scena
     client = scenario["client"]
     owner = headers(scenario, "owner_a")
     assert client.post("/therapists/me/profile", json={
-        "practice_id": scenario["practice_b"].id, "bio": "Attempt", "approaches": [],
+        "bio": "Attempt", "approaches": [],
         "languages": [], "fee": 1000,
     }, headers=owner).status_code == 403
     assert client.get("/therapists/me/bookings", headers=owner).status_code == 403

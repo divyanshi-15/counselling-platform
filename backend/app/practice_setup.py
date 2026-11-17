@@ -159,6 +159,7 @@ class InviteOut(_Out):
 
 class InviteCreateOut(InviteOut):
     email_status: str  # sent | not_configured | failed | already_sent
+    invite_link: str | None = None  # returned once, on creation only; never stored or returned again
 
 
 class PageIn(_In):
@@ -527,7 +528,8 @@ def invite_therapist(practice_id: int, payload: InviteIn, response: Response,
             raise
         response.status_code = 200
         return _invite_out(prior) | {"email_status": "already_sent"}
-    return _invite_out(row) | {"email_status": _send_invite_email(email, user, practice, _invite_link(token))}
+    link = _invite_link(token)
+    return _invite_out(row) | {"email_status": _send_invite_email(email, user, practice, link), "invite_link": link}
 
 
 @router.post("/owner/practices/{practice_id}/invites/{invite_id}/revoke", response_model=InviteOut)

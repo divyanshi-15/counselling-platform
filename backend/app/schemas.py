@@ -62,7 +62,6 @@ class PracticeOut(BaseModel):
 
 
 class TherapistProfileIn(BaseModel):
-    practice_id: int
     bio: str = ""
     approaches: list[str] = Field(default_factory=list)
     languages: list[str] = Field(default_factory=list)

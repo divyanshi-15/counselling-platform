@@ -60,11 +60,15 @@ def test_self_registered_therapist_is_not_public_and_cannot_self_verify() -> Non
         db.commit()
         pid = practice.id
     t = _login(t_email)
-    r = t.post("/therapists/me/profile", json={"practice_id": pid, "fee": 1000})
+    # a therapist without an accepted invitation has no profile and cannot create one, even for a verified practice
+    assert t.post("/therapists/me/profile", json={"fee": 1000}).status_code == 403
+    assert t.post("/therapists/me/profile", json={"practice_id": pid, "fee": 1000}).status_code == 422
+    assert t.post("/therapists/me/profile", json={"fee": 1000, "verified": True}).status_code == 422
+    with SessionLocal() as db:
+        db.add(TherapistProfile(user_id=db.query(User).filter(User.email == t_email).one().id, practice_id=pid, fee=1000, verified=False))
+        db.commit()
+    r = t.post("/therapists/me/profile", json={"fee": 1000})
     assert r.status_code == 200 and r.json()["verified"] is False
-    r = t.post("/therapists/me/profile", json={"practice_id": pid, "fee": 1000, "verified": True})
-    assert r.status_code == 422
-    tid = r.json() and None
     with SessionLocal() as db:
         profile = db.query(TherapistProfile).join(User, User.id == TherapistProfile.user_id).filter(User.email == t_email).one()
         tid = profile.id

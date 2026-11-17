@@ -605,16 +605,12 @@ def save_therapist_profile(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.therapist)),
 ) -> dict[str, object]:
-    practice = db.query(Practice).filter(Practice.id == payload.practice_id).first()
-    if practice is None:
-        raise HTTPException(status_code=404, detail="Practice not found")
+    # Practice membership is never set here: it comes only from accepting an invitation (or the seed).
     profile = db.query(TherapistProfile).filter(TherapistProfile.user_id == current_user.id).first()
-    if profile is not None and profile.left_practice_at is not None:
-        raise HTTPException(status_code=409, detail="You were removed from your practice. Ask a practice to invite you.")
     if profile is None:
-        profile = TherapistProfile(user_id=current_user.id, practice_id=payload.practice_id, verified=False)
-        db.add(profile)
-    profile.practice_id = payload.practice_id
+        raise HTTPException(status_code=403, detail="Join a practice by accepting an invitation first.")
+    if profile.left_practice_at is not None:
+        raise HTTPException(status_code=409, detail="You were removed from your practice. Ask a practice to invite you.")
     profile.bio = payload.bio
     profile.approaches = payload.approaches
     profile.languages = payload.languages
@@ -1171,8 +1167,6 @@ def draft_practice_with_agent(
 
     page_json = json.dumps(result["page"])
     practice.page_json = page_json
-    practice.status = "draft"
-    set_practice_status(practice, "draft")
     db.add(practice)
     for run in result.get("agent_runs", []):
         db.add(AgentRun(practice_id=practice.id, run_id=str(run["run_id"]), step=int(run["step"]), tool=str(run["tool"]), summary=str(run["summary"])))
