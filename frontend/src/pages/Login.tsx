@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,8 @@ const DEMO_ROLES = [["client", "Client"], ["therapist", "Therapist"], ["practice
 export default function Login() {
   const { login, demoLogin, config } = useAuth();
   const nav = useNavigate();
+  const [params] = useSearchParams();
+  const next = params.get("next");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<unknown>(null);
@@ -18,7 +20,7 @@ export default function Login() {
 
   async function run(fn: () => Promise<{ role: string }>) {
     setBusy(true); setError(null);
-    try { nav(homeFor((await fn()).role)); } catch (e) { setError(e); } finally { setBusy(false); }
+    try { const home = homeFor((await fn()).role); nav(next === home ? next : home); } catch (e) { setError(e); } finally { setBusy(false); }
   }
 
   return (

@@ -2,9 +2,9 @@ import { Link } from "react-router-dom";
 import { Wordmark } from "@/components/Wordmark";
 
 const COLS: [string, [string, string][]][] = [
-  ["Product", [["Find a therapist", "/directory"], ["Browse practices", "/directory?tab=practices"], ["Log in", "/login"]]],
-  ["For therapists", [["Join as a therapist", "/signup"], ["Therapist log in", "/login"]]],
-  ["For practices", [["List your practice", "/signup"], ["Practice owner log in", "/login"]]],
+  ["Product", [["Find a therapist", "/directory"], ["Browse practices", "/directory?tab=practices"], ["Log in", "/login?next=/client"]]],
+  ["For therapists", [["Join as a therapist", "/signup?role=therapist"], ["Therapist log in", "/login?next=/therapist"]]],
+  ["For practices", [["List your practice", "/signup?role=practice"], ["Practice owner log in", "/login?next=/owner"]]],
   ["Safety and legal", [["Safety and crisis resources", "/safety"], ["Privacy", "/privacy"], ["Terms", "/terms"]]],
 ];
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,9 @@ import { homeFor, useAuth } from "@/lib/auth";
 export default function Signup() {
   const { login } = useAuth();
   const nav = useNavigate();
-  const [f, setF] = useState({ name: "", email: "", password: "", role: "client", language: "en" });
+  const [params] = useSearchParams();
+  const preset = ({ therapist: "therapist", practice: "practice_owner", client: "client" } as Record<string, string>)[params.get("role") ?? ""] ?? "client";
+  const [f, setF] = useState({ name: "", email: "", password: "", role: preset, language: "en" });
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });

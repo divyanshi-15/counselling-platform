@@ -11,8 +11,8 @@ const STEPS = [
 
 const AUDIENCES = [
   { icon: HeartHandshake, title: "For clients", points: ["Therapists verified by our team", "Sessions in English, Hindi and Kannada", "Exercises approved by your therapist", "A crisis line (Tele-MANAS 14416) on every page"], cta: ["Find a therapist", "/directory"] },
-  { icon: UserCheck, title: "For therapists", points: ["A morning briefing for every client on your day", "Risk alerts pinned first, with the exact words that triggered them", "Every suggestion cites its source and is marked as inferred", "You approve anything before it reaches a client"], cta: ["Join as a therapist", "/signup"] },
-  { icon: UsersRound, title: "For practices", points: ["A public page drafted for you, published only when you approve", "Listings, bookings and availability in one place", "No access to clinical notes, by design", "Verification badge once our team has checked your practice"], cta: ["List your practice", "/signup"] },
+  { icon: UserCheck, title: "For therapists", points: ["A morning briefing for every client on your day", "Risk alerts pinned first, with the exact words that triggered them", "Every suggestion cites its source and is marked as inferred", "You approve anything before it reaches a client"], cta: ["Join as a therapist", "/signup?role=therapist"] },
+  { icon: UsersRound, title: "For practices", points: ["A public page drafted for you, published only when you approve", "Listings, bookings and availability in one place", "No access to clinical notes, by design", "Verification badge once our team has checked your practice"], cta: ["List your practice", "/signup?role=practice"] },
 ] as const;
 
 const TRUST = [
@@ -38,7 +38,7 @@ export default function Home() {
         <p className="mx-auto max-w-2xl text-muted-foreground md:text-lg">Samvaad Care connects you with verified therapists in your language, and gives them the tools to prepare well, follow up carefully and keep you safe.</p>
         <div className="flex flex-wrap justify-center gap-3">
           <Button asChild><Link to="/directory">Find a therapist</Link></Button>
-          <Button asChild variant="outline"><Link to="/signup">I'm a therapist or practice</Link></Button>
+          <Button asChild variant="outline"><Link to="/signup?role=therapist">I'm a therapist or practice</Link></Button>
         </div>
       </section>
 
