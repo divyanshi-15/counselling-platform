@@ -1,3 +1,4 @@
+import { Avatar } from "@/components/Avatar";
 import { useState } from "react";
 import { Check, Eye, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -91,7 +92,7 @@ function Row({ a, onDone }: { a: Item; onDone: () => void }) {
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
         <div>
           <CardTitle>{TITLES[a.type] ?? a.type}</CardTitle>
-          <p className="text-sm text-muted-foreground">For {a.client_name ?? `client #${String(a.payload.client_id ?? "?")}`}</p>
+          <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><Avatar name={a.client_name} size={20} /><span>For {a.client_name ?? `client #${String(a.payload.client_id ?? "?")}`}</span></p>
         </div>
         <div className="flex gap-2"><AiBadge /><Badge className={a.status === "pending" ? "border-amber-400 text-amber-800" : "text-muted-foreground"}>{a.status}</Badge></div>
       </CardHeader>

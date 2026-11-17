@@ -5,7 +5,7 @@ const CRISIS = /Tele-MANAS on 14416/;
 async function demoLogin(browser: Browser, role: "Client" | "Therapist"): Promise<Page> {
   const page = await (await browser.newContext()).newPage();
   await page.goto("/login");
-  await expect(page.getByRole("note")).toHaveText("Demo: use fictional information only.");
+  await expect(page.getByRole("contentinfo")).toContainText("Sample data");
   await page.getByRole("button", { name: role, exact: true }).click();
   await expect(page).toHaveURL(role === "Client" ? /\/client$/ : /\/therapist$/);
   return page;
@@ -36,10 +36,10 @@ test("demo path with FAKE_LLM=1", async ({ browser }) => {
 
   // 1. client browses and books a seeded slot
   const exercisesBefore = await beta.getByRole("link", { name: "Open" }).count();
-  await client.goto("/");
-  await client.getByRole("link", { name: /Demo Calm Minds Practice/ }).click();
-  await expect(client).toHaveURL(/\/p\/demo-calm-minds$/);
-  await client.locator("div", { hasText: /^Dr Demo Therapist One/ }).getByRole("link", { name: "Book a session" }).first().click();
+  await client.goto("/directory");
+  await client.getByRole("link", { name: /Calm Minds Counselling/ }).first().click();
+  await expect(client).toHaveURL(/\/p\/calm-minds-bengaluru$/);
+  await client.locator("div.shadow-sm", { hasText: /Dr Meera Krishnan/ }).getByRole("link", { name: "Book a session" }).first().click();
   await client.getByRole("button", { name: "Select" }).first().click();
   await client.getByRole("button", { name: /^Confirm/ }).click();
   await expect(client.getByRole("heading", { name: "Booking confirmed" })).toBeVisible();
@@ -56,8 +56,8 @@ test("demo path with FAKE_LLM=1", async ({ browser }) => {
   await expect(therapist.getByRole("status").filter({ hasText: "Briefed" })).toHaveCount(1);
   await expect(therapist.getByText("INFERRED").first()).toBeVisible();
   await therapist.getByRole("link", { name: "Approval inbox" }).click();
-  await expect(therapist.locator("div.shadow-sm", { hasText: /Release exercise to client[\s\S]*For Client Alpha Demo/ })).toHaveCount(0);
-  const exercise = therapist.locator("div.shadow-sm", { hasText: /Release exercise to client[\s\S]*For Client Beta Demo/ }).filter({ has: therapist.getByRole("button", { name: "Approve" }) }).first();
+  await expect(therapist.locator("div.shadow-sm", { hasText: /Release exercise to client[\s\S]*For Ananya Rao/ })).toHaveCount(0);
+  const exercise = therapist.locator("div.shadow-sm", { hasText: /Release exercise to client[\s\S]*For Rohan Mehta/ }).filter({ has: therapist.getByRole("button", { name: "Approve" }) }).first();
   await expect(exercise).toBeVisible();
   await expect(exercise).toContainText("What reaches the client");
   await exercise.getByRole("button", { name: "Approve" }).click();
@@ -79,14 +79,14 @@ test("demo path with FAKE_LLM=1", async ({ browser }) => {
 
   // 5. plan update: diff shown, then approved
   await therapist.getByRole("link", { name: "Approval inbox" }).click();
-  const plan = therapist.locator("div.shadow-sm", { hasText: /Update case plan[\s\S]*For Client Alpha Demo/ }).filter({ has: therapist.getByRole("button", { name: "Approve" }) }).first();
+  const plan = therapist.locator("div.shadow-sm", { hasText: /Update case plan[\s\S]*For Ananya Rao/ }).filter({ has: therapist.getByRole("button", { name: "Approve" }) }).first();
   const changes = plan.getByLabel("What changes");
   await expect(changes).toBeVisible();
   await expect(changes).toContainText("Before (current version)");
   await expect(changes).toContainText("After (new version)");
   await expect(changes).toContainText("Reduce racing thoughts at bedtime");
   await expect(changes).toContainText("Changed: update_notes");
-  await expect(changes).toContainText("AI-drafted, approved by Dr Demo Therapist One on");
+  await expect(changes).toContainText("AI-drafted, approved by Dr Meera Krishnan on");
   await plan.getByRole("button", { name: "Approve" }).click();
   await expect(therapist.locator("div.shadow-sm", { hasText: /Update case plan/ }).filter({ has: therapist.getByRole("button", { name: "Approve" }) })).toHaveCount(0);
   await therapist.reload();
@@ -94,7 +94,7 @@ test("demo path with FAKE_LLM=1", async ({ browser }) => {
 
   // the formulation stays the therapist's; the approved AI draft sits in separate update notes
   await therapist.goto(`/therapist/clients/${clientId}`);
-  await expect(therapist.getByLabel("Update notes")).toContainText("AI-drafted, approved by Dr Demo Therapist One on");
+  await expect(therapist.getByLabel("Update notes")).toContainText("AI-drafted, approved by Dr Meera Krishnan on");
 
   // briefing now flags the open homework instead of offering a second release
   await therapist.goto("/therapist");

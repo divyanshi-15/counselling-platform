@@ -7,7 +7,7 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.app.agents.launch import draft_page, run_launch_agent
+from backend.app.agents.launch import draft_page, evaluate_claims_with_model, run_launch_agent
 from backend.app.db import SessionLocal
 from backend.app.main import app
 from backend.app.models import AgentRun, AuditLog, PendingAction, Practice, User
@@ -45,6 +45,30 @@ def test_launch_agent_revises_claims_before_returning_page() -> None:
         "check_claims",
     ]
     assert [entry["step"] for entry in result["agent_runs"]] == [1, 2, 3, 4]
+
+
+def test_claims_model_parses_markdown_wrapped_json() -> None:
+    with patch("backend.app.agents.launch.httpx.post") as post:
+        post.return_value.raise_for_status.return_value = None
+        post.return_value.json.return_value = {
+            "content": [{"type": "text", "text": "```json\n{\"passed\": false, \"reasons\": [\"contains banned claim pattern\"]}\n```"}],
+            "usage": {"input_tokens": 12, "output_tokens": 8},
+        }
+
+        result = evaluate_claims_with_model("This practice guarantees help in 4 sessions.")
+
+    assert result["status"] == "ok"
+    assert result["passed"] is False
+    assert result["reasons"] == ["contains banned claim pattern"]
+
+
+def test_draft_page_normalizes_string_expectations() -> None:
+    raw = '{"tagline": "Calm support", "about": "Supportive care.", "services": [{"name": "Consultation", "description": "A first conversation."}], "faq": [{"question": "What happens first?", "answer": "We start with a careful conversation."}], "what_to_expect": "Clear next steps"}'
+    with patch("backend.app.agents.launch._request_page_json", return_value=raw):
+        page = draft_page(_launch_input())
+
+    assert page["what_to_expect"] == ["Clear next steps"]
+    assert page["services"][0]["title"] == "Consultation"
 
 
 def test_launch_agent_never_exceeds_tool_call_limit() -> None:

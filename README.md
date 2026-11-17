@@ -32,7 +32,7 @@ flowchart LR
 
 ## Security and guardrails
 
-- Demo banner is rendered on every client page in the frontend shell.
+- Footer shows a "Sample data" note; client pages show the crisis notice and the skill-building support line.
 - Safety screening runs before any AI output is generated.
 - Crisis messages are fixed and never model-written.
 - The message shows Tele-MANAS 14416 and a therapist alert.
@@ -136,8 +136,8 @@ Result: in-domain 0.791-0.880, out-of-domain 0.749-0.844. The sets **overlap** (
 | Role | Login | Password | Notes |
 |---|---|---|---|
 | Admin | admin@example.com | admin123 | verify toggle |
-| Practice owner | owner@example.com | owner123 | Demo Calm Minds Practice (published + verified) |
-| Practice owner | owner2@example.com | owner123 | Demo Harbour Counselling (draft) |
+| Practice owner | owner@example.com | owner123 | Calm Minds Counselling (published + verified) |
+| Practice owner | owner2@example.com | owner123 | Harbour Counselling (draft) |
 | Therapist | therapist@example.com | therapist123 | clients Alpha, Beta |
 | Therapist | therapist2@example.com | therapist123 | client Gamma |
 | Therapist | therapist3@example.com | therapist123 | client Delta (practice 2, unverified) |

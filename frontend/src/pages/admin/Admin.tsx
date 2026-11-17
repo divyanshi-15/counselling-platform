@@ -1,3 +1,4 @@
+import { Avatar } from "@/components/Avatar";
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { Empty, ErrorMsg, Loading } from "@/components/states";
@@ -7,7 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { useFetch } from "@/lib/useFetch";
 import type { Schemas } from "../client/common";
 
-function Toggle({ label, verified, path, onDone }: { label: string; verified: boolean; path: string; onDone: () => void }) {
+function Toggle({ label, avatar, verified, path, onDone }: { label: string; avatar?: string | null; verified: boolean; path: string; onDone: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   async function flip() {
@@ -17,7 +18,7 @@ function Toggle({ label, verified, path, onDone }: { label: string; verified: bo
   }
   return (
     <li className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3 text-sm">
-      <span>{label}</span>
+      <span className="flex items-center gap-2"><Avatar name={avatar ?? label} size={28} />{label}</span>
       <span className="flex items-center gap-2">
         {error != null && <ErrorMsg error={error} />}
         <Button variant={verified ? "default" : "outline"} aria-pressed={verified} aria-label={`${verified ? "Unverify" : "Verify"} ${label}`} disabled={busy} onClick={() => void flip()}>
@@ -47,7 +48,7 @@ function Body() {
         <h2 className="text-lg font-semibold">Therapists</h2>
         {therapists.loading && !therapists.data ? <Loading /> : therapists.error != null ? <ErrorMsg error={therapists.error} /> :
           !therapists.data?.items.length ? <Empty>No therapists.</Empty> :
-            <ul className="space-y-2">{therapists.data.items.map((t) => <Toggle key={t.id} label={`${t.name ?? `Therapist #${t.id}`} · ${t.practice_name}`} verified={t.verified} path={`/admin/therapists/${t.id}/verify`} onDone={therapists.reload} />)}</ul>}
+            <ul className="space-y-2">{therapists.data.items.map((t) => <Toggle key={t.id} avatar={t.name} label={`${t.name ?? `Therapist #${t.id}`} · ${t.practice_name}`} verified={t.verified} path={`/admin/therapists/${t.id}/verify`} onDone={therapists.reload} />)}</ul>}
       </section>
     </div>
   );

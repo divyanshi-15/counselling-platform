@@ -24,7 +24,7 @@ def seeded():
     def wipe():
         with SessionLocal() as db:
             db.execute(delete(User).where(User.email.in_([row[0] for row in seed_mod.LOGINS])))
-            db.execute(delete(Practice).where(Practice.slug.in_(["demo-calm-minds", "demo-harbour-counselling"])))
+            db.execute(delete(Practice).where(Practice.slug.in_(seed_mod.PRACTICE_SLUGS)))
             db.commit()
     wipe()
     with SessionLocal() as db:
@@ -51,7 +51,8 @@ def _generated(db, email: str, now: datetime) -> list[datetime]:
 
 def test_seed_slots_next_14_days_several_per_therapist(seeded):
     with SessionLocal() as db:
-        for email in ("therapist@example.com", "therapist2@example.com", "therapist3@example.com"):
+        for email in ("therapist@example.com", "therapist2@example.com", "therapist3@example.com",
+                      "therapist9@example.com"):
             starts = _generated(db, email, T0)
             assert len(starts) >= 14 * 3 - 3
             assert all(T0 < s <= T0 + timedelta(days=14) for s in starts)
@@ -123,3 +124,22 @@ def test_sleep_racing_worry_citations_map_to_worry_postponement(seeded):
             assert got == [("worry_postponement", 0)], slug
         assert copilot._release_candidates(db, [Suggestion(text="x", chunk_ids=[chunk("thought-record")])]) == [("thought_record", 0)]
         assert copilot._release_candidates(db, [Suggestion(text="x", chunk_ids=[chunk("slow-breathing")])]) == []
+
+
+def test_seed_shape_is_a_populated_product(seeded):
+    from backend.app.models import Alert, Assessment, PendingAction
+    emails = [row[0] for row in seed_mod.LOGINS]
+    with SessionLocal() as db:
+        clients = db.scalars(select(User.id).where(User.email.in_(emails), User.role == "client")).all()
+        assert len(clients) == 12
+        assert db.scalar(select(func.count(Booking.id)).where(Booking.client_id.in_(clients))) == 40
+        assert db.scalar(select(func.count(TherapistProfile.id))) >= 9
+        profiles = db.scalars(select(TherapistProfile).join(User, User.id == TherapistProfile.user_id)
+                              .where(User.email.in_(emails))).all()
+        assert len(profiles) == 9 and all(p.credentials and p.rating and p.years_experience for p in profiles)
+        assert len(db.scalars(select(Practice).where(Practice.slug.in_(seed_mod.PRACTICE_SLUGS))).all()) == 3
+        long_history = [c for c in clients if db.scalar(select(func.count(Assessment.id)).where(
+            Assessment.client_id == c, Assessment.type == "PHQ9", Assessment.taken_at < T0 - timedelta(days=150))) > 0]
+        assert len(long_history) == 4
+        assert db.scalar(select(func.count(Alert.id)).where(Alert.client_id.in_(clients))) >= 4
+        assert db.scalar(select(func.count(PendingAction.id)).where(PendingAction.status == "pending")) >= 3

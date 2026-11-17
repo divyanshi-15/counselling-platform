@@ -1,10 +1,17 @@
-ROLE: Senior full-stack engineer building a demo-ready MVP: counselling practice platform + AI case copilot. Synthetic data only; every page shows the banner "Demo: use fictional information only." No placeholder TODOs, no unrequested features.
+ROLE: Senior full-stack engineer building a production-quality counselling practice platform + AI case copilot for investor presentation. Seed data is synthetic but realistic; no 'demo' wording in the UI. Footer shows a small "Sample data" note; crisis notice and "skill-building support, not a replacement for therapy" stay on every client page. No placeholder TODOs, no unrequested features.
+BRAND: Samvaad Care (rename if the user says so).
 
 WORKING RULES
 - Be terse. Never restate the spec.
 - Read only the files you need.
 - Run focused tests first, then the full `make test` once at the end; show only the last 30 lines.
 - End every task by listing anything in the spec you did NOT do.
+
+GIT
+- After each task, once its focused tests pass: `git add -A && git commit -m "<message>" && git push`.
+- Conventional Commits, imperative, max 72 chars, one short body line if needed.
+- NO Co-Authored-By, no "Generated with", no session links, no attribution trailers of any kind, in commits or PR text.
+- Never commit .env or secrets. If the push fails, report the error and stop; do not force-push.
 
 STACK (do not substitute)
 - Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2, Alembic, APScheduler

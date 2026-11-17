@@ -1,3 +1,4 @@
+import { Avatar } from "@/components/Avatar";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ExternalLink } from "lucide-react";
@@ -67,7 +68,7 @@ function Body() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-semibold">{b.client.name ?? `Client #${b.client.id}`}</h1>
+          <h1 className="flex items-center gap-3 text-2xl font-semibold"><Avatar name={b.client.name} size={40} />{b.client.name ?? `Client #${b.client.id}`}</h1>
           <p className="text-muted-foreground">{fmt(b.starts_at)} · {b.status}</p>
         </div>
         <div className="flex gap-2">

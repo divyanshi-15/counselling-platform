@@ -294,6 +294,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/therapists/public/{therapist_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Public Therapist */
+        get: operations["public_therapist_therapists_public__therapist_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/therapists/me/availability": {
         parameters: {
             query?: never;
@@ -1567,6 +1584,176 @@ export interface components {
             /** Items */
             items: components["schemas"]["PrepareDayItem"][];
         };
+        /** PublicFaq */
+        PublicFaq: {
+            /**
+             * Question
+             * @default
+             */
+            question: string;
+            /**
+             * Answer
+             * @default
+             */
+            answer: string;
+        };
+        /** PublicPractice */
+        PublicPractice: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /** Verified */
+            verified: boolean;
+            page: components["schemas"]["PublicPracticePage"];
+        };
+        /** PublicPracticeDetailOut */
+        PublicPracticeDetailOut: {
+            practice: components["schemas"]["PublicPractice"];
+        };
+        /** PublicPracticeItem */
+        PublicPracticeItem: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /** Verified */
+            verified: boolean;
+            page: components["schemas"]["PublicPracticePage"];
+            /** Status */
+            status: string;
+        };
+        /** PublicPracticePage */
+        PublicPracticePage: {
+            /**
+             * Tagline
+             * @default
+             */
+            tagline: string;
+            /**
+             * About
+             * @default
+             */
+            about: string;
+            /**
+             * Location
+             * @default
+             */
+            location: string;
+            /**
+             * Services
+             * @default []
+             */
+            services: components["schemas"]["PublicService"][];
+            /**
+             * Faq
+             * @default []
+             */
+            faq: components["schemas"]["PublicFaq"][];
+            /**
+             * What To Expect
+             * @default []
+             */
+            what_to_expect: string[];
+            /**
+             * Languages
+             * @default []
+             */
+            languages: string[];
+            /**
+             * Specialties
+             * @default []
+             */
+            specialties: string[];
+            /**
+             * Approaches
+             * @default []
+             */
+            approaches: string[];
+            /**
+             * Fee Range
+             * @default
+             */
+            fee_range: string;
+            /**
+             * Session Type
+             * @default
+             */
+            session_type: string;
+        };
+        /** PublicPracticesOut */
+        PublicPracticesOut: {
+            /** Items */
+            items: components["schemas"]["PublicPracticeItem"][];
+            /** Total */
+            total: number;
+        };
+        /** PublicService */
+        PublicService: {
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+        };
+        /** PublicTherapist */
+        PublicTherapist: {
+            /** Id */
+            id: number;
+            /** Name */
+            name?: string | null;
+            /** Bio */
+            bio?: string | null;
+            /**
+             * Approaches
+             * @default []
+             */
+            approaches: string[];
+            /**
+             * Languages
+             * @default []
+             */
+            languages: string[];
+            /** Fee */
+            fee?: number | null;
+            /**
+             * Credentials
+             * @default
+             */
+            credentials: string;
+            /**
+             * Years Experience
+             * @default 0
+             */
+            years_experience: number;
+            /** Rating */
+            rating?: number | null;
+            /**
+             * Review Count
+             * @default 0
+             */
+            review_count: number;
+            /**
+             * Specialisations
+             * @default []
+             */
+            specialisations: string[];
+            practice: components["schemas"]["PracticeRef"];
+        };
+        /** PublicTherapistsOut */
+        PublicTherapistsOut: {
+            /** Items */
+            items: components["schemas"]["PublicTherapist"][];
+        };
         /** RetrievedRef */
         RetrievedRef: {
             /** Id */
@@ -2173,6 +2360,8 @@ export interface operations {
                 approach?: string | null;
                 fee_max?: number | null;
                 session_type?: string | null;
+                city?: string | null;
+                specialisation?: string | null;
             };
             header?: never;
             path?: never;
@@ -2186,9 +2375,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["PublicPracticesOut"];
                 };
             };
             /** @description Validation Error */
@@ -2219,9 +2406,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["PublicPracticeDetailOut"];
                 };
             };
             /** @description Validation Error */
@@ -2294,6 +2479,9 @@ export interface operations {
         parameters: {
             query?: {
                 practice_id?: number | null;
+                city?: string | null;
+                language?: string | null;
+                specialisation?: string | null;
             };
             header?: never;
             path?: never;
@@ -2307,9 +2495,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["PublicTherapistsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    public_therapist_therapists_public__therapist_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                therapist_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicTherapist"];
                 };
             };
             /** @description Validation Error */

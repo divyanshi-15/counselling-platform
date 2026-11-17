@@ -28,7 +28,7 @@ export default function Signup() {
     <div className="mx-auto max-w-sm space-y-6">
       <h1 className="text-2xl font-semibold">Sign up</h1>
       <form className="space-y-3" onSubmit={submit}>
-        <div className="space-y-1"><Label htmlFor="name">Name (fictional)</Label><Input id="name" required value={f.name} onChange={set("name")} /></div>
+        <div className="space-y-1"><Label htmlFor="name">Name</Label><Input id="name" required value={f.name} onChange={set("name")} /></div>
         <div className="space-y-1"><Label htmlFor="email">Email</Label><Input id="email" type="email" required value={f.email} onChange={set("email")} /></div>
         <div className="space-y-1"><Label htmlFor="password">Password (8+ characters)</Label><Input id="password" type="password" minLength={8} required value={f.password} onChange={set("password")} /></div>
         <div className="space-y-1"><Label htmlFor="role">I am a</Label>

@@ -6,6 +6,9 @@ import "./index.css";
 import { Layout } from "@/components/Layout";
 import { AuthProvider } from "@/lib/auth";
 import Home from "@/pages/Home";
+import Directory from "@/pages/Directory";
+import TherapistProfile from "@/pages/TherapistProfile";
+import Legal from "@/pages/Legal";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import PracticePage from "@/pages/PracticePage";
@@ -30,6 +33,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
+            <Route path="/privacy" element={<Legal />} />
+            <Route path="/terms" element={<Legal />} />
+            <Route path="/safety" element={<Legal />} />
+            <Route path="/directory" element={<Directory />} />
+            <Route path="/therapists/:id" element={<TherapistProfile />} />
             <Route path="/p/:slug" element={<PracticePage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />

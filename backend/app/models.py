@@ -4,7 +4,7 @@ import secrets
 from datetime import datetime, timezone
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Boolean, Computed, DateTime, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Computed, DateTime, Float, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -60,6 +60,11 @@ class TherapistProfile(Base):
     languages: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     fee: Mapped[int] = mapped_column(Integer, nullable=False)
     verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    credentials: Mapped[str] = mapped_column(String(255), nullable=False, default="", server_default="")
+    years_experience: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    rating: Mapped[float | None] = mapped_column(Float, nullable=True)
+    review_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    specialisations: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list, server_default="[]")
 
 
 class AvailabilitySlot(Base):

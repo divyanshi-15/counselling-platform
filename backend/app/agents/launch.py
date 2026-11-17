@@ -114,6 +114,29 @@ def _write_cache(model: str, prompt: str, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload))
 
 
+def _parse_json_payload(text: str | None) -> Any | None:
+    if text is None:
+        return None
+    candidates: list[str] = [text.strip()]
+    if text.strip().startswith("```"):
+        stripped = text.strip()
+        stripped = re.sub(r"^```(?:json)?\s*", "", stripped, flags=re.IGNORECASE)
+        stripped = re.sub(r"\s*```$", "", stripped)
+        candidates.append(stripped)
+    if "{" in text or "[" in text:
+        for start_char, end_char in (("{", "}"), ("[", "]")):
+            start = text.find(start_char)
+            end = text.rfind(end_char)
+            if 0 <= start < end:
+                candidates.append(text[start:end + 1])
+    for candidate in candidates:
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+    return None
+
+
 def _request_page_json(prompt: str, *, max_tokens: int) -> str | None:
     if fake_llm.enabled():
         return fake_llm.complete(PAGE_SYSTEM, prompt)
@@ -123,7 +146,8 @@ def _request_page_json(prompt: str, *, max_tokens: int) -> str | None:
 
     cached = _cached_model_output(MODEL_FAST, prompt)
     if cached is not None and isinstance(cached.get("text"), str):
-        return cached["text"]
+        if _parse_json_payload(cached["text"]) is not None:
+            return cached["text"]
 
     try:
         response = httpx.post(
@@ -132,6 +156,7 @@ def _request_page_json(prompt: str, *, max_tokens: int) -> str | None:
             json={
                 "model": MODEL_FAST,
                 "max_tokens": max_tokens,
+                "thinking": {"type": "disabled"},
                 "system": [{"type": "text", "text": PAGE_SYSTEM, "cache_control": {"type": "ephemeral"}}],
                 "messages": [{"role": "user", "content": prompt}],
             },
@@ -139,7 +164,7 @@ def _request_page_json(prompt: str, *, max_tokens: int) -> str | None:
         )
         response.raise_for_status()
         payload = response.json()
-        text = "".join(block.get("text", "") for block in payload.get("content", []) if isinstance(block, dict))
+        text = "".join(block.get("text", "") for block in payload.get("content", []) if isinstance(block, dict) and block.get("type") == "text")
         usage = payload.get("usage", {})
         _record_token_usage(int(usage.get("input_tokens", 0)) + int(usage.get("output_tokens", 0)))
         _write_cache(MODEL_FAST, prompt, {"text": text})
@@ -148,15 +173,59 @@ def _request_page_json(prompt: str, *, max_tokens: int) -> str | None:
         return None
 
 
+def _normalize_service_item(item: Any) -> dict[str, str]:
+    if not isinstance(item, dict):
+        return {"title": "Service", "description": "Supportive care."}
+    title = str(item.get("title") or item.get("name") or "Service")
+    description = str(item.get("description") or item.get("details") or "Supportive care.")
+    return {"title": title, "description": description}
+
+
+def _normalize_faq_item(item: Any) -> dict[str, str]:
+    if not isinstance(item, dict):
+        return {"question": "What do sessions look like?", "answer": "Collaborative, paced support."}
+    question = str(item.get("question") or item.get("q") or "What do sessions look like?")
+    answer = str(item.get("answer") or item.get("response") or "Collaborative, paced support.")
+    return {"question": question, "answer": answer}
+
+
+def _normalize_page_payload(payload: Any) -> dict[str, Any]:
+    if isinstance(payload, list):
+        payload = payload[0] if payload else {}
+    if not isinstance(payload, dict):
+        raise ValidationError.from_exception_data(PracticePage.__name__, [{"type": "dict_type", "loc": (), "input": payload}])
+
+    normalized = {
+        "tagline": str(payload.get("tagline") or "Supportive care for your next step."),
+        "about": str(payload.get("about") or "A counselling practice offering clear, collaborative support."),
+        "services": payload.get("services", []),
+        "faq": payload.get("faq", []),
+        "what_to_expect": payload.get("what_to_expect", []),
+    }
+    normalized["services"] = [_normalize_service_item(item) for item in normalized["services"]]
+    normalized["faq"] = [_normalize_faq_item(item) for item in normalized["faq"]]
+    if isinstance(normalized["what_to_expect"], str):
+        normalized["what_to_expect"] = [normalized["what_to_expect"]]
+    normalized["what_to_expect"] = [str(item) for item in normalized["what_to_expect"] if isinstance(item, str)]
+    return normalized
+
+
 def _generate_validated_page(prompt: str, fallback: dict[str, Any], *, max_tokens: int) -> dict[str, Any]:
     retry_prompt = prompt
     for attempt in range(2):
         response_text = _request_page_json(retry_prompt, max_tokens=max_tokens)
         if response_text is None:
             return PracticePage.model_validate(fallback).model_dump()
+        payload = _parse_json_payload(response_text)
+        if payload is None:
+            if attempt == 1:
+                raise ValueError("Practice page generation returned invalid JSON after one retry.")
+            retry_prompt = f"{prompt}\nReturn corrected JSON only. The previous response failed page-schema validation."
+            continue
         try:
-            return PracticePage.model_validate(json.loads(response_text)).model_dump()
-        except (json.JSONDecodeError, ValidationError) as exc:
+            normalized = _normalize_page_payload(payload)
+            return PracticePage.model_validate(normalized).model_dump()
+        except ValidationError as exc:
             if attempt == 1:
                 raise ValueError("Practice page generation returned invalid JSON after one retry.") from exc
             retry_prompt = f"{prompt}\nReturn corrected JSON only. The previous response failed page-schema validation."
@@ -168,8 +237,9 @@ def evaluate_claims_with_model(prompt: str, model: str | None = None) -> dict[st
         return {"status": "ok", "passed": True, "reasons": []}
     current_model = model or MODEL_FAST
     cache_hit = _cached_model_output(current_model, prompt)
-    if cache_hit is not None:
-        return cache_hit
+    if cache_hit is not None and isinstance(cache_hit, dict):
+        if set(cache_hit).issubset({"status", "passed", "reasons", "message"}):
+            return cache_hit
 
     api_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("API_KEY")
     if not api_key or _budget_exceeded():
@@ -181,23 +251,22 @@ def evaluate_claims_with_model(prompt: str, model: str | None = None) -> dict[st
         headers = {"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"}
         body = {
             "model": current_model,
-            "max_tokens": 128,
+            "max_tokens": 256,
+            "thinking": {"type": "disabled"},
             "system": [{"type": "text", "text": CLAIMS_SYSTEM, "cache_control": {"type": "ephemeral"}}],
             "messages": [{"role": "user", "content": prompt}],
         }
         response = httpx.post("https://api.anthropic.com/v1/messages", headers=headers, json=body, timeout=15.0)
         response.raise_for_status()
         content = response.json()
-        text = "".join(block.get("text", "") for block in content.get("content", []) if isinstance(block, dict))
-        reasons = []
-        try:
-            payload = json.loads(text)
+        text = "".join(block.get("text", "") for block in content.get("content", []) if isinstance(block, dict) and block.get("type") == "text")
+        payload = _parse_json_payload(text)
+        if isinstance(payload, dict):
             passed = bool(payload.get("passed", False))
             reasons = payload.get("reasons", []) if isinstance(payload.get("reasons", []), list) else []
-        except json.JSONDecodeError:
+        else:
             passed = False
-            reasons = ["Response was not valid JSON."
-            ]
+            reasons = ["Response was not valid JSON."]
         result = {"status": "ok", "passed": passed, "reasons": reasons}
         _record_token_usage(32)
         _write_cache(current_model, prompt, result)

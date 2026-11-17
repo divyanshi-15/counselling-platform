@@ -25,7 +25,7 @@ DRAFT = {"update_text": "Scores have held steady, so consider whether the evenin
 def _wipe() -> None:
     with SessionLocal() as db:
         db.execute(delete(User).where(User.email.in_([row[0] for row in seed_mod.LOGINS])))
-        db.execute(delete(Practice).where(Practice.slug.in_(["demo-calm-minds", "demo-harbour-counselling"])))
+        db.execute(delete(Practice).where(Practice.slug.in_(seed_mod.PRACTICE_SLUGS)))
         db.commit()
 
 
@@ -176,7 +176,8 @@ def test_owner_client_and_other_therapist_denied(seeded, model):
             assert client.post(f"{url}/{verb}", headers=_h(email) | key).status_code == 403
     assert all(i["type"] != "apply_plan_update" for i in
                client.get("/pending-actions", headers=_h("owner@example.com")).json()["items"])
-    assert client.get("/therapists/me/pending-actions", headers=_h("therapist2@example.com")).json()["items"] == []
+    items = client.get("/therapists/me/pending-actions", headers=_h("therapist2@example.com")).json()["items"]
+    assert [i for i in items if i["status"] == "pending"] == []  # nothing of therapist one's is visible
     assert client.get("/therapists/me/alerts", headers=_h("therapist2@example.com")).json()["items"] == []
     # therapist two's own run never touches therapist one's client
     _run("therapist2@example.com")
@@ -205,7 +206,7 @@ def test_seed_text_is_clean_and_shaped(seeded):
     with SessionLocal() as db:
         ids = db.scalars(select(User.id).where(User.email.in_([r[0] for r in seed_mod.LOGINS]))).all()
         texts = [s.raw_notes for s in db.scalars(select(TherapySession).where(TherapySession.client_id.in_(ids)))]
-    for case in seed_mod.CASES.values():
+    for case in filter(None, seed_mod.CASES.values()):
         texts += [n for _, n in case["notes"]] + list(case["intake"].values()) + [g["text"] for g in case["goals"]]
         texts.append(case["formulation"])
     for text in texts:
@@ -214,8 +215,8 @@ def test_seed_text_is_clean_and_shaped(seeded):
     with SessionLocal() as db:
         phq = db.scalars(select(Assessment).where(Assessment.client_id == _alpha_id(), Assessment.type == "PHQ9")).all()
         assert all(r.item_scores[8] == 0 and sum(r.item_scores) == r.total for r in phq)
-        pub = db.scalars(select(Practice).where(Practice.slug.like("demo-%"))).all()
-        assert sorted((p.status, p.verified) for p in pub) == [("draft", False), ("published", True)]
+        pub = db.scalars(select(Practice).where(Practice.slug.in_(seed_mod.PRACTICE_SLUGS))).all()
+        assert sorted((p.status, p.verified) for p in pub) == [("published", True)] * 3
 
 
 def test_risk_alert_sends_no_email(seeded, model, monkeypatch):

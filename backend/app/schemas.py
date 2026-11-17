@@ -532,3 +532,67 @@ class AdminTherapistItem(_Out):
 
 class AdminTherapistsOut(_Out):
     items: list[AdminTherapistItem]
+
+
+class PublicService(_Out):
+    title: str = ""
+    description: str = ""
+
+
+class PublicFaq(_Out):
+    question: str = ""
+    answer: str = ""
+
+
+class PublicPracticePage(_Out):
+    tagline: str = ""
+    about: str = ""
+    location: str = ""
+    services: list[PublicService] = []
+    faq: list[PublicFaq] = []
+    what_to_expect: list[str] = []
+    languages: list[str] = []
+    specialties: list[str] = []
+    approaches: list[str] = []
+    fee_range: str = ""
+    session_type: str = ""
+
+
+class PublicPractice(_Out):
+    id: int
+    name: str
+    slug: str
+    verified: bool
+    page: PublicPracticePage
+
+
+class PublicPracticeItem(PublicPractice):
+    status: str
+
+
+class PublicPracticesOut(_Out):
+    items: list[PublicPracticeItem]
+    total: int
+
+
+class PublicPracticeDetailOut(_Out):
+    practice: PublicPractice
+
+
+class PublicTherapist(_Out):
+    id: int
+    name: str | None = None
+    bio: str | None = None
+    approaches: list[str] = []
+    languages: list[str] = []
+    fee: int | None = None
+    credentials: str = ""
+    years_experience: int = 0
+    rating: float | None = None
+    review_count: int = 0
+    specialisations: list[str] = []
+    practice: PracticeRef
+
+
+class PublicTherapistsOut(_Out):
+    items: list[PublicTherapist]

@@ -31,13 +31,7 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown;
   return res.json() as Promise<T>;
 }
 
-export interface PracticePage {
-  tagline?: string; about?: string; location?: string;
-  services?: { title: string; description: string }[];
-  faq?: { question: string; answer: string }[];
-  what_to_expect?: string[];
-  languages?: string[]; specialties?: string[]; approaches?: string[];
-  fee_range?: string; session_type?: string;
-}
-export interface PracticeItem { id: number; name: string; slug: string; verified: boolean; page: PracticePage }
-export interface TherapistItem { id: number; name: string | null; bio: string | null; approaches: string[] | null; languages: string[] | null; fee: number | null }
+type S = components["schemas"];
+export type PracticePage = S["PublicPracticePage"];
+export type PracticeItem = S["PublicPractice"] & { status?: string };
+export type TherapistItem = S["PublicTherapist"];

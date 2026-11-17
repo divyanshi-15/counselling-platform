@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, ErrorMsg, Loading } from "@/components/states";
@@ -12,7 +12,9 @@ type Slot = Schemas["SlotOut"];
 function Body() {
   const { therapistId } = useParams();
   const slots = useFetch<Schemas["AvailabilityOut"]>(`/therapists/${therapistId}/availability`);
-  const [slot, setSlot] = useState<Slot | null>(null);
+  const [params] = useSearchParams();
+  const [picked, setSlot] = useState<Slot | null>(null);
+  const slot = picked ?? slots.data?.items.find((s) => String(s.id) === params.get("slot")) ?? null;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [booking, setBooking] = useState<Schemas["BookingOut"] | null>(null);

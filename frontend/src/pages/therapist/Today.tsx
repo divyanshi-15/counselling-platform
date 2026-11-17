@@ -1,3 +1,4 @@
+import { Avatar } from "@/components/Avatar";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Moon, Sparkles } from "lucide-react";
@@ -37,7 +38,7 @@ function BriefingCard({ b, name }: { b: Briefing; name: string }) {
     <Card className="overflow-hidden border-l-4 border-l-primary">
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
         <div>
-          <CardTitle className="text-lg">{name}</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-lg"><Avatar name={name} size={32} />{name}</CardTitle>
           <p className="text-sm text-muted-foreground">Session {fmt(d.session_starts_at)}</p>
         </div>
         <div className="flex gap-2"><AiBadge />
@@ -135,7 +136,7 @@ function Body() {
           <ul className="space-y-2">
             {alerts.data.items.filter((a) => a.type !== "risk").map((a) => (
               <li key={a.id} className="rounded-md border p-3 text-sm">
-                <span className="font-medium">{nm(a.client_id)}</span> · {String(a.payload.finding ?? a.type)}
+                <span className="inline-flex items-center gap-1.5 align-middle"><Avatar name={nm(a.client_id)} size={22} /><span className="font-medium">{nm(a.client_id)}</span></span> · {String(a.payload.finding ?? a.type)}
                 {a.payload.detail != null && <span className="text-muted-foreground"> — {String(a.payload.detail)}</span>}
                 {a.acknowledged
                   ? <p className="mt-1 text-xs text-muted-foreground">Acknowledged{a.acknowledged_at ? ` ${new Date(a.acknowledged_at).toLocaleString()}` : ""}</p>

@@ -22,7 +22,7 @@ def seeded():
     def wipe():
         with SessionLocal() as db:
             db.execute(delete(User).where(User.email.in_([row[0] for row in seed_mod.LOGINS])))
-            db.execute(delete(Practice).where(Practice.slug.in_(["demo-calm-minds", "demo-harbour-counselling"])))
+            db.execute(delete(Practice).where(Practice.slug.in_(seed_mod.PRACTICE_SLUGS)))
             db.commit()
     wipe()
     with SessionLocal() as db:
@@ -44,7 +44,8 @@ def _overnight(monkeypatch) -> None:
 
 def _alert_id() -> int:
     with SessionLocal() as db:
-        return db.scalars(select(Alert).where(Alert.type == "plateau")).first().id
+        alpha = db.scalar(select(User.id).where(User.email == "client@example.com"))
+        return db.scalars(select(Alert).where(Alert.type == "plateau", Alert.client_id == alpha)).first().id
 
 
 def test_acknowledge_alert_idempotent_and_audited(seeded, monkeypatch):
@@ -87,7 +88,7 @@ def test_plan_update_preview_has_diff_matching_apply(seeded, monkeypatch):
     assert d["before"]["goals"] == d["after"]["goals"] == ["Reduce racing thoughts at bedtime", "Reconnect with weekend football friends"]
     assert d["after"]["update_notes"] == "Consider whether the goals still fit." and d["before"]["update_notes"] is None
     assert d["after"]["formulation"] == d["before"]["formulation"]
-    assert d["after"]["update_notes_label"].startswith("AI-drafted, approved by Dr Demo Therapist One on ")
+    assert d["after"]["update_notes_label"].startswith("AI-drafted, approved by Dr Meera Krishnan on ")
     r = client.post(f"/pending-actions/{item['id']}/approve", headers=h | {"Idempotency-Key": item["idempotency_key"]})
     assert r.status_code == 200
     with SessionLocal() as db:
@@ -95,7 +96,7 @@ def test_plan_update_preview_has_diff_matching_apply(seeded, monkeypatch):
         assert newest.version == 2 and newest.update_notes == "Consider whether the goals still fit."
         assert newest.formulation_text == d["before"]["formulation"]
     plans = client.get(f"/clients/{item['payload']['client_id']}/case-plans", headers=h).json()["items"]
-    assert plans[0]["update_notes_label"].startswith("AI-drafted, approved by Dr Demo Therapist One on ")
+    assert plans[0]["update_notes_label"].startswith("AI-drafted, approved by Dr Meera Krishnan on ")
     saved = client.post(f"/clients/{item['payload']['client_id']}/case-plans", headers=h, json={
         "approach": "CBT-I", "formulation_text": "My own words.", "approve": True, "goals": [{"id": "g1", "text": "x"}]}).json()
     assert saved["formulation_text"] == "My own words." and saved["update_notes"] == "Consider whether the goals still fit."

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Textarea } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Empty, ErrorMsg, Loading } from "@/components/states";
+import { TherapistCard } from "@/components/TherapistCard";
 import { api, type PracticeItem, type TherapistItem } from "@/lib/api";
 import { useFetch } from "@/lib/useFetch";
 
@@ -52,12 +53,7 @@ export default function PracticePage() {
         {therapists.error != null && <ErrorMsg error={therapists.error} />}
         {therapists.data && therapists.data.items.length === 0 && <Empty>No verified therapists yet.</Empty>}
         <div className="grid gap-3 md:grid-cols-2">
-          {therapists.data?.items.map((t) => (
-            <Card key={t.id}><CardHeader><CardTitle>{t.name}</CardTitle></CardHeader>
-              <CardContent className="space-y-1 text-sm"><p>{t.bio}</p>
-                <p className="text-muted-foreground">{[(t.approaches ?? []).join(", "), t.fee ? `INR ${t.fee}` : ""].filter(Boolean).join(" · ")}</p>
-                <Button asChild className="mt-2"><Link to={user?.role === "client" ? `/client/book/${t.id}` : "/signup"}>Book a session</Link></Button></CardContent></Card>
-          ))}
+          {therapists.data?.items.map((t) => <TherapistCard key={t.id} t={t} />)}
         </div>
       </section>
       <ContactForm practiceName={practice.name} />

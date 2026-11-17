@@ -57,6 +57,7 @@ from backend.app.ratelimit import client_rate_limit, contact_rate_limit
 from backend.app.rag import index_session_notes
 from backend.app.safety import CRISIS_MESSAGE, check_claims, render_prompt_data, risk_scan, validate_ai_output
 from backend.app.schemas import (
+    PublicPracticeDetailOut, PublicPracticesOut, PublicTherapist, PublicTherapistsOut,
     AdminTherapistsOut, AgentRunsOut, AlertItem, AlertsOut, OwnerActionsOut, PracticeDraftOut, PracticesOut, VerifyIn, VerifyOut, AssessmentOut, AssessmentsOut, BriefingsOut, CasePlanOut, CasePlansOut,
     OvernightOut, PendingActionOut, PrepareDayOut, SessionNotesOut, TherapistActionsOut,
     TherapistBookingsOut, TherapistProfileOut,
@@ -273,7 +274,6 @@ def _build_practice_page(payload: PracticeDraft) -> dict[str, object]:
     else:
         tagline = f"Compassionate support for {specialty_text} in {payload.location}."
     return {
-        "banner": "Demo: use fictional information only.",
         "tagline": tagline,
         "about": (
             f"{payload.name} offers a warm, grounded approach to support people navigating "
@@ -325,6 +325,11 @@ def _therapist_payload(profile: TherapistProfile, user: User, practice: Practice
         "approaches": profile.approaches,
         "languages": profile.languages,
         "fee": profile.fee,
+        "credentials": profile.credentials,
+        "years_experience": profile.years_experience,
+        "rating": profile.rating,
+        "review_count": profile.review_count,
+        "specialisations": profile.specialisations,
         "practice": {"id": practice.id, "name": practice.name, "slug": practice.slug},
     }
 
@@ -438,7 +443,7 @@ def _demo_mode() -> bool:
 
 @app.get("/config")
 def public_config() -> dict[str, object]:
-    return {"demo_mode": _demo_mode(), "banner": "Demo: use fictional information only."}
+    return {"demo_mode": _demo_mode()}
 
 
 @app.post("/auth/demo-login")
@@ -531,7 +536,7 @@ def list_practices(
     return {"items": items}
 
 
-@app.get("/practices/public")
+@app.get("/practices/public", response_model=PublicPracticesOut)
 def public_practices(
     db: Session = Depends(get_db),
     language: str | None = Query(default=None),
@@ -539,7 +544,10 @@ def public_practices(
     approach: str | None = Query(default=None),
     fee_max: int | None = Query(default=None),
     session_type: str | None = Query(default=None),
+    city: str | None = Query(default=None),
+    specialisation: str | None = Query(default=None),
 ) -> dict[str, object]:
+    specialty = specialty or specialisation
     records = db.query(Practice).filter(Practice.status == "published", Practice.verified.is_(True)).all()
     items = []
     for record in records:
@@ -554,6 +562,8 @@ def public_practices(
         if specialty and specialty.lower() not in {entry.lower() for entry in page.get("specialties", [])}:
             continue
         if approach and approach.lower() not in {entry.lower() for entry in page.get("approaches", [])}:
+            continue
+        if city and city.strip().lower() not in str(page.get("location", "")).lower():
             continue
         if fee_max is not None and fee_value is not None and fee_value > fee_max:
             continue
@@ -570,13 +580,13 @@ def public_practices(
     return {"items": items, "total": len(items)}
 
 
-@app.get("/p/{slug}")
+@app.get("/p/{slug}", response_model=PublicPracticeDetailOut)
 def public_practice_detail(slug: str, db: Session = Depends(get_db)) -> dict[str, object]:
     record = db.query(Practice).filter(Practice.slug == slug, Practice.status == "published", Practice.verified.is_(True)).first()
     if not record:
         raise HTTPException(status_code=404, detail="Practice not found")
     page = json.loads(record.page_json or "{}")
-    payload = {"banner": "Demo: use fictional information only.", "practice": {"id": record.id, "name": record.name, "slug": record.slug, "verified": record.verified, "page": page}}
+    payload = {"practice": {"id": record.id, "name": record.name, "slug": record.slug, "verified": record.verified, "page": page}}
     return payload
 
 
@@ -618,16 +628,36 @@ def get_therapist_profile(
             "verified": profile.verified}
 
 
-@app.get("/therapists/public")
+@app.get("/therapists/public", response_model=PublicTherapistsOut)
 def public_therapists(
     practice_id: int | None = Query(default=None),
+    city: str | None = Query(default=None),
+    language: str | None = Query(default=None),
+    specialisation: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
     query = _public_therapist_query(db)
     if practice_id is not None:
         query = query.filter(TherapistProfile.practice_id == practice_id)
     rows = query.order_by(TherapistProfile.id.asc()).all()
-    return {"items": [_therapist_payload(profile, user, practice) for profile, user, practice in rows]}
+    items = []
+    for profile, user, practice in rows:
+        if language and language.lower() not in {x.lower() for x in profile.languages or []}:
+            continue
+        if specialisation and specialisation.lower() not in {x.lower() for x in profile.specialisations or []}:
+            continue
+        if city and city.strip().lower() not in str(json.loads(practice.page_json or "{}").get("location", "")).lower():
+            continue
+        items.append(_therapist_payload(profile, user, practice))
+    return {"items": items}
+
+
+@app.get("/therapists/public/{therapist_id}", response_model=PublicTherapist)
+def public_therapist(therapist_id: int, db: Session = Depends(get_db)) -> dict[str, object]:
+    row = _public_therapist_query(db, therapist_id).first()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Therapist not found")
+    return _therapist_payload(*row)
 
 
 @app.get("/therapists/me/availability", response_model=MySlotsOut)

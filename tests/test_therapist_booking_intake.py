@@ -277,3 +277,39 @@ def test_room_name_unique_per_booking_and_not_derived_from_id(scenario) -> None:
     for room, bid in ((room_a, id_a), (room_b, id_b)):
         assert len(room) >= 3 + 32 and str(bid) not in room.removeprefix("cp-")[:8]
         assert room != f"cp-{bid}" and "booking" not in room
+
+
+def test_public_therapist_filters_and_detail_expose_only_published_verified(scenario) -> None:
+    client = scenario["client"]
+    with SessionLocal() as db:
+        db.query(Practice).filter(Practice.id == scenario["practice_a"].id).update({"page_json": '{"location": "Bengaluru"}'})
+        db.query(TherapistProfile).filter(TherapistProfile.id == scenario["therapist_a"].id).update(
+            {"languages": ["en", "kn"], "specialisations": ["Sleep"]})
+        db.query(TherapistProfile).filter(TherapistProfile.id == scenario["therapist_unverified"].id).update(
+            {"languages": ["kn"], "specialisations": ["Sleep"]})
+        db.query(TherapistProfile).filter(TherapistProfile.id == scenario["therapist_draft_practice"].id).update(
+            {"languages": ["kn"], "specialisations": ["Sleep"]})
+        db.commit()
+    result = client.get("/therapists/public", params={"city": "bengal", "language": "KN", "specialisation": "sleep"})
+    items = result.json()["items"]
+    assert [i["id"] for i in items] == [scenario["therapist_a"].id]
+    assert client.get("/therapists/public", params={"city": "Pune"}).json()["items"] == []
+    assert client.get("/therapists/public", params={"language": "kn", "specialisation": "sleep"}).json()["items"][0]["id"] == scenario["therapist_a"].id
+    for key in ("therapist_unverified", "therapist_draft_practice", "therapist_unverified_practice"):
+        assert client.get(f"/therapists/public/{scenario[key].id}").status_code == 404
+    detail = client.get(f"/therapists/public/{scenario['therapist_a'].id}").json()
+    assert detail["id"] == scenario["therapist_a"].id
+    blob = str(items) + str(detail)
+    for leak in ("email", "password", "user_id", scenario["identities"]["client"]["email"]):
+        assert leak not in blob
+
+
+def test_public_practice_city_and_specialisation_filters_only_published_verified(scenario) -> None:
+    client = scenario["client"]
+    page = '{"location": "Mysuru", "specialties": ["sleep"]}'
+    with SessionLocal() as db:
+        db.query(Practice).filter(Practice.id.in_([scenario["practice_b"].id, scenario["practice_unverified"].id,
+                                                   scenario["practice_draft"].id])).update({"page_json": page})
+        db.commit()
+    ids = {i["id"] for i in client.get("/practices/public", params={"city": "mysuru", "specialisation": "Sleep"}).json()["items"]}
+    assert ids == {scenario["practice_b"].id}

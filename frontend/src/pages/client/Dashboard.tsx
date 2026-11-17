@@ -1,3 +1,4 @@
+import { NameWithAvatar } from "@/components/Avatar";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +22,7 @@ function Body() {
             : <Empty>No practice yet. <Link className="underline" to="/">Browse practices</Link> to book a session.</Empty>}
         </CardContent></Card>
         <Card><CardHeader><CardTitle>My therapist</CardTitle></CardHeader><CardContent className="space-y-1 text-sm">
-          {data.therapist ? <><p className="font-medium">{data.therapist.name}</p><p className="text-muted-foreground">{data.therapist.bio}</p></>
+          {data.therapist ? <><NameWithAvatar name={data.therapist.name}><span className="font-medium">{data.therapist.name}</span></NameWithAvatar><p className="text-muted-foreground">{data.therapist.bio}</p></>
             : <p className="text-muted-foreground">Not assigned yet.</p>}
         </CardContent></Card>
       </div>

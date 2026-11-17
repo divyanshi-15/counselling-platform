@@ -1,3 +1,4 @@
+import { NameWithAvatar } from "@/components/Avatar";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +18,7 @@ function Body() {
           {data.items.map((b) => (
             <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3">
               <div>
-                <p className="font-medium">{b.client.name ?? `Client #${b.client.id}`}</p>
+                <NameWithAvatar name={b.client.name}><span className="font-medium">{b.client.name ?? `Client #${b.client.id}`}</span></NameWithAvatar>
                 <p className="text-sm text-muted-foreground">{fmt(b.starts_at)}</p>
               </div>
               <div className="flex items-center gap-2">
