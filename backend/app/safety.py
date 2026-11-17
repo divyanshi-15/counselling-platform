@@ -102,41 +102,6 @@ RISK_KEYWORDS = {
         "khud ko nuksan",
         "khud ko khatam",
     ],
-    "kn": [
-        "ನಾನು ಸಾವಿಗೆ ಬಯಸುತ್ತೇನೆ",
-        "ನಾನು ಸಾಯಲು ಬಯಸುತ್ತೇನೆ",
-        "ನನ್ನನ್ನು ಕೀಳಾಗಿ ಮಾಡಿಕೊಳ್ಳಬೇಕು",
-        "ನಾನು ತಾನೇ ಕಳ್ಳಸನ್ನೆ ಮಾಡಿಕೊಳ್ಳಬೇಕು",
-        "ನಾನು ತಾನೇ ಹಾನಿ ಮಾಡಿಕೊಳ್ಳಬೇಕು",
-        "ನನಗೆ ಸಾಯುವ ಮನಸ್ಸಾಗಿದೆ",
-        "ಜೀವನದಿಂದ ಬರೀ ಬೇಸರ",
-        "ನಾನು ಹಾನಿ ಮಾಡಿಕೊಳ್ಳಲು ಬಯಸುತ್ತೇನೆ",
-        "ಸಾಯಬೇಕು",
-        "ಸಾಯುವ ಮನಸ್ಸು",
-        "ಆತ್ಮಹತ್ಯೆ",
-        "ಬದುಕಲು ಇಷ್ಟವಿಲ್ಲ",
-        "ಬದುಕಬೇಕು ಅನಿಸುತ್ತಿಲ್ಲ",
-        "ಬದುಕಿ ಏನು ಪ್ರಯೋಜನ",
-        "ಜೀವ ಕೊನೆಗೊಳಿಸ",
-        "ಜೀವನ ಸಾಕು",
-        "ನೋವು ಮಾಡಿಕೊಳ್ಳಬೇಕು",
-        "ನಾನು ಇಲ್ಲದಿದ್ದರೆ ಎಲ್ಲರಿಗೂ ಒಳ್ಳೆಯದು",
-    ],
-    "kn_roman": [
-        "saayabeku",
-        "sayabeku",
-        "saayabekagide",
-        "saayalu bayasuttene",
-        "saayuva manassu",
-        "aatmahatye",
-        "atmahatye",
-        "badukalu ishta illa",
-        "badukalu manassilla",
-        "badukalu ishtavilla",
-        "jeevana saaku",
-        "jeeva mugisabeku",
-        "jeeva mugisikollabeku",
-    ],
     "bn": [
         "আমি আর বাঁচতে চাই না",
         "আমি আত্মহত্যা করতে চাই",
@@ -181,7 +146,7 @@ def _normalise(text: str) -> str:
 
 
 def risk_check(text: str) -> dict[str, object]:
-    """Layer 1: keyword/pattern match (EN/HI/KN, native + romanised). No model, no network."""
+    """Layer 1: keyword/pattern match (EN/HI, native + romanised). No model, no network."""
     normalized = _normalise(text)
     for patterns in RISK_KEYWORDS.values():
         for pattern in patterns:

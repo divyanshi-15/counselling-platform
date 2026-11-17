@@ -13,7 +13,7 @@ function Safety() {
       <p>Samvaad Care offers skill-building support alongside sessions with a qualified therapist. It is not a replacement for therapy and is not an emergency service.</p>
     </Section>
     <Section h="How we screen for risk">
-      <p>Text that clients write is screened for signs of crisis in English, Hindi and Kannada, without using an AI model. If a match is found, you see a fixed message with the Tele-MANAS number and your therapist is alerted with high priority.</p>
+      <p>Text that clients write is screened for signs of crisis in English and Hindi, without using an AI model. If a match is found, you see a fixed message with the Tele-MANAS number and your therapist is alerted with high priority.</p>
     </Section>
   </>);
 }

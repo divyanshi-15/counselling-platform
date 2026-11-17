@@ -10,7 +10,7 @@ const STEPS = [
 ] as const;
 
 const AUDIENCES = [
-  { icon: HeartHandshake, title: "For clients", points: ["Therapists verified by our team", "Sessions in English, Hindi and Kannada", "Exercises approved by your therapist", "A crisis line (Tele-MANAS 14416) on every page"], cta: ["Find a therapist", "/directory"] },
+  { icon: HeartHandshake, title: "For clients", points: ["Therapists verified by our team", "Sessions in English and Hindi", "Exercises approved by your therapist", "A crisis line (Tele-MANAS 14416) on every page"], cta: ["Find a therapist", "/directory"] },
   { icon: UserCheck, title: "For therapists", points: ["A morning briefing for every client on your day", "Risk alerts pinned first, with the exact words that triggered them", "Every suggestion cites its source and is marked as inferred", "You approve anything before it reaches a client"], cta: ["Join as a therapist", "/signup?role=therapist"] },
   { icon: UsersRound, title: "For practices", points: ["A public page drafted for you, published only when you approve", "Listings, bookings and availability in one place", "No access to clinical notes, by design", "Verification badge once our team has checked your practice"], cta: ["List your practice", "/signup?role=practice"] },
 ] as const;
@@ -27,7 +27,7 @@ const FAQ = [
   ["What if I am in crisis?", "Call Tele-MANAS on 14416 right away. If you are in immediate danger, contact local emergency services."],
   ["Who can see what I write?", "Your therapist can see your intake, check-ins and notes. Practice owners and other therapists cannot."],
   ["Does AI talk to me or diagnose me?", "No. AI never messages clients directly, and its drafts are checked so they never include diagnoses or medication advice."],
-  ["Which languages are supported?", "English, Hindi and Kannada, including romanised text, for both sessions and safety screening."],
+  ["Which languages are supported?", "English and Hindi, including romanised text, for both sessions and safety screening."],
 ] as const;
 
 export default function Home() {

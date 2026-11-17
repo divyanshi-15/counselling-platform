@@ -53,10 +53,11 @@ from backend.app.models import (
     UserRole,
 )
 from backend.app.analytics import router as analytics_router
+from backend.app.braindump import DraftEdit, router as braindump_router
 from backend.app.exercises import approved_exercises, template_for, router as exercises_router, with_notice
 from backend.app.ratelimit import client_rate_limit, contact_rate_limit
 from backend.app.rag import index_session_notes
-from backend.app.safety import CRISIS_MESSAGE, check_claims, render_prompt_data, risk_scan, validate_ai_output
+from backend.app.safety import CRISIS_MESSAGE, check_claims, clinical_output_violations, render_prompt_data, risk_scan, validate_ai_output
 from backend.app.schemas import (
     PublicPracticeDetailOut, PublicPracticesOut, PublicTherapist, PublicTherapistsOut,
     AdminTherapistsOut, AgentRunsOut, AlertItem, AlertsOut, OwnerActionsOut, PracticeDraftOut, PracticesOut, VerifyIn, VerifyOut, AssessmentOut, AssessmentsOut, BriefingsOut, CasePlanOut, CasePlansOut,
@@ -101,6 +102,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="Counselling Practice Platform", lifespan=lifespan, root_path="/api")
 app.include_router(exercises_router)
+app.include_router(braindump_router)
 app.include_router(analytics_router)
 
 
@@ -175,14 +177,19 @@ def _action_preview(db: Session, action: PendingAction) -> dict[str, object]:
     """Server-computed: who the action concerns and exactly what would reach the client on approval."""
     client_id = action.payload.get("client_id")
     client = db.query(User).filter(User.id == client_id).first() if isinstance(client_id, int) else None
-    if action.type == "release_exercise":
-        ex = db.query(Exercise).filter(Exercise.slug == action.payload.get("exercise")).first()
+    if action.type in ("release_exercise", "brain_dump"):
+        draft = action.payload.get("draft")
+        slug = draft.get("exercise") if action.type == "brain_dump" and isinstance(draft, dict) else action.payload.get("exercise")
+        ex = db.query(Exercise).filter(Exercise.slug == slug).first()
         if ex is not None:
             title, template = template_for(ex)
             labels = [str(f.get("label", f.get("id", ""))) for f in (template.get("fields") or []) if isinstance(f, dict)]
             view = {"kind": "exercise", "title": title, "fields": labels,
                     "note": "Appears under \"Approved exercises\" on the client's dashboard. Nothing else is sent."}
             return {"client_name": client.name if client else None, "client_view": view}
+    if action.type == "brain_dump":
+        return {"client_name": client.name if client else None,
+                "client_view": {"kind": "nothing", "note": "Nothing reaches the client. Approving marks this note as reviewed."}}
     note = ("Nothing reaches the client. This adds a new version to your own case plan only."
             if action.type == "apply_plan_update" else "Nothing reaches the client. This is a private briefing for you.")
     out: dict[str, object] = {"client_name": client.name if client else None, "client_view": {"kind": "nothing", "note": note}}
@@ -204,7 +211,7 @@ def _pending_action_result(action: PendingAction) -> dict[str, object]:
 
 
 OWNER_ACTION_TYPES = {"publish_page"}
-THERAPIST_ACTION_TYPES = {"copilot_briefing", "release_exercise", "apply_plan_update"}
+THERAPIST_ACTION_TYPES = {"copilot_briefing", "release_exercise", "apply_plan_update", "brain_dump"}
 
 
 def _get_owner_pending_action(db: Session, action_id: int, user: User) -> PendingAction:
@@ -233,14 +240,28 @@ def _decide_briefing(db: Session, action: PendingAction, user: User, decision: s
     action.decided_at = datetime.now(timezone.utc)
 
 
-def _release_exercise(db: Session, action: PendingAction, user: User) -> None:
+def _release_exercise(db: Session, action: PendingAction, user: User, slug: object = None) -> None:
     """Therapist approval creates the assignment. action.status gates replays, pending_action_id is unique."""
     client_id = action.payload.get("client_id")
-    exercise = db.query(Exercise).filter(Exercise.slug == action.payload.get("exercise")).first()
+    exercise = db.query(Exercise).filter(Exercise.slug == (slug or action.payload.get("exercise"))).first()
     if exercise is None or not isinstance(client_id, int) or not therapist_has_client(db, user.id, client_id):
         raise HTTPException(status_code=409, detail="Exercise release is unavailable")
     db.add(Assignment(client_id=client_id, therapist_user_id=user.id, exercise_id=exercise.id,
                       pending_action_id=action.id, status="assigned"))
+    action.status = "approved"
+    action.decided_by = user.id
+    action.decided_at = datetime.now(timezone.utc)
+
+
+def _approve_brain_dump(db: Session, action: PendingAction, user: User) -> None:
+    """Approval releases the draft's exercise through the normal release path; a note with no exercise is just reviewed."""
+    draft = action.payload.get("draft")
+    slug = draft.get("exercise") if isinstance(draft, dict) else None
+    if slug:
+        _release_exercise(db, action, user, slug)
+        return
+    if not therapist_has_client(db, user.id, action.payload.get("client_id", -1)):
+        raise HTTPException(status_code=409, detail="This note is unavailable")
     action.status = "approved"
     action.decided_by = user.id
     action.decided_at = datetime.now(timezone.utc)
@@ -1022,6 +1043,10 @@ def approve_pending_action(
         _check_action_key(action, idempotency_key)
         _apply_plan_update(db, action, current_user)
         replay = False
+    elif action.status == "pending" and action.type == "brain_dump":
+        _check_action_key(action, idempotency_key)
+        _approve_brain_dump(db, action, current_user)
+        replay = False
     elif action.status == "pending":
         _check_action_key(action, idempotency_key)
         if action.type != "publish_page":
@@ -1046,6 +1071,29 @@ def approve_pending_action(
         entity_id=action.id,
         details={"result_status": action.status, "idempotent_replay": replay},
     ))
+    db.commit()
+    return _pending_action_result(action)
+
+
+@app.put("/pending-actions/{action_id}/draft", response_model=PendingActionOut)
+def edit_brain_dump_draft(
+    action_id: int,
+    payload: DraftEdit,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, object]:
+    """Therapist edits a pending brain-dump draft before deciding. Nothing is released until approval."""
+    action = _get_owner_pending_action(db, action_id, current_user)
+    if action.type != "brain_dump" or action.status != "pending":
+        raise HTTPException(status_code=409, detail="This draft cannot be edited")
+    if payload.exercise and db.query(Exercise).filter(Exercise.slug == payload.exercise).first() is None:
+        raise HTTPException(status_code=422, detail="Unknown exercise")
+    violations = clinical_output_violations(" ".join([*payload.themes, *payload.mood_tags, payload.summary]))
+    if violations:
+        raise HTTPException(status_code=422, detail="Drafts cannot contain diagnoses or medication advice")
+    action.payload = action.payload | {"draft": payload.model_dump()}
+    db.add(AuditLog(action="pending_action.edit", actor_id=current_user.id, entity_type="pending_action",
+                    entity_id=action.id, details={}))
     db.commit()
     return _pending_action_result(action)
 

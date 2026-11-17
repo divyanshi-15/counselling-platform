@@ -27,8 +27,8 @@ export function PracticeAnalytics() {
       <KpiRow>
         <Kpi label="Bookings, 12 weeks" value={totalBookings} />
         <Kpi label="Utilisation, 14 days" value={pct(u.utilisation)} hint={`${u.booked_slots} of ${u.available_slots} slots booked`} />
-        <Kpi label="Revenue, this month" value={inr(currentRevenue)} />
-        <Kpi label="Revenue, 6 months" value={inr(sixMonths)} />
+        <Kpi label="Booked revenue, this month" tooltip="Includes upcoming sessions this month" value={inr(currentRevenue)} />
+        <Kpi label="Booked revenue, 6 months" value={inr(sixMonths)} />
       </KpiRow>
       {totalBookings === 0 && sixMonths === 0 ? <Empty>Charts appear once your therapists have bookings.</Empty> : (
         <div className="grid gap-4 lg:grid-cols-2">
@@ -38,9 +38,9 @@ export function PracticeAnalytics() {
             </ChartFrame>
           </CardContent></Card>
           <Card><CardContent className="pt-4">
-            <ChartFrame title="Revenue per month (₹)" summary={`${inr(sixMonths)} over the last 6 months`}>
-              <Lines data={monthly} x="month" xLabel="Month" yLabel="Revenue" fmt={(v) => (v >= 1000 ? `₹${new Intl.NumberFormat("en-IN").format(v / 1000)}k` : inr(v))}
-                lines={[{ key: "revenue", name: "Revenue" }]} />
+            <ChartFrame title="Booked revenue per month (₹)" summary={`${inr(sixMonths)} over the last 6 months`}>
+              <Lines data={monthly} x="month" xLabel="Month" yLabel="Booked revenue" fmt={(v) => (v >= 1000 ? `₹${new Intl.NumberFormat("en-IN").format(v / 1000)}k` : inr(v))}
+                lines={[{ key: "revenue", name: "Booked revenue" }]} />
             </ChartFrame>
           </CardContent></Card>
         </div>

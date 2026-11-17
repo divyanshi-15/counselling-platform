@@ -77,7 +77,7 @@ function Therapists() {
         <div className="space-y-1"><Label htmlFor="city">City</Label><Input id="city" placeholder="e.g. Bengaluru" value={f.city} onChange={set("city")} /></div>
         <div className="space-y-1"><Label htmlFor="language">Language</Label>
           <Select id="language" value={f.language} onChange={set("language")}>
-            <option value="">Any</option><option value="en">English</option><option value="hi">Hindi</option><option value="kn">Kannada</option>
+            <option value="">Any</option><option value="en">English</option><option value="hi">Hindi</option>
           </Select></div>
         <div className="space-y-1"><Label htmlFor="spec">Specialisation</Label><Input id="spec" placeholder="e.g. sleep" value={f.specialisation} onChange={set("specialisation")} /></div>
       </form>

@@ -37,6 +37,10 @@ function Body() {
           </>
         ) : <p className="text-muted-foreground">No upcoming session.</p>}
       </CardContent></Card>
+      <Card><CardHeader><CardTitle>Brain dump</CardTitle></CardHeader><CardContent className="space-y-3 text-sm">
+        <p className="text-muted-foreground">Write down what is on your mind. It is shared with your therapist.</p>
+        <Button variant="outline" asChild><Link to="/client/brain-dump">Write a brain dump</Link></Button>
+      </CardContent></Card>
       <section>
         <h2 className="mb-2 text-lg font-semibold">Approved exercises</h2>
         {data.approved_exercises.length === 0 ? <Empty>No exercises from your therapist yet.</Empty> : (

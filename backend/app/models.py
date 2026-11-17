@@ -284,7 +284,7 @@ class CopilotBriefing(Base):
 
 
 class Exercise(Base):
-    """Fixed, hand-written library. Hindi/Kannada columns are filled later (nullable on purpose)."""
+    """Fixed, hand-written library. Hindi columns are nullable; English is the fallback."""
     __tablename__ = "exercises"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -294,8 +294,6 @@ class Exercise(Base):
     template_en: Mapped[dict] = mapped_column(JSON, nullable=False)
     title_hi: Mapped[str | None] = mapped_column(String(255), nullable=True)
     template_hi: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-    title_kn: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    template_kn: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
 
 class Assignment(Base):

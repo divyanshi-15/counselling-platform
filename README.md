@@ -53,17 +53,17 @@ Notes: the claims check is deterministic (regex) plus an optional model check; t
 ## Risk triage evaluation (SYNTHETIC, demonstration only)
 
 Two layers, either one triggers the fixed crisis message (Tele-MANAS 14416 / 1-800-891-4416) and a high-priority therapist alert. No model call, no API key needed.
-Layer 1: keyword/pattern match (EN/HI/KN, native + romanised). Layer 2: multilingual-e5-small embeddings + logistic regression (threshold 0.5), trained on 60 hand-written synthetic phrases (30 risk / 30 non-risk incl. idioms such as "this deadline is killing me").
+Layer 1: keyword/pattern match (EN/HI, native + romanised). Layer 2: multilingual-e5-small embeddings + logistic regression (threshold 0.5), trained on 60 hand-written synthetic phrases (30 risk / 30 non-risk incl. idioms such as "this deadline is killing me").
 Short-text rule: layer 2 does not run on inputs under 4 words or on numeric/date values (and `risk_scan(..., layer2=False)` skips it for single-choice fields); layer 1 always runs, so "I want to die" is still caught. The table below applies this rule.
 Held-out = 18 of the 60 phrases (stratified 70/30 split, fixed seed), real embedder. Reproduce: `docker compose run --rm api python -m backend.scripts.eval_risk`.
 
 | Detector | Precision | Recall |
 | --- | --- | --- |
 | Layer 1 only | 1.00 | 0.89 |
-| Layer 2 only (short-text rule) | 0.67 | 0.44 |
-| Layer 1 OR layer 2 (deployed) | 0.82 | 1.00 |
+| Layer 2 only (short-text rule) | 0.88 | 0.78 |
+| Layer 1 OR layer 2 (deployed) | 0.90 | 1.00 |
 
-Hard negatives (15 benign phrases with risk-like words, `make risk-report`): layer 1 fires on 0/15 (asserted in tests). Layer 2 (report only) fires on 1/15 ("I'm dying to see my friends", 0.59 vs threshold 0.5); the next-highest are 0.48 ("I'd die of embarrassment...", "I'm starving to death...") and 0.44, so several sit near the threshold. Expect some false alerts from idioms; accepted on purpose.
+Hard negatives (15 benign phrases with risk-like words, `make risk-report`): layer 1 fires on 0/15 (asserted in tests). Layer 2 (report only) fires on 2/15 ("I'm dying to see my friends", 0.55; "I'm starving to death, let's eat", 0.53; threshold 0.5); the next-highest are 0.49 and 0.47, so several sit near the threshold. Expect some false alerts from idioms; accepted on purpose.
 
 Independent check: if `tests/risk_independent.csv` exists (one risk phrase per row, first column), `make risk-report` prints every phrase the scan misses. Not a failing test. The file is not present yet.
 

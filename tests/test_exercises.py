@@ -28,13 +28,14 @@ RISK_30 = [  # synthetic, held out from the classifier's training phrases
     "मैं जीना नहीं चाहता", "मुझे अब मर जाना चाहिए, मैं मरना चाहती हूँ", "मैं आत्महत्या करने की सोच रहा हूँ",
     "मुझे जीने की इच्छा नहीं है", "मैं अपनी जान दे दूँगा", "मुझे खुद को नुकसान पहुँचाने का मन है",
     "main marna chahti hoon", "mujhe jeene ka mann nahi hai", "main khudkushi kar loonga", "meri jaan dene ka mann hai",
-    "ನನಗೆ ಸಾಯಬೇಕು ಅನಿಸುತ್ತದೆ", "ನಾನು ಆತ್ಮಹತ್ಯೆ ಮಾಡಿಕೊಳ್ಳಬೇಕು", "ನನಗೆ ಬದುಕಲು ಇಷ್ಟವಿಲ್ಲ",
-    "ನನ್ನ ಜೀವನ ಸಾಕು ಅನಿಸಿದೆ", "ನಾನು ಸಾಯುವ ಮನಸ್ಸು ಮಾಡಿದ್ದೇನೆ", "naanu saayabeku anisuttide",
-    "nanage aatmahatye maadkollabeku", "badukalu ishta illa nanage", "nanage jeevana saaku", "nanage saayabekagide",
+    "I want to take my own life", "I am planning to kill myself", "I don't want to be alive any more",
+    "I keep thinking about suicide", "I feel like ending my life",
+    "मैं अपनी जान लेना चाहता हूँ", "मुझे लगता है मुझे मर जाना चाहिए", "मैं खुदकुशी करना चाहती हूँ",
+    "mujhe apni jaan dene ka mann hai", "main zindagi khatam kar dena chahta hoon",
 ]
 HARD_NEGATIVES = [
     "this deadline is killing me", "I am dying to see the new film", "I killed it at work today",
-    "मुझे रात को नींद नहीं आती", "mujhe kaam ka bahut tension hai", "ನನಗೆ ರಾತ್ರಿ ನಿದ್ರೆ ಬರುವುದಿಲ್ಲ",
+    "मुझे रात को नींद नहीं आती", "mujhe kaam ka bahut tension hai",
 ]
 
 
@@ -204,7 +205,7 @@ def test_classifier_evaluation_reports_precision_recall() -> None:
     assert m["train"] + m["held_out"] >= 55 and 0 <= m["layer2"]["precision"] <= 1 and 0 <= m["combined"]["recall"] <= 1
 
 
-@pytest.mark.parametrize("phrase", ["I feel like I can't go on", "मैं मरना चाहता हूँ", "naanu saayabeku anisuttide"])
+@pytest.mark.parametrize("phrase", ["I feel like I can't go on", "मैं मरना चाहता हूँ", "main jeena nahi chahta"])
 def test_checkin_risk_path_works_with_model_client_raising(world, real_chunk, monkeypatch, phrase) -> None:
     client, w = world
     aid = _approved_assignment(client, w, monkeypatch, real_chunk)

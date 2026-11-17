@@ -10,13 +10,14 @@ RISK_CASES = [
     "मैं मरना चाहता हूँ",
     "मैं खुदकुशी करना चाहता हूँ",
     "मुझे मरने का मन है",
-    "ನನಗೆ ಸಾಯುವ ಮನಸ್ಸಾಗಿದೆ",
-    "ನಾನು ತಾನೇ ಹಾನಿ ಮಾಡಿಕೊಳ್ಳಬೇಕು",
     "আত্মহত্যা করব",
     "আমি আর বাঁচতে চাই না",
     "I am having thoughts of suicide",
     "I want to disappear forever",
     "I am going to end my life today",
+    "मैं अपनी जान लेना चाहता हूँ",
+    "main jeena nahi chahta",
+    "I am thinking about suicide",
 ]
 
 SAFE_CASES = [
@@ -26,15 +27,14 @@ SAFE_CASES = [
     "I am worried about deadlines",
     "मैं थोड़ा दबाव में हूँ और मदद चाहिए",
     "मुझे कुछ इमोशनल ट्रिगर्स समझते हैं",
-    "ನನಗೆ ಒತ್ತಡವಾಗುತ್ತಿದೆ, ಸಹಾಯ ಬೇಕು",
-    "ನನಗೆ ವ್ಯಾಯಾಮ ಮಾಡಬೇಕು",
     "I am low energy but not in danger",
     "I want a thought record for work anxiety",
     "I want to try a sleep routine",
     "I need a short plan for the week",
     "I feel anxious before meetings",
     "Мне нужна поддержка и план действий",
-    "ನಾನು ದಿನಚರಿಯನ್ನು ನಿರ್ವಹಿಸಲು ಬಯಸುತ್ತೇನೆ",
+    "मुझे आज थोड़ी नींद चाहिए",
+    "I want to book a session for next week",
 ]
 
 

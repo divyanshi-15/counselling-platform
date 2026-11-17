@@ -39,7 +39,7 @@ export default function Signup() {
           </Select></div>
         <div className="space-y-1"><Label htmlFor="language">Language</Label>
           <Select id="language" value={f.language} onChange={set("language")}>
-            <option value="en">English</option><option value="hi">Hindi</option><option value="kn">Kannada</option>
+            <option value="en">English</option><option value="hi">Hindi</option>
           </Select></div>
         {error != null && <ErrorMsg error={error} />}
         <Button className="w-full" disabled={busy}>Create account</Button>

@@ -98,7 +98,7 @@ def test_practice_owner_can_create_draft_and_publish() -> None:
             json={
                 "name": "North Star Care",
                 "location": "Bengaluru",
-                "languages": ["en", "kn"],
+                "languages": ["en", "hi"],
                 "specialties": ["anxiety", "stress"],
                 "approaches": ["CBT"],
                 "fee_range": "2000-3000",

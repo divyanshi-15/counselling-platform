@@ -35,6 +35,11 @@ def complete(system: str, text: str) -> str:
             "faq": [{"question": "What should I expect?", "answer": "Warm, clear, step-by-step support."}],
             "what_to_expect": ["A collaborative plan", "Simple next steps between sessions"],
         })
+    if system.startswith("You turn a client's private note"):
+        return json.dumps({"themes": ["worry about the week ahead", "difficulty switching off"],
+                           "mood_tags": ["anxious", "tired"], "exercise_kb_slug": "worry-postponement",
+                           "summary": "The client describes ongoing worry that is hard to put down. "
+                                      "A short worry-postponement exercise may fit; please review."})
     if system.startswith("Check whether practice copy"):
         return json.dumps({"passed": True, "reasons": []})
     if system.startswith("You help a licensed therapist revise"):

@@ -39,7 +39,7 @@ Agents: bounded tool loop, max 8 tool calls, max_tokens set, Pydantic-validated 
 
 SAFETY (must work with no LLM call)
 - Runs on ALL client free text and on PHQ-9 item 9 > 0
-- Layer 1: keyword/patterns EN/HI/KN (romanised + native script). Layer 2: embeddings + LR classifier (~60 synthetic phrases), precision/recall table in README
+- Layer 1: keyword/patterns EN/HI (romanised + native script). Layer 2: embeddings + LR classifier (~60 synthetic phrases), precision/recall table in README
 - On hit: stop, FIXED crisis message with Tele-MANAS 14416, high-priority therapist alert. No model text in this path.
 - Every client page: crisis notice + "skill-building support, not a replacement for therapy."
 - Post-check all AI output: reject diagnoses and supplement/medication advice
@@ -51,7 +51,7 @@ COST CONTROLS
 - AI down → safety path and manual workflows still work
 
 CURRENT STATE
-Backend done through 5b (seed slots, plan update_notes, KB->exercise map, claims-bait + 30-phrase safety tests, README eval); remaining: 4c gaps (brain_dump, KN/HI templates). Frontend stages 1 to 4 + therapist availability screen (spec: /frontend/SPEC.md); `make api-types` regenerates types.
+Backend done through 5b (seed slots, plan update_notes, KB->exercise map, claims-bait + 30-phrase safety tests, README eval); brain_dump and HI templates done; languages are English and Hindi only. Frontend stages 1 to 4 + therapist availability screen (spec: /frontend/SPEC.md); `make api-types` regenerates types.
 Env: OVERNIGHT_HOUR_UTC, SCHEDULER_ENABLED=0, DEMO_MODE (0 in real use), FAKE_LLM (0 in production; app refuses FAKE_LLM=1 with DEMO_MODE=0 and APP_ENV=production). Run tests with `--build`; `make e2e` runs the whole demo story as client Alpha on cp-e2e (http://localhost:8081).
 Seed refreshes slots (next 14 days); apply_plan_update writes case_plans.update_notes (never the formulation); post-check has HI patterns; bookings have room_token; therapist/client endpoints have response_models; alerts acknowledge via POST /alerts/{id}/acknowledge.
 Copilot: a suggested exercise with an open assignment gets no release_exercise action; briefing shows "Already assigned (X of Y completed) - consider following up" (suggestion.already_assigned/follow_up_note).

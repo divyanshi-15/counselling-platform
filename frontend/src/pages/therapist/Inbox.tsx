@@ -10,7 +10,7 @@ import { useFetch } from "@/lib/useFetch";
 import { AiBadge, InferredBadge, Shell, type Schemas } from "./common";
 
 type Item = Schemas["TherapistActionItem"];
-const TITLES: Record<string, string> = { release_exercise: "Release exercise to client", apply_plan_update: "Update case plan", copilot_briefing: "Briefing draft" };
+const TITLES: Record<string, string> = { release_exercise: "Release exercise to client", apply_plan_update: "Update case plan", copilot_briefing: "Briefing draft", brain_dump: "Client brain dump" };
 
 function Side({ title, snap, other }: { title: string; snap: Schemas["PlanSnapshot"]; other: Schemas["PlanSnapshot"] }) {
   const goalChanged = (g: string) => !other.goals.includes(g);
@@ -50,8 +50,53 @@ function WhatChanges({ diff }: { diff: Schemas["PlanDiff"] }) {
   );
 }
 
-function Detail({ a }: { a: Item }) {
+type BDraft = { themes: string[]; mood_tags: string[]; exercise: string | null; summary: string };
+
+function BrainDumpDetail({ a, onSaved }: { a: Item; onSaved: () => void }) {
+  const draft = (a.payload.draft ?? null) as BDraft | null;
+  const [editing, setEditing] = useState(false);
+  const [themes, setThemes] = useState(draft?.themes.join(", ") ?? "");
+  const [tags, setTags] = useState(draft?.mood_tags.join(", ") ?? "");
+  const [summary, setSummary] = useState(draft?.summary ?? "");
+  const [keepExercise, setKeepExercise] = useState(true);
+  const [error, setError] = useState<unknown>(null);
+  const list = (v: string) => v.split(",").map((x) => x.trim()).filter(Boolean);
+  async function save() {
+    setError(null);
+    try {
+      await api(`/pending-actions/${a.id}/draft`, { method: "PUT", json: { themes: list(themes), mood_tags: list(tags), summary, exercise: keepExercise ? draft?.exercise ?? null : null } });
+      setEditing(false); onSaved();
+    } catch (e) { setError(e); }
+  }
+  return (
+    <div className="space-y-2 text-sm">
+      <p className="font-medium">Client's note (as written)</p>
+      <blockquote className="whitespace-pre-wrap rounded border-l-4 border-primary bg-muted p-3">{String(a.payload.text ?? "")}</blockquote>
+      {!draft ? <p className="text-muted-foreground">No AI draft was prepared for this note. Approving marks it as reviewed.</p> : editing ? (
+        <div className="space-y-2">
+          <label className="block text-xs font-medium">Themes (comma separated)<input className="mt-1 w-full rounded border bg-background p-2 text-sm" value={themes} onChange={(e) => setThemes(e.target.value)} /></label>
+          <label className="block text-xs font-medium">Mood tags (comma separated)<input className="mt-1 w-full rounded border bg-background p-2 text-sm" value={tags} onChange={(e) => setTags(e.target.value)} /></label>
+          <label className="block text-xs font-medium">Summary<textarea className="mt-1 w-full rounded border bg-background p-2 text-sm" rows={3} value={summary} onChange={(e) => setSummary(e.target.value)} /></label>
+          {draft.exercise && <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={keepExercise} onChange={(e) => setKeepExercise(e.target.checked)} />Release suggested exercise ({a.client_view.title ?? draft.exercise}) on approval</label>}
+          {error != null && <ErrorMsg error={error} />}
+          <div className="flex gap-2"><Button onClick={() => void save()}>Save edits</Button><Button variant="outline" onClick={() => setEditing(false)}>Cancel</Button></div>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <p><span className="text-muted-foreground">Themes:</span> {draft.themes.join("; ")}</p>
+          <p><span className="text-muted-foreground">Mood:</span> {draft.mood_tags.join(", ")}</p>
+          <p><span className="text-muted-foreground">Summary:</span> {draft.summary}</p>
+          <p><span className="text-muted-foreground">Suggested exercise:</span> {draft.exercise ? a.client_view.title ?? draft.exercise : "None"}</p>
+          {a.status === "pending" && <Button variant="outline" onClick={() => setEditing(true)}>Edit draft</Button>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Detail({ a, onSaved }: { a: Item; onSaved: () => void }) {
   const p = a.payload;
+  if (a.type === "brain_dump") return <BrainDumpDetail a={a} onSaved={onSaved} />;
   if (a.type === "apply_plan_update") {
     const findings = (p.findings ?? {}) as Record<string, unknown>;
     return (
@@ -97,7 +142,7 @@ function Row({ a, onDone }: { a: Item; onDone: () => void }) {
         <div className="flex gap-2"><AiBadge /><Badge className={a.status === "pending" ? "border-amber-400 text-amber-800" : "text-muted-foreground"}>{a.status}</Badge></div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <Detail a={a} />
+        <Detail a={a} onSaved={onDone} />
         {a.diff && <WhatChanges diff={a.diff} />}
         <div className={reaches ? "rounded-md border-2 border-primary bg-primary/5 p-3" : "rounded-md border border-dashed bg-muted p-3"}>
           <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide"><Eye className="h-4 w-4" /> What reaches the client</p>

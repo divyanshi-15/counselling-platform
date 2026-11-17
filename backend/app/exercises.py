@@ -19,7 +19,7 @@ from backend.app.schemas import AssignmentsOut, CheckinOut, ExerciseTemplateOut
 RUNNER_TOOLS = ("save_checkin", "flag_risk")
 NOTICE = "Skill-building support, not a replacement for therapy."
 CRISIS_LINE = "If you are in crisis, call Tele-MANAS 14416 (or 1-800-891-4416) or your local emergency number."
-LANGS = {"en", "hi", "kn"}
+LANGS = {"en", "hi"}
 
 router = APIRouter()
 client_only = require_roles(UserRole.client)
@@ -38,8 +38,6 @@ class CheckinIn(BaseModel):
 def template_for(exercise: Exercise, lang: str = "en") -> tuple[str, dict]:
     if lang == "hi" and exercise.template_hi:
         return exercise.title_hi or exercise.title_en, exercise.template_hi
-    if lang == "kn" and exercise.template_kn:
-        return exercise.title_kn or exercise.title_en, exercise.template_kn
     return exercise.title_en, exercise.template_en
 
 
@@ -111,10 +109,10 @@ def list_my_assignments(db: Session = Depends(get_db), user: User = Depends(clie
 
 @router.get("/client/assignments/{assignment_id}/exercise", dependencies=[Depends(client_rate_limit)],
             response_model=ExerciseTemplateOut)
-def get_exercise_template(assignment_id: int, lang: str = Query(default="en"), db: Session = Depends(get_db),
+def get_exercise_template(assignment_id: int, lang: str | None = Query(default=None), db: Session = Depends(get_db),
                           user: User = Depends(client_only)) -> dict[str, Any]:
     a, exercise = _own_assignment(db, assignment_id, user)
-    title, template = template_for(exercise, lang if lang in LANGS else "en")
+    title, template = template_for(exercise, lang if lang in LANGS else (user.language if user.language in LANGS else "en"))
     return with_notice({"assignment_id": a.id, "exercise": exercise.slug, "title": title, "status": a.status,
                         "template": template})
 

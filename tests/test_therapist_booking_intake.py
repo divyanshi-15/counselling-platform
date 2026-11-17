@@ -284,17 +284,19 @@ def test_public_therapist_filters_and_detail_expose_only_published_verified(scen
     with SessionLocal() as db:
         db.query(Practice).filter(Practice.id == scenario["practice_a"].id).update({"page_json": '{"location": "Bengaluru"}'})
         db.query(TherapistProfile).filter(TherapistProfile.id == scenario["therapist_a"].id).update(
-            {"languages": ["en", "kn"], "specialisations": ["Sleep"]})
+            {"languages": ["en", "hi"], "specialisations": ["Sleep"]})
         db.query(TherapistProfile).filter(TherapistProfile.id == scenario["therapist_unverified"].id).update(
-            {"languages": ["kn"], "specialisations": ["Sleep"]})
+            {"languages": ["hi"], "specialisations": ["Sleep"]})
         db.query(TherapistProfile).filter(TherapistProfile.id == scenario["therapist_draft_practice"].id).update(
-            {"languages": ["kn"], "specialisations": ["Sleep"]})
+            {"languages": ["hi"], "specialisations": ["Sleep"]})
         db.commit()
-    result = client.get("/therapists/public", params={"city": "bengal", "language": "KN", "specialisation": "sleep"})
+    result = client.get("/therapists/public", params={"city": "bengal", "language": "HI", "specialisation": "sleep"})
     items = result.json()["items"]
     assert [i["id"] for i in items] == [scenario["therapist_a"].id]
     assert client.get("/therapists/public", params={"city": "Pune"}).json()["items"] == []
-    assert client.get("/therapists/public", params={"language": "kn", "specialisation": "sleep"}).json()["items"][0]["id"] == scenario["therapist_a"].id
+    ids = [i["id"] for i in client.get("/therapists/public", params={"language": "hi", "specialisation": "sleep"}).json()["items"]]
+    assert scenario["therapist_a"].id in ids
+    assert scenario["therapist_unverified"].id not in ids and scenario["therapist_draft_practice"].id not in ids
     for key in ("therapist_unverified", "therapist_draft_practice", "therapist_unverified_practice"):
         assert client.get(f"/therapists/public/{scenario[key].id}").status_code == 404
     detail = client.get(f"/therapists/public/{scenario['therapist_a'].id}").json()

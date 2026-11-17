@@ -17,7 +17,7 @@ def _launch_input(tone: str = "warm and calm") -> dict[str, object]:
     return {
         "name": "North Star Care",
         "location": "Bengaluru",
-        "languages": ["en", "kn"],
+        "languages": ["en", "hi"],
         "specialties": ["stress"],
         "approaches": ["CBT"],
         "fee_range": "2000-3000",

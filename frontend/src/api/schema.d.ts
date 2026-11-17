@@ -55,6 +55,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/client/brain-dump": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Brain Dump */
+        post: operations["submit_brain_dump_client_brain_dump_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/analytics/therapist": {
         parameters: {
             query?: never;
@@ -602,6 +619,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pending-actions/{action_id}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Edit Brain Dump Draft
+         * @description Therapist edits a pending brain-dump draft before deciding. Nothing is released until approval.
+         */
+        put: operations["edit_brain_dump_draft_pending_actions__action_id__draft_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/pending-actions/{action_id}/reject": {
         parameters: {
             query?: never;
@@ -1072,6 +1109,24 @@ export interface components {
             /** Confirmation Email */
             confirmation_email: string;
         };
+        /** BrainDumpIn */
+        BrainDumpIn: {
+            /** Text */
+            text: string;
+        };
+        /** BrainDumpOut */
+        BrainDumpOut: {
+            /** Status */
+            status: string;
+            /** Message */
+            message: string;
+            /** Shared */
+            shared: boolean;
+            /** Notice */
+            notice: string;
+            /** Crisis Line */
+            crisis_line: string;
+        };
         /** BriefingBody */
         BriefingBody: {
             /** Client Id */
@@ -1285,6 +1340,20 @@ export interface components {
             /** Fee */
             fee?: number | null;
             practice: components["schemas"]["PracticeRef"];
+        };
+        /**
+         * DraftEdit
+         * @description Therapist edit of a pending brain_dump draft.
+         */
+        DraftEdit: {
+            /** Themes */
+            themes: string[];
+            /** Mood Tags */
+            mood_tags?: string[];
+            /** Exercise */
+            exercise?: string | null;
+            /** Summary */
+            summary: string;
         };
         /** ExerciseTemplate */
         ExerciseTemplate: {
@@ -2166,7 +2235,7 @@ export interface operations {
     get_exercise_template_client_assignments__assignment_id__exercise_get: {
         parameters: {
             query?: {
-                lang?: string;
+                lang?: string | null;
             };
             header?: never;
             path: {
@@ -2218,6 +2287,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CheckinOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_brain_dump_client_brain_dump_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrainDumpIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrainDumpOut"];
                 };
             };
             /** @description Validation Error */
@@ -3186,6 +3290,41 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PendingActionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_brain_dump_draft_pending_actions__action_id__draft_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DraftEdit"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

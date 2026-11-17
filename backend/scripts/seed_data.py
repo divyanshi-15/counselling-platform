@@ -35,14 +35,14 @@ PRACTICES = [  # slug, name, owner email, legacy slug (renamed in place on exist
      "page": {"tagline": "Calm, practical support for sleep, stress and exam pressure in Bengaluru.",
               "about": "Calm Minds Counselling is a small team of clinical and counselling psychologists offering warm, "
                        "structured, skill-building sessions informed by CBT.",
-              "location": "Bengaluru", "languages": ["en", "hi", "kn"], "specialties": ["sleep", "stress", "anxiety"],
+              "location": "Bengaluru", "languages": ["en", "hi"], "specialties": ["sleep", "stress", "anxiety"],
               "approaches": ["CBT", "CBT-I", "ACT"], "fee_range": "INR 1500-2200"}},
     {"slug": "harbour-counselling-mysuru", "legacy": "demo-harbour-counselling", "name": "Harbour Counselling",
      "owner": "owner2@example.com",
-     "page": {"tagline": "Unhurried, family-aware counselling in Mysuru, in English and Kannada.",
+     "page": {"tagline": "Unhurried, family-aware counselling in Mysuru, in English and Hindi.",
               "about": "Harbour Counselling supports students, young professionals and families with practical, "
                        "step-by-step skill-building.",
-              "location": "Mysuru", "languages": ["en", "kn"], "specialties": ["family", "low mood", "life transitions"],
+              "location": "Mysuru", "languages": ["en", "hi"], "specialties": ["family", "low mood", "life transitions"],
               "approaches": ["CBT", "behavioural activation"], "fee_range": "INR 1000-1600"}},
     {"slug": "lakeview-wellness-hyderabad", "legacy": None, "name": "Lakeview Wellness Clinic",
      "owner": "owner3@example.com",
@@ -69,23 +69,23 @@ THERAPISTS = [  # email, practice slug, credentials, years, rating, reviews, fee
      "Meera helps people whose busy minds keep them up at night. Her sessions are structured, practical and paced "
      "to what you can manage that week. She works with working professionals and students."),
     ("therapist2@example.com", "calm-minds-bengaluru", "M.Sc Counselling Psychology", 6, 4.7, 74, 1500,
-     ["en", "kn"], ["CBT"], ["exam stress", "self-criticism", "work pressure"],
+     ["en", "hi"], ["CBT"], ["exam stress", "self-criticism", "work pressure"],
      "Arjun works with students and early-career professionals on stress and self-critical thinking. "
-     "He offers sessions in English and Kannada."),
+     "He offers sessions in English and Hindi."),
     ("therapist4@example.com", "calm-minds-bengaluru", "Ph.D Clinical Psychology", 14, 4.8, 156, 2200,
-     ["en", "hi", "kn"], ["CBT", "ACT"], ["anxiety", "panic", "trauma-informed care"],
+     ["en", "hi"], ["CBT", "ACT"], ["anxiety", "panic", "trauma-informed care"],
      "Kavya has worked with anxiety and panic for over a decade. She blends CBT skills with acceptance-based "
      "practices and keeps a steady, unhurried pace."),
     ("therapist3@example.com", "harbour-counselling-mysuru", "M.A Counselling Psychology", 5, 4.6, 52, 1100,
-     ["en", "kn"], ["CBT", "behavioural activation"], ["low mood", "motivation", "life transitions"],
+     ["en", "hi"], ["CBT", "behavioural activation"], ["low mood", "motivation", "life transitions"],
      "Rohan supports clients who feel flat or stuck, using small scheduled steps to rebuild routine and interest. "
-     "He sees clients in English and Kannada."),
+     "He sees clients in English and Hindi."),
     ("therapist5@example.com", "harbour-counselling-mysuru", "M.Phil Clinical Psychology, RCI-registered", 9, 4.8, 97, 1600,
-     ["en", "kn"], ["CBT", "family-focused"], ["perinatal wellbeing", "family stress", "parenting"],
+     ["en", "hi"], ["CBT", "family-focused"], ["perinatal wellbeing", "family stress", "parenting"],
      "Sneha works with new parents and families under strain. Her approach is warm and practical, with clear "
      "between-session steps."),
     ("therapist6@example.com", "harbour-counselling-mysuru", "Ph.D Counselling Psychology", 16, 4.9, 143, 1400,
-     ["en", "kn"], ["CBT", "problem-solving therapy"], ["adjustment", "grief", "caregiver stress"],
+     ["en", "hi"], ["CBT", "problem-solving therapy"], ["adjustment", "grief", "caregiver stress"],
      "Anand has spent sixteen years supporting people through change and loss. He is known for calm, "
      "plain-spoken sessions."),
     ("therapist7@example.com", "lakeview-wellness-hyderabad", "M.Phil Clinical Psychology, RCI-registered", 12, 4.8, 119, 2600,
