@@ -4,10 +4,12 @@ import json
 from datetime import date, datetime, timedelta, timezone
 from uuid import uuid4
 
+import pytest
+
 from backend.app import reminders
 from backend.app.agents import copilot
 from backend.app.db import SessionLocal
-from backend.app.models import (Alert, JournalEntry, JourneyAssignment, JourneyStep, MoodCheckin, PendingAction, ReminderLog,
+from backend.app.models import (Alert, Exercise, JournalEntry, Journey, JourneyAssignment, JourneyStep, MoodCheckin, PendingAction, ReminderLog,
                                 User)
 from test_copilot import _h, world  # noqa: F401  (world is a fixture)
 
@@ -202,14 +204,33 @@ def test_assign_is_idempotent_and_validates(world) -> None:
     assert client.post(f"/clients/{w['ca'].id}/journeys", headers=_h(w["ta"]), json={"programme": PROGRAMME}).status_code == 422  # no key
 
 
-def test_assign_library_template(world) -> None:
+@pytest.fixture
+def library_template():
+    """A shared library template (created_by NULL) seeded here, removed afterwards."""
+    with SessionLocal() as db:
+        ids = {e.slug: e.id for e in db.query(Exercise).filter(Exercise.slug.in_(["worry_postponement", "thought_record"]))}
+        journey = Journey(slug=f"test-{uuid4().hex[:12]}", title_en="Library template", title_hi="टेम्पलेट")
+        db.add(journey)
+        db.flush()
+        db.add(JourneyStep(journey_id=journey.id, week=1, position=1, exercise_id=ids["worry_postponement"], text_en="Set a worry time."))
+        db.add(JourneyStep(journey_id=journey.id, week=2, position=1, exercise_id=ids["thought_record"], text_en="Write one thought record."))
+        db.commit()
+        jid = journey.id
+    yield jid
+    with SessionLocal() as db:
+        db.query(JourneyAssignment).filter(JourneyAssignment.journey_id == jid).delete()
+        db.query(Journey).filter(Journey.id == jid).delete()
+        db.commit()
+
+
+def test_assign_library_template(world, library_template) -> None:
     client, w = world
     lib = client.get("/therapists/me/journeys", headers=_h(w["ta"])).json()
     assert {e["slug"] for e in lib["exercises"]} >= {"worry_postponement", "thought_record"}
-    template = next((j for j in lib["items"] if not j["own"]), None)
-    if template is None:  # fresh test database: the seed has not run
-        return
-    assert client.post(f"/clients/{w['ca'].id}/journeys", headers=_h(w["ta"]) | _key(), json={"template_id": template["id"]}).status_code == 200
+    template = next(j for j in lib["items"] if j["id"] == library_template)
+    assert template["own"] is False and template["weeks"] == 2
+    r = client.post(f"/clients/{w['ca'].id}/journeys", headers=_h(w["ta"]) | _key(), json={"template_id": library_template})
+    assert r.status_code == 200, r.text
 
 
 def test_journey_access_control(world) -> None:

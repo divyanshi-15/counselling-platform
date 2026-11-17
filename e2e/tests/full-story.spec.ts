@@ -101,7 +101,7 @@ test("full story with FAKE_LLM=1", async ({ browser }) => {
 
   // 6. risky phrase in a check-in: only the fixed crisis message
   await client.goto("/client");
-  await client.getByRole("link", { name: "Open" }).first().click();
+  await client.locator('a[href^="/client/exercise/"]').first().click();
   await expect(client.getByRole("button", { name: "Save check-in" })).toBeVisible();
   for (const box of await client.locator("textarea").all()) await box.fill("I want to end my life");
   for (const num of await client.locator("input[type=number]").all()) await num.fill("5");

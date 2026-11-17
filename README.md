@@ -1,42 +1,140 @@
-# Counselling Practice Platform MVP
+# Samvaad Care
+
+A therapist-in-the-loop AI copilot for counselling practices. Practices publish a verified public page; clients book, check in, journal and do assigned exercises; therapists get a pre-session briefing, overnight monitoring and drafted plan updates. **The AI only proposes: every output is a draft or pending action that an authenticated human must approve before anything is published, released, applied or sent.** Crisis detection runs without any LLM and always returns a fixed message with Tele-MANAS 14416.
 
 ## Architecture
 
-Publishing requires owner approval; public visibility also requires admin verification.
-
 ```mermaid
 flowchart LR
-    Browser[React + Vite UI] --> Caddy[Caddy HTTPS]
+    Browser[React + TS + Vite UI] --> Caddy[Caddy HTTPS]
     Caddy --> API[FastAPI API]
-    API --> Auth[Auth + role dependency layer<br/>client / therapist / owner / admin]
-    API --> Safety[Safety, no LLM<br/>layer 1 keywords + layer 2 embeddings/LR]
+    API --> Auth[Auth: argon2 + JWT httpOnly cookie<br/>server-side role dependency layer]
+    API --> Safety[Safety, no LLM<br/>layer 1 keywords EN/HI + layer 2 embeddings/LR]
     API --> Agents[Agents: copilot, monitor, launch<br/>max 8 tool calls, Pydantic JSON, post-check]
     Agents -->|proposes only| Pending[(pending_actions / drafts)]
-    Pending -->|human approve + Idempotency-Key| Apply[Publish / release exercise /<br/>apply plan update]
-    Agents --> LLM[Anthropic API<br/>budget, cache, rate limits]
+    Pending -->|human approve + Idempotency-Key| Apply[Publish / release exercise /<br/>apply plan update / send]
+    Agents --> LLM[Anthropic API<br/>token budget, cache, rate limits]
     Agents --> RAG[pgvector KB retrieval]
     API --> DB[(PostgreSQL 16 + pgvector)]
     Safety -->|hit| Crisis[Fixed Tele-MANAS 14416 message<br/>+ high-priority therapist alert]
     Apply --> DB
     RAG --> DB
-    Scheduler[APScheduler overnight check] --> Agents
+    Scheduler[APScheduler: overnight check, reminders] --> Agents
 ```
 
-## Run locally
+## Trust pipeline
 
-1. Copy `.env.example` to `.env` and adjust values.
-2. Start the stack:
-   `make up`
-3. Open the app through Caddy at http://localhost
-4. API health check: http://localhost/health
+```mermaid
+flowchart LR
+    A[Apply] --> B[Submit documents] --> C[Admin review<br/>audit log] --> D[Verified] --> E[Listed]
+    C -->|changes requested / rejected, with note| B
+```
 
-## Security and guardrails
+Only published **and** verified practices and therapists appear publicly. Each admin decision (verify, request changes, reject) is audited with actor and note; document downloads are audited too. Editing a licence after verification returns the therapist to review. Verification never publishes or edits a practice page.
 
-- Footer shows a "Sample data" note; client pages show the crisis notice and the skill-building support line.
-- Safety screening runs before any AI output is generated.
-- Crisis messages are fixed and never model-written.
-- The message shows Tele-MANAS 14416 and a therapist alert.
-- Post-check rejects diagnostic or supplement advice based on a static policy.
+## Features by role
+
+| Role | Features |
+|---|---|
+| Client | Find and book verified therapists; intake; mood check-in; private or shared journal; guided journeys; assigned exercises; insights; English/Hindi; reminders. Crisis notice on every page |
+| Therapist | Credentials and document submission; availability; bookings and intake; session notes (brain dump); AI briefing with cited knowledge; case plans and assessments; approve/reject exercise releases and plan updates; skill-building journeys; overnight alerts (plateau, low homework, untouched goal, risk) |
+| Practice owner | Practice setup, editable AI-drafted page, document submission, therapist invites, bookings/listings and practice analytics. No clinical data |
+| Admin | Verification queue for therapists and practices with completeness checks, review decisions, audit log, secure document download |
+
+## Access-control matrix
+
+| Data | Client | Therapist | Practice owner | Admin | Public |
+|---|---|---|---|---|---|
+| Own profile, mood, journal | own | n/a | n/a | no | no |
+| Shared journal, mood trend, assessments, notes, plans | no | only clients with a booking or case plan with them | **never** | no | no |
+| Other therapists' clients (same practice) | no | no | no | no | no |
+| Practice page, listings, team, analytics | no | own practice view | own practice | all | published + verified only |
+| Verification documents | no | own | own practice | all (audited) | no |
+| Verification decisions | no | no | no | yes | no |
+| Therapist directory | no | yes | yes | yes | verified only |
+
+Enforced in a server-side dependency layer, never in prompts. Every endpoint has tests for cross-client, cross-therapist, owner-to-clinical and cross-client retrieval denial.
+
+## Safety layers
+
+Detection runs on **all client free text** and on PHQ-9 item 9 > 0, **without any LLM call and without an API key**. On a hit the flow stops, shows a fixed message with Tele-MANAS 14416, and raises a high-priority therapist alert. No model text is in this path.
+
+- Layer 1: keyword/pattern match, English and Hindi (romanised and Devanagari).
+- Layer 2: multilingual-e5-small embeddings + logistic regression on synthetic phrases.
+- Post-check on all AI output: rejects diagnoses and medication/supplement advice (EN and HI patterns).
+- Client and note text enters prompts as delimited data with an instruction never to follow commands inside it.
+
+| Detector (held-out, 18 phrases) | Precision | Recall |
+|---|---|---|
+| Layer 1 only | 1.00 | 0.89 |
+| Layer 2 only | 0.88 | 0.78 |
+| Layer 1 OR layer 2 (deployed) | 0.90 | 1.00 |
+
+Small synthetic set, not clinically validated; false alerts are accepted on purpose. Details below.
+
+## Cost controls
+
+- Daily token budget; over budget or AI down returns "AI unavailable, manual workflow open." Safety and manual workflows keep working.
+- Per-IP sliding-window rate limits.
+- Dev disk cache keyed by hash(prompt+model); prompt caching on system prompt and retrieved chunks.
+- Bounded agent loop: max 8 tool calls, `max_tokens` set, Pydantic-validated JSON, one retry, then a visible error. `MODEL_FAST` for dev, `MODEL_SMART` for final.
+
+## Tech stack
+
+Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2, Alembic, APScheduler; PostgreSQL 16 + pgvector; Anthropic SDK; fastembed multilingual-e5-small; scikit-learn logistic regression; React + TypeScript + Vite + Tailwind + shadcn/ui; Docker Compose (caddy, api, postgres); argon2 + JWT httpOnly cookie.
+
+## Run
+
+1. `cp .env.example .env`, set `JWT_SECRET` and (for live AI) `ANTHROPIC_API_KEY`. Secrets live only in `.env`.
+2. `make up`, then `make seed` (idempotent; loads the KB and 14 days of slots).
+3. Open http://localhost. Health: http://localhost/health.
+4. `make test` (Postgres, `alembic upgrade head`, LLM mocked). `make e2e` runs the browser story on http://localhost:8081. `make api-types` regenerates frontend types.
+
+## Environment notes
+
+The hosted site runs with `DEMO_MODE=0` and `FAKE_LLM=0`. The app refuses `FAKE_LLM=1` with `DEMO_MODE=0` and `APP_ENV=production`. `DEMO_MODE=1` and `FAKE_LLM=1` are for local demos and e2e only. All variables are listed in `.env.example`.
+
+## Seeded accounts (LOCAL use only)
+
+All people are fictional. **Change every seeded password before any public hosting, or do not seed.**
+
+| Role | Login | Password | Notes |
+|---|---|---|---|
+| Admin | admin@example.com | admin123 | verification queue |
+| Practice owner | owner@example.com | owner123 | Calm Minds Counselling (published, verified) |
+| Practice owner | owner2@example.com | owner123 | Harbour Counselling |
+| Practice owner | owner3@example.com | owner123 | Lakeview Wellness Clinic |
+| Practice owner | owner4@example.com | owner123 | Greenleaf Counselling Studio (setup in progress, pending invite) |
+| Therapist | therapist@example.com | therapist123 | Calm Minds; clients Alpha, Beta |
+| Therapist | therapist2@example.com, therapist4@example.com | therapist123 | Calm Minds |
+| Therapist | therapist3@example.com, therapist5@example.com, therapist6@example.com | therapist123 | Harbour |
+| Therapist | therapist7@example.com to therapist9@example.com | therapist123 | Lakeview |
+| Therapist | therapist10@example.com | therapist123 | Lakeview; verification submitted, awaiting admin review |
+| Client | client@example.com | client123 | Alpha: PHQ-9/GAD-7 plateau, 1 of 4 exercises done |
+| Client | client2@example.com to client12@example.com | client123 | varied cases (client5 has an active journey; client12 has no therapist) |
+
+## Screenshots
+
+- Landing / practice page: _add screenshot_
+- Client dashboard and check-in: _add screenshot_
+- Therapist briefing and approval inbox: _add screenshot_
+- Admin verification queue: _add screenshot_
+
+## Roadmap
+
+- More regional languages
+- Privacy and terms pages (pending legal review)
+- Translations (pending linguistic review)
+- Single-practice analytics parameter
+- Document cleanup on user deletion
+- Malware scanning for uploads
+- Resend invite
+- Exercise swap in the approval inbox
+- Admin queue pagination and search
+- Journey steps tied to exercise completion
+- DPDP Act compliance work
+
+---
 
 ## Evaluation snapshot
 
@@ -68,6 +166,8 @@ Hard negatives (15 benign phrases with risk-like words, `make risk-report`): lay
 Independent check: if `tests/risk_independent.csv` exists (one risk phrase per row, first column), `make risk-report` prints every phrase the scan misses. Not a failing test. The file is not present yet.
 
 Caveats: 18 held-out phrases is far too small for any real claim, and layer 1's patterns were written by the same author as the phrases. False alerts are accepted on purpose: a missed risk costs more than an unnecessary alert. Not clinically validated.
+
+Latest run (`eval_risk`, this release): layer 1 P 1.00 / R 0.89; layer 2 P 0.88 / R 0.78; combined P 0.90 / R 1.00; missed: none; false alert: "I want to stop overthinking at night".
 
 ## RAG calibration
 
@@ -122,35 +222,6 @@ Reproduce with `make kb` then `make calibrate`. **The threshold must be recalibr
 
 Result: in-domain 0.791-0.880, out-of-domain 0.749-0.844. The sets **overlap** (margin = min in-domain - max out-of-domain = **-0.053**), because near-miss queries such as "gym workout plan" (0.844) and "sleep tracker app reviews" (0.832) score above weaker in-domain phrases like "mind racing at night" (0.791). The script picks the threshold with best balanced accuracy and widest local gap: `KB_MIN_SIMILARITY` = **0.826** (gap around it only 0.002), giving 17/20 in-domain pass and 2/20 out-of-domain pass (false passes: "gym workout plan", "sleep tracker app reviews"). Full-text hits do not separate the sets. Similarity alone cannot cleanly gate near-miss queries; the copilot's citation validator and therapist review remain the backstop.
 
-## Roadmap
-
-- Payments and scheduling integration
-- Calendar sync and automated reminders
-- Meeting bot notes capture
-- DPDP review and retention policy
-
-## Seed data and logins
-
-`make seed` (idempotent, loads the KB, creates availability slots for the next 14 days for each therapist and refreshes expired unbooked ones on every rerun, `make seed ARGS=--check` also prints retrieval margins with the real embedder). All people are fictional.
-
-| Role | Login | Password | Notes |
-|---|---|---|---|
-| Admin | admin@example.com | admin123 | verify toggle |
-| Practice owner | owner@example.com | owner123 | Calm Minds Counselling (published + verified) |
-| Practice owner | owner2@example.com | owner123 | Harbour Counselling (draft) |
-| Practice owner | owner4@example.com | owner123 | Greenleaf Counselling Studio (setup in progress; pending invite for therapist11@example.com, token `sample-invite-token-greenleaf-0001`, open `/invitation#token=...`) |
-| Therapist | therapist@example.com | therapist123 | clients Alpha, Beta |
-| Therapist | therapist2@example.com | therapist123 | client Gamma |
-| Therapist | therapist3@example.com | therapist123 | client Delta (practice 2, unverified) |
-| Client | client@example.com | client123 | Alpha: PHQ-9/GAD-7 plateau, 1 of 4 exercises done, racing thoughts at night |
-| Client | client2@example.com / client3@example.com / client4@example.com | client123 | improving, no alerts |
-
 ## Monitoring (overnight check)
 
 Nightly APScheduler job (21:00 UTC, `OVERNIGHT_HOUR_UTC`; single worker plus a Postgres advisory lock) or `POST /therapist/overnight-check`. Code, not the model, flags per client: PHQ-9/GAD-7 slope over 14 days better than -1 point/week not reached (needs two readings at least 7 days apart, latest score 5 or more), under 50% of exercises completed in 14 days (2 or more assigned), a plan goal with no keyword overlap in the last 3 session notes. The model (`MODEL_FAST`, cached, 400 tokens, Pydantic-validated, diagnosis/medication post-check) only drafts the plan-update wording; without AI, or for a risk-flagged client, a fixed template is used. Each finding makes an alert (unique per client, date, type) and one `apply_plan_update` pending action; only the assigned therapist's approval creates a new `case_plans` version, and only if the plan has not changed since the draft. The approved draft is stored in `case_plans.update_notes` (shown as "AI-drafted, approved by <therapist> on <date>"); the therapist-written formulation is never edited by AI text.
-
-## Security notes
-
-- `DEMO_MODE` must be `0` for any real use. `/auth/demo-login` exists only when `DEMO_MODE=1` (passwordless login as seeded accounts, never admin; used by the test stack); with `0` it returns 404 for every role.
-- `/auth/register` accepts only `client`, `therapist`, `practice_owner`; unknown fields are rejected. Therapists and practices start unverified and stay out of public lists until an admin verifies them.
-- Create admins only via `make create-admin EMAIL=you@example.com PASSWORD=...` (or the seed script).
