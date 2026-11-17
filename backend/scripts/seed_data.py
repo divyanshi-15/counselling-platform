@@ -15,6 +15,7 @@ LOGINS = [  # (email, password, role, name)
     ("therapist7@example.com", "therapist123", "therapist", "Dr Farah Siddiqui"),
     ("therapist8@example.com", "therapist123", "therapist", "Pranav Reddy"),
     ("therapist9@example.com", "therapist123", "therapist", "Lakshmi Varma"),
+    ("therapist10@example.com", "therapist123", "therapist", "Dr Nisha Banerjee"),
     ("client@example.com", "client123", "client", "Ananya Rao"),
     ("client2@example.com", "client123", "client", "Rohan Mehta"),
     ("client3@example.com", "client123", "client", "Ishaan Verma"),
@@ -101,6 +102,43 @@ THERAPISTS = [  # email, practice slug, credentials, years, rating, reviews, fee
      "Lakshmi supports perfectionistic and anxious clients, helping them test unhelpful rules and build "
      "kinder, workable routines."),
 ]
+
+# Profile awaiting admin review (status "submitted"; not public until verified). Same row shape as THERAPISTS.
+PENDING_THERAPIST = ("therapist10@example.com", "lakeview-wellness-hyderabad", "M.Phil Clinical Psychology, RCI-registered", 7,
+                     None, 0, 1900, ["en", "hi"], ["CBT", "ACT"], ["anxiety", "sleep", "young adults"],
+                     "Nisha works with anxiety and sleep difficulties in young adults, using short, structured sessions "
+                     "and simple between-session practice.")
+
+RCI = "Rehabilitation Council of India"
+CPC = "Counselling Practitioners Council of India"
+# email -> (education [(degree, institution, year)], license (type, body, number, issue_year, valid_until "YYYY-MM-DD"))
+# Registration numbers are fictional.
+VERIFICATION = {
+    "therapist@example.com": ([("M.Phil Clinical Psychology", "Bengaluru Institute of Mental Health Sciences", 2013),
+                               ("M.A Psychology", "Bangalore University", 2011)],
+                              ("Clinical Psychologist", RCI, "CRR-SV-10482", 2014, "2029-03-31")),
+    "therapist2@example.com": ([("M.Sc Counselling Psychology", "University of Mysore", 2018)],
+                               ("Counselling Psychologist", CPC, "CPC-KA-20931", 2019, "2027-06-30")),
+    "therapist4@example.com": ([("Ph.D Clinical Psychology", "Bengaluru Institute of Mental Health Sciences", 2011),
+                                ("M.Phil Clinical Psychology", "Bengaluru Institute of Mental Health Sciences", 2007)],
+                               ("Clinical Psychologist", RCI, "CRR-SV-08817", 2008, "2028-09-30")),
+    "therapist3@example.com": ([("M.A Counselling Psychology", "Christ Academy of Behavioural Sciences", 2019)],
+                               ("Counsellor", CPC, "CPC-KA-21544", 2020, "2026-12-31")),
+    "therapist5@example.com": ([("M.Phil Clinical Psychology", "Southern Peninsula Institute of Psychology", 2015)],
+                               ("Clinical Psychologist", RCI, "CRR-SV-11260", 2016, "2029-01-31")),
+    "therapist6@example.com": ([("Ph.D Counselling Psychology", "University of Mysore", 2012),
+                                ("M.A Psychology", "University of Mysore", 2006)],
+                               ("Counselling Psychologist", CPC, "CPC-KA-17305", 2009, "2028-03-31")),
+    "therapist7@example.com": ([("M.Phil Clinical Psychology", "Deccan Institute of Mental Health", 2012)],
+                               ("Clinical Psychologist", RCI, "CRR-SV-09754", 2013, "2028-11-30")),
+    "therapist8@example.com": ([("M.Sc Clinical Psychology", "Osmania Institute of Behavioural Science", 2020)],
+                               ("Clinical Psychologist", RCI, "CRR-SV-13902", 2021, "2026-12-31")),
+    "therapist9@example.com": ([("M.A Psychology", "Hyderabad Central College", 2016),
+                                ("PG Diploma in Cognitive Behavioural Therapy", "Institute of Applied Psychotherapy", 2017)],
+                               ("Counsellor", CPC, "CPC-TS-18866", 2017, "2027-08-31")),
+    "therapist10@example.com": ([("M.Phil Clinical Psychology", "Deccan Institute of Mental Health", 2017)],
+                                ("Clinical Psychologist", RCI, "CRR-SV-12418", 2018, "2028-05-31")),
+}
 
 INTAKE_FIELDS = [{"id": "main_concern", "label": "What brings you here?", "required": True},
                  {"id": "sleep_hours", "label": "Typical hours of sleep"},

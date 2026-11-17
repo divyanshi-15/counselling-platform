@@ -53,6 +53,7 @@ from backend.app.models import (
     UserRole,
 )
 from backend.app.analytics import router as analytics_router
+from backend.app.verification import profile_dict, router as verification_router, set_status
 from backend.app.braindump import DraftEdit, router as braindump_router
 from backend.app.exercises import approved_exercises, template_for, router as exercises_router, with_notice
 from backend.app.ratelimit import client_rate_limit, contact_rate_limit
@@ -104,6 +105,7 @@ app = FastAPI(title="Counselling Practice Platform", lifespan=lifespan, root_pat
 app.include_router(exercises_router)
 app.include_router(braindump_router)
 app.include_router(analytics_router)
+app.include_router(verification_router)
 
 
 def _slugify(raw: str) -> str:
@@ -633,9 +635,7 @@ def save_therapist_profile(
     profile.fee = payload.fee
     db.commit()
     db.refresh(profile)
-    return {"id": profile.id, "practice_id": profile.practice_id, "bio": profile.bio,
-            "approaches": profile.approaches, "languages": profile.languages, "fee": profile.fee,
-            "verified": profile.verified}
+    return profile_dict(profile)
 
 
 @app.get("/therapists/me/profile", response_model=TherapistProfileOut)
@@ -646,9 +646,7 @@ def get_therapist_profile(
     profile = db.query(TherapistProfile).filter(TherapistProfile.user_id == current_user.id).first()
     if profile is None:
         raise HTTPException(status_code=404, detail="Therapist profile not found")
-    return {"id": profile.id, "practice_id": profile.practice_id, "bio": profile.bio,
-            "approaches": profile.approaches, "languages": profile.languages, "fee": profile.fee,
-            "verified": profile.verified}
+    return profile_dict(profile)
 
 
 @app.get("/therapists/public", response_model=PublicTherapistsOut)
@@ -962,7 +960,8 @@ def admin_therapists(
 ) -> dict[str, object]:
     rows = (db.query(TherapistProfile, User, Practice).join(User, User.id == TherapistProfile.user_id)
             .join(Practice, Practice.id == TherapistProfile.practice_id).order_by(TherapistProfile.id).all())
-    return {"items": [{"id": p.id, "name": u.name, "practice_id": pr.id, "practice_name": pr.name, "verified": p.verified}
+    return {"items": [{"id": p.id, "name": u.name, "practice_id": pr.id, "practice_name": pr.name, "verified": p.verified,
+                       "verification_status": p.verification_status}
                       for p, u, pr in rows]}
 
 
@@ -976,7 +975,8 @@ def verify_therapist(
     profile = db.query(TherapistProfile).filter(TherapistProfile.id == therapist_id).first()
     if profile is None:
         raise HTTPException(status_code=404, detail="Therapist profile not found")
-    profile.verified = payload.verified if payload else True
+    verified = payload.verified if payload else True
+    set_status(profile, "verified" if verified else "rejected", None, reviewed=True)
     db.add(AuditLog(action="therapist.verify", actor_id=current_user.id, entity_type="therapist_profile",
                     entity_id=profile.id, details={"verified": profile.verified}))
     db.commit()

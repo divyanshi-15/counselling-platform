@@ -272,6 +272,12 @@ class TherapistProfileOut(_Out):
     languages: list[str] | None = None
     fee: int | None = None
     verified: bool
+    specialisations: list[str] | None = None
+    years_experience: int | None = None
+    verification_status: str = "draft"
+    reviewer_note: str | None = None
+    submitted_at: datetime | None = None
+    reviewed_at: datetime | None = None
 
 
 class PersonRef(_Out):
@@ -528,6 +534,7 @@ class AdminTherapistItem(_Out):
     practice_id: int
     practice_name: str
     verified: bool
+    verification_status: str = "draft"
 
 
 class AdminTherapistsOut(_Out):

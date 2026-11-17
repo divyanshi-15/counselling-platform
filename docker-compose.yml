@@ -27,6 +27,9 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://postgres:postgres@postgres:5432/counselling}
       TRUST_PROXY: "1"  # only Caddy can reach the api; honour its X-Forwarded-For
+      UPLOAD_DIR: /data/uploads
+    volumes:
+      - uploads:/data/uploads  # private credential files: api only, never mounted into caddy
     depends_on:
       postgres:
         condition: service_healthy
@@ -52,6 +55,7 @@ services:
 
 volumes:
   pgdata:
+  uploads:
 
 networks:
   appnet:

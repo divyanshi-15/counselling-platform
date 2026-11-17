@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import secrets
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -18,10 +18,11 @@ from backend.app.auth import hash_password
 from backend.app.config import settings
 from backend.app.db import SessionLocal
 from backend.app.models import (Alert, Assessment, Assignment, AvailabilitySlot, Booking, CasePlan, Checkin, Exercise,
-                                IntakeForm, IntakeResponse, PendingAction, Practice, TherapistProfile, TherapySession,
-                                User)
-from backend.scripts.seed_data import (COMMON_PAGE, CASES, INTAKE_FIELDS, LOGINS, PRACTICE_SLUGS, PRACTICES,
-                                       THERAPISTS)
+                                IntakeForm, IntakeResponse, PendingAction, Practice, TherapistEducation, TherapistLicense,
+                                TherapistProfile, TherapySession, User, VerificationDocument)
+from backend.app.verification import OWNER_TYPE, set_status, store_document, upload_dir
+from backend.scripts.seed_data import (COMMON_PAGE, CASES, INTAKE_FIELDS, LOGINS, PENDING_THERAPIST, PRACTICE_SLUGS,
+                                       PRACTICES, THERAPISTS, VERIFICATION)
 
 def _items(total: int, n: int) -> list[int]:
     """Spread total over the first n-1 (PHQ-9) or n items, 0-3 each. PHQ-9 item 9 stays 0 (no risk flag in seed)."""
@@ -58,22 +59,65 @@ def _practice(db: Session, spec: dict, owner: User) -> Practice:
     return practice
 
 
-def _profile(db: Session, user: User, practice: Practice, row: tuple) -> TherapistProfile:
+def _profile(db: Session, user: User, practice: Practice, row: tuple, status: str = "verified") -> TherapistProfile:
     _, _, credentials, years, rating, reviews, fee, languages, approaches, specialisations, bio = row
-    fields = dict(practice_id=practice.id, bio=bio, approaches=approaches, languages=languages, fee=fee, verified=True,
+    fields = dict(practice_id=practice.id, bio=bio, approaches=approaches, languages=languages, fee=fee,
                   credentials=credentials, years_experience=years, rating=rating, review_count=reviews,
                   specialisations=specialisations)
     profile = db.scalar(select(TherapistProfile).where(TherapistProfile.user_id == user.id))
     if profile is None:
         profile = TherapistProfile(user_id=user.id, **fields)
         db.add(profile)
+        set_status(profile, status)
+        if status == "submitted":
+            profile.submitted_at = datetime.now(timezone.utc) - timedelta(days=1)
     else:
         for key, value in fields.items():
             setattr(profile, key, value)
+        if status == "verified":  # a pending profile keeps whatever state the admin review left it in
+            set_status(profile, "verified")
     db.flush()
+    _credentials(db, profile, user, status)
     if db.scalar(select(IntakeForm.id).where(IntakeForm.therapist_id == profile.id)) is None:
         db.add(IntakeForm(therapist_id=profile.id, fields_json=INTAKE_FIELDS))
     return profile
+
+
+def _placeholder_pdf(title: str) -> bytes:
+    """Tiny valid one-page PDF standing in for a scanned certificate."""
+    text = f"BT /F1 14 Tf 72 720 Td ({title}) Tj ET"
+    objs = ["<< /Type /Catalog /Pages 2 0 R >>", "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+            f"<< /Length {len(text)} >>\nstream\n{text}\nendstream", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"]
+    out, offsets = b"%PDF-1.4\n", []
+    for n, body in enumerate(objs, 1):
+        offsets.append(len(out))
+        out += f"{n} 0 obj\n{body}\nendobj\n".encode()
+    xref = len(out)
+    out += f"xref\n0 {len(objs) + 1}\n0000000000 65535 f \n".encode()
+    out += b"".join(f"{o:010d} 00000 n \n".encode() for o in offsets)
+    return out + f"trailer\n<< /Size {len(objs) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode()
+
+
+def _credentials(db: Session, profile: TherapistProfile, user: User, status: str) -> None:
+    """Idempotent: education, license and placeholder documents (private volume) for a seeded therapist."""
+    education, (ltype, body, number, issued, valid) = VERIFICATION[user.email]
+    if db.scalar(select(TherapistEducation.id).where(TherapistEducation.therapist_id == profile.id).limit(1)) is None:
+        db.add_all(TherapistEducation(therapist_id=profile.id, degree=d, institution=i, year=y) for d, i, y in education)
+    if db.scalar(select(TherapistLicense.id).where(TherapistLicense.therapist_id == profile.id).limit(1)) is None:
+        db.add(TherapistLicense(therapist_id=profile.id, license_type=ltype, registration_body=body,
+                                registration_number=number, issue_year=issued, valid_until=date.fromisoformat(valid)))
+    docs = db.scalars(select(VerificationDocument).where(VerificationDocument.owner_type == OWNER_TYPE,
+                                                         VerificationDocument.owner_id == profile.id)).all()
+    if not docs:
+        for doc_type, title in (("degree_certificate", f"{education[0][0]} - sample certificate"),
+                                ("registration_certificate", f"{body} - sample registration")):
+            store_document(db, profile, doc_type, f"{doc_type.replace('_', '-')}.pdf", _placeholder_pdf(title))
+    for doc in docs:  # repair after a volume reset
+        path = upload_dir() / doc.storage_key
+        if not path.is_file():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(_placeholder_pdf(f"{doc.doc_type} - sample document"))
 
 
 def _slot(db: Session, profile: TherapistProfile, start: datetime) -> AvailabilitySlot:
@@ -208,6 +252,8 @@ def seed(db: Session, *, load_kb: bool = True, now: datetime | None = None) -> N
     users = {email: _user(db, email, pw, role, name) for email, pw, role, name in LOGINS}
     practices = {p["slug"]: _practice(db, p, users[p["owner"]]) for p in PRACTICES}
     profiles = {row[0]: _profile(db, users[row[0]], practices[row[1]], row) for row in THERAPISTS}
+    pending = PENDING_THERAPIST
+    _profile(db, users[pending[0]], practices[pending[1]], pending, status="submitted")
     if load_kb:
         db.commit()
         rag.load_kb(db)

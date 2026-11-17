@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import secrets
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Boolean, Computed, DateTime, Float, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, Computed, Date, DateTime, Float, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -65,6 +65,50 @@ class TherapistProfile(Base):
     rating: Mapped[float | None] = mapped_column(Float, nullable=True)
     review_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     specialisations: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list, server_default="[]")
+    verification_status: Mapped[str] = mapped_column(String(24), nullable=False, default="draft", server_default="draft")
+    reviewer_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class TherapistEducation(Base):
+    __tablename__ = "therapist_education"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    therapist_id: Mapped[int] = mapped_column(ForeignKey("therapist_profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    degree: Mapped[str] = mapped_column(String(150), nullable=False)
+    institution: Mapped[str] = mapped_column(String(200), nullable=False)
+    year: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class TherapistLicense(Base):
+    __tablename__ = "therapist_licenses"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    therapist_id: Mapped[int] = mapped_column(ForeignKey("therapist_profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    license_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    registration_body: Mapped[str] = mapped_column(String(150), nullable=False)
+    registration_number: Mapped[str] = mapped_column(String(60), nullable=False)
+    issue_year: Mapped[int] = mapped_column(Integer, nullable=False)
+    valid_until: Mapped[date | None] = mapped_column(Date, nullable=True)
+
+
+class VerificationDocument(Base):
+    """Private credential file. owner_type/owner_id is polymorphic (today: 'therapist' + therapist_profiles.id);
+    bytes live on a private volume under a random storage_key and are served only by an authenticated endpoint."""
+
+    __tablename__ = "verification_documents"
+    __table_args__ = (Index("ix_verification_documents_owner", "owner_type", "owner_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    owner_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    owner_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    doc_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    size: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    storage_key: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utcnow)
 
 
 class AvailabilitySlot(Base):

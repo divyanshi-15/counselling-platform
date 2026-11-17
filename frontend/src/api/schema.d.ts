@@ -106,6 +106,214 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/therapists/me/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Therapist Profile */
+        get: operations["get_therapist_profile_therapists_me_profile_get"];
+        put?: never;
+        /** Save Therapist Profile */
+        post: operations["save_therapist_profile_therapists_me_profile_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Profile */
+        patch: operations["update_profile_therapists_me_profile_patch"];
+        trace?: never;
+    };
+    "/therapists/me/verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Verification */
+        get: operations["my_verification_therapists_me_verification_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/therapists/me/education": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Education */
+        post: operations["add_education_therapists_me_education_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/therapists/me/education/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Education */
+        put: operations["update_education_therapists_me_education__item_id__put"];
+        post?: never;
+        /** Delete Education */
+        delete: operations["delete_education_therapists_me_education__item_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/therapists/me/licenses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add License */
+        post: operations["add_license_therapists_me_licenses_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/therapists/me/licenses/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update License */
+        put: operations["update_license_therapists_me_licenses__item_id__put"];
+        post?: never;
+        /** Delete License */
+        delete: operations["delete_license_therapists_me_licenses__item_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/therapists/me/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Document */
+        post: operations["upload_document_therapists_me_documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/therapists/me/documents/{doc_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Document */
+        delete: operations["delete_document_therapists_me_documents__doc_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/verification-documents/{doc_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download Document */
+        get: operations["download_document_verification_documents__doc_id__download_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/therapists/me/verification/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Verification */
+        post: operations["submit_verification_therapists_me_verification_submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/therapists/{therapist_id}/verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Verification */
+        get: operations["admin_verification_admin_therapists__therapist_id__verification_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/therapists/{therapist_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Review Therapist */
+        post: operations["review_therapist_admin_therapists__therapist_id__review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/": {
         parameters: {
             query?: never;
@@ -304,24 +512,6 @@ export interface paths {
         get: operations["public_practice_detail_p__slug__get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/therapists/me/profile": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Therapist Profile */
-        get: operations["get_therapist_profile_therapists_me_profile_get"];
-        put?: never;
-        /** Save Therapist Profile */
-        post: operations["save_therapist_profile_therapists_me_profile_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -967,11 +1157,41 @@ export interface components {
             practice_name: string;
             /** Verified */
             verified: boolean;
+            /**
+             * Verification Status
+             * @default draft
+             */
+            verification_status: string;
         };
         /** AdminTherapistsOut */
         AdminTherapistsOut: {
             /** Items */
             items: components["schemas"]["AdminTherapistItem"][];
+        };
+        /** AdminVerificationOut */
+        AdminVerificationOut: {
+            /** Status */
+            status: string;
+            /** Reviewer Note */
+            reviewer_note?: string | null;
+            /** Submitted At */
+            submitted_at?: string | null;
+            /** Reviewed At */
+            reviewed_at?: string | null;
+            /** Missing */
+            missing: string[];
+            /** Can Edit Documents */
+            can_edit_documents: boolean;
+            /** Education */
+            education: components["schemas"]["EducationOut"][];
+            /** Licenses */
+            licenses: components["schemas"]["LicenseOut"][];
+            /** Documents */
+            documents: components["schemas"]["DocumentOut"][];
+            /** Id */
+            id: number;
+            /** Name */
+            name?: string | null;
         };
         /** AgentRunItem */
         AgentRunItem: {
@@ -1088,6 +1308,13 @@ export interface components {
              * Format: date-time
              */
             ends_at: string;
+        };
+        /** Body_upload_document_therapists_me_documents_post */
+        Body_upload_document_therapists_me_documents_post: {
+            /** Doc Type */
+            doc_type: string;
+            /** File */
+            file: string;
         };
         /** BookingIn */
         BookingIn: {
@@ -1341,6 +1568,24 @@ export interface components {
             fee?: number | null;
             practice: components["schemas"]["PracticeRef"];
         };
+        /** DocumentOut */
+        DocumentOut: {
+            /** Id */
+            id: number;
+            /** Doc Type */
+            doc_type: string;
+            /** Filename */
+            filename: string;
+            /** Content Type */
+            content_type: string;
+            /** Size */
+            size: number;
+            /**
+             * Uploaded At
+             * Format: date-time
+             */
+            uploaded_at: string;
+        };
         /**
          * DraftEdit
          * @description Therapist edit of a pending brain_dump draft.
@@ -1354,6 +1599,26 @@ export interface components {
             exercise?: string | null;
             /** Summary */
             summary: string;
+        };
+        /** EducationIn */
+        EducationIn: {
+            /** Degree */
+            degree: string;
+            /** Institution */
+            institution: string;
+            /** Year */
+            year: number;
+        };
+        /** EducationOut */
+        EducationOut: {
+            /** Id */
+            id: number;
+            /** Degree */
+            degree: string;
+            /** Institution */
+            institution: string;
+            /** Year */
+            year: number;
         };
         /** ExerciseTemplate */
         ExerciseTemplate: {
@@ -1456,6 +1721,34 @@ export interface components {
             /** Submitted At */
             submitted_at: string;
             safety: components["schemas"]["IntakeSafety"];
+        };
+        /** LicenseIn */
+        LicenseIn: {
+            /** License Type */
+            license_type: string;
+            /** Registration Body */
+            registration_body: string;
+            /** Registration Number */
+            registration_number: string;
+            /** Issue Year */
+            issue_year: number;
+            /** Valid Until */
+            valid_until?: string | null;
+        };
+        /** LicenseOut */
+        LicenseOut: {
+            /** Id */
+            id: number;
+            /** License Type */
+            license_type: string;
+            /** Registration Body */
+            registration_body: string;
+            /** Registration Number */
+            registration_number: string;
+            /** Issue Year */
+            issue_year: number;
+            /** Valid Until */
+            valid_until?: string | null;
         };
         /** MeasureSeries */
         MeasureSeries: {
@@ -1731,6 +2024,19 @@ export interface components {
             /** Items */
             items: components["schemas"]["PrepareDayItem"][];
         };
+        /** ProfileUpdateIn */
+        ProfileUpdateIn: {
+            /** Bio */
+            bio?: string | null;
+            /** Languages */
+            languages?: ("en" | "hi")[] | null;
+            /** Specialisations */
+            specialisations?: string[] | null;
+            /** Fee */
+            fee?: number | null;
+            /** Years Experience */
+            years_experience?: number | null;
+        };
         /** PublicFaq */
         PublicFaq: {
             /**
@@ -1910,6 +2216,29 @@ export interface components {
             /** Similarity */
             similarity?: number | null;
         };
+        /** ReviewIn */
+        ReviewIn: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "verified" | "changes_requested" | "rejected";
+            /** Note */
+            note?: string | null;
+        };
+        /** ReviewOut */
+        ReviewOut: {
+            /** Id */
+            id: number;
+            /** Status */
+            status: string;
+            /** Verified */
+            verified: boolean;
+            /** Reviewer Note */
+            reviewer_note?: string | null;
+            /** Reviewed At */
+            reviewed_at?: string | null;
+        };
         /** RoomOut */
         RoomOut: {
             /** Room Name */
@@ -2086,6 +2415,21 @@ export interface components {
             fee?: number | null;
             /** Verified */
             verified: boolean;
+            /** Specialisations */
+            specialisations?: string[] | null;
+            /** Years Experience */
+            years_experience?: number | null;
+            /**
+             * Verification Status
+             * @default draft
+             */
+            verification_status: string;
+            /** Reviewer Note */
+            reviewer_note?: string | null;
+            /** Submitted At */
+            submitted_at?: string | null;
+            /** Reviewed At */
+            reviewed_at?: string | null;
         };
         /** TherapistUtilisation */
         TherapistUtilisation: {
@@ -2178,6 +2522,27 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** VerificationOut */
+        VerificationOut: {
+            /** Status */
+            status: string;
+            /** Reviewer Note */
+            reviewer_note?: string | null;
+            /** Submitted At */
+            submitted_at?: string | null;
+            /** Reviewed At */
+            reviewed_at?: string | null;
+            /** Missing */
+            missing: string[];
+            /** Can Edit Documents */
+            can_edit_documents: boolean;
+            /** Education */
+            education: components["schemas"]["EducationOut"][];
+            /** Licenses */
+            licenses: components["schemas"]["LicenseOut"][];
+            /** Documents */
+            documents: components["schemas"]["DocumentOut"][];
         };
         /** VerifyIn */
         VerifyIn: {
@@ -2371,6 +2736,487 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PracticeAnalyticsOut"];
+                };
+            };
+        };
+    };
+    get_therapist_profile_therapists_me_profile_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TherapistProfileOut"];
+                };
+            };
+        };
+    };
+    save_therapist_profile_therapists_me_profile_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TherapistProfileIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_profile_therapists_me_profile_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TherapistProfileOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_verification_therapists_me_verification_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationOut"];
+                };
+            };
+        };
+    };
+    add_education_therapists_me_education_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EducationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_education_therapists_me_education__item_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EducationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_education_therapists_me_education__item_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_license_therapists_me_licenses_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LicenseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LicenseOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_license_therapists_me_licenses__item_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LicenseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LicenseOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_license_therapists_me_licenses__item_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_document_therapists_me_documents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_document_therapists_me_documents_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_document_therapists_me_documents__doc_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_document_verification_documents__doc_id__download_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_verification_therapists_me_verification_submit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationOut"];
+                };
+            };
+        };
+    };
+    admin_verification_admin_therapists__therapist_id__verification_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                therapist_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminVerificationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    review_therapist_admin_therapists__therapist_id__review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                therapist_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -2686,61 +3532,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicPracticeDetailOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_therapist_profile_therapists_me_profile_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TherapistProfileOut"];
-                };
-            };
-        };
-    };
-    save_therapist_profile_therapists_me_profile_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TherapistProfileIn"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
                 };
             };
             /** @description Validation Error */

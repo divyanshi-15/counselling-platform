@@ -136,7 +136,7 @@ def test_seed_shape_is_a_populated_product(seeded):
         assert db.scalar(select(func.count(Booking.id)).where(Booking.client_id.in_(clients))) == 40
         assert db.scalar(select(func.count(TherapistProfile.id))) >= 9
         profiles = db.scalars(select(TherapistProfile).join(User, User.id == TherapistProfile.user_id)
-                              .where(User.email.in_(emails))).all()
+                              .where(User.email.in_(emails), TherapistProfile.verified.is_(True))).all()
         assert len(profiles) == 9 and all(p.credentials and p.rating and p.years_experience for p in profiles)
         assert len(db.scalars(select(Practice).where(Practice.slug.in_(seed_mod.PRACTICE_SLUGS))).all()) == 3
         long_history = [c for c in clients if db.scalar(select(func.count(Assessment.id)).where(
