@@ -1,11 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { api, ApiError, type User } from "./api";
 
-interface Config { demo_mode: boolean }
 interface AuthState {
-  user: User | null; loading: boolean; config: Config;
+  user: User | null; loading: boolean;
   login: (email: string, password: string) => Promise<User>;
-  demoLogin: (role: string) => Promise<User>;
   logout: () => Promise<void>;
 }
 
@@ -22,10 +20,8 @@ export const homeFor = (role: string) =>
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [config, setConfig] = useState<Config>({ demo_mode: false });
 
   useEffect(() => {
-    api<Config>("/config").then(setConfig).catch(() => {});
     api<User>("/auth/me")
       .then(setUser)
       .catch((e) => { if (!(e instanceof ApiError && e.status === 401)) console.error(e); })
@@ -37,15 +33,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(r.user);
     return r.user;
   }, []);
-  const demoLogin = useCallback(async (role: string) => {
-    const r = await api<{ user: User }>("/auth/demo-login", { method: "POST", params: { role } });
-    setUser(r.user);
-    return r.user;
-  }, []);
   const logout = useCallback(async () => {
     await api("/auth/logout", { method: "POST" });
     setUser(null);
   }, []);
 
-  return <Ctx.Provider value={{ user, loading, config, login, demoLogin, logout }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ user, loading, login, logout }}>{children}</Ctx.Provider>;
 }

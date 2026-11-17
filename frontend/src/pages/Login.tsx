@@ -6,10 +6,8 @@ import { Label } from "@/components/ui/label";
 import { ErrorMsg } from "@/components/states";
 import { homeFor, useAuth } from "@/lib/auth";
 
-const DEMO_ROLES = [["client", "Client"], ["therapist", "Therapist"], ["practice_owner", "Practice owner"], ["admin", "Admin"]] as const;
-
 export default function Login() {
-  const { login, demoLogin, config } = useAuth();
+  const { login } = useAuth();
   const nav = useNavigate();
   const [params] = useSearchParams();
   const next = params.get("next");
@@ -33,14 +31,6 @@ export default function Login() {
         <Button className="w-full" disabled={busy}>Log in</Button>
       </form>
       <p className="text-sm">No account? <Link className="text-primary underline" to="/signup">Sign up</Link></p>
-      {config.demo_mode && (
-        <div className="space-y-2 rounded-md border p-3">
-          <p className="text-sm font-medium">Quick sign-in</p>
-          <div className="grid grid-cols-2 gap-2">
-            {DEMO_ROLES.map(([role, label]) => <Button key={role} variant="outline" disabled={busy} onClick={() => void run(() => demoLogin(role))}>{label}</Button>)}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

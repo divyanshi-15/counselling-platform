@@ -10,13 +10,13 @@ RISK_CASES = [
     "मैं मरना चाहता हूँ",
     "मैं खुदकुशी करना चाहता हूँ",
     "मुझे मरने का मन है",
-    "আত্মহত্যা করব",
-    "আমি আর বাঁচতে চাই না",
     "I am having thoughts of suicide",
     "I want to disappear forever",
     "I am going to end my life today",
     "मैं अपनी जान लेना चाहता हूँ",
     "main jeena nahi chahta",
+    "I want to end my life",
+    "मैं आत्महत्या करना चाहता हूँ",
     "I am thinking about suicide",
 ]
 

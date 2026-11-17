@@ -50,7 +50,7 @@ All numbers are from the test suite (`make test`) with the LLM mocked; synthetic
 
 Notes: the claims check is deterministic (regex) plus an optional model check; the bait test found five phrases the regex missed ("quick fix", "risk-free", "permanent relief", "always works", "100 percent") and fallback copy that itself said "quick fix". Both were fixed. The Hindi post-check (diagnosis and medicine/supplement words, native and romanised) is a short word list, not a classifier; it will miss paraphrases. Layer 2 is not part of the 30-phrase test because the test embedder is lexical; layer 2 numbers are in the risk table below.
 
-## Risk triage evaluation (SYNTHETIC, demonstration only)
+## Risk triage evaluation (SYNTHETIC)
 
 Two layers, either one triggers the fixed crisis message (Tele-MANAS 14416 / 1-800-891-4416) and a high-priority therapist alert. No model call, no API key needed.
 Layer 1: keyword/pattern match (EN/HI, native + romanised). Layer 2: multilingual-e5-small embeddings + logistic regression (threshold 0.5), trained on 60 hand-written synthetic phrases (30 risk / 30 non-risk incl. idioms such as "this deadline is killing me").
@@ -129,7 +129,7 @@ Result: in-domain 0.791-0.880, out-of-domain 0.749-0.844. The sets **overlap** (
 - Meeting bot notes capture
 - DPDP review and retention policy
 
-## Demo data and logins
+## Seed data and logins
 
 `make seed` (idempotent, loads the KB, creates availability slots for the next 14 days for each therapist and refreshes expired unbooked ones on every rerun, `make seed ARGS=--check` also prints retrieval margins with the real embedder). All people are fictional.
 
@@ -150,6 +150,6 @@ Nightly APScheduler job (21:00 UTC, `OVERNIGHT_HOUR_UTC`; single worker plus a P
 
 ## Security notes
 
-- `DEMO_MODE` must be `0` for any real use. When `1`, `/auth/demo-login` logs in as seeded demo accounts (never admin) without a password.
+- `DEMO_MODE` must be `0` for any real use. `/auth/demo-login` exists only when `DEMO_MODE=1` (passwordless login as seeded accounts, never admin; used by the test stack); with `0` it returns 404 for every role.
 - `/auth/register` accepts only `client`, `therapist`, `practice_owner`; unknown fields are rejected. Therapists and practices start unverified and stay out of public lists until an admin verifies them.
 - Create admins only via `make create-admin EMAIL=you@example.com PASSWORD=...` (or the seed script).

@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { homeFor, useAuth } from "@/lib/auth";
 import { Footer } from "@/components/Footer";
 import { Wordmark } from "@/components/Wordmark";
-import { PresenterBar, usePresenter } from "@/components/Presenter";
 
 export const CRISIS_NOTICE = "If you are in crisis or thinking of harming yourself, call Tele-MANAS 14416 now.";
 export const SUPPORT_NOTICE = "This is skill-building support, not a replacement for therapy.";
@@ -19,10 +18,8 @@ export function Layout() {
     document.title = hit ? `${hit[1]} · Samvaad Care` : "Samvaad Care";
   }, [pathname]);
   const { user, logout } = useAuth();
-  const present = usePresenter();
   return (
     <div className="min-h-screen flex flex-col">
-      {present && <PresenterBar />}
       <header className="border-b">
         <div className="mx-auto max-w-5xl flex items-center justify-between gap-2 px-4 h-14">
           <Link to="/" aria-label="Samvaad Care home"><Wordmark /></Link>

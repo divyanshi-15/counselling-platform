@@ -2,24 +2,21 @@ import { expect, test, type Browser, type Page } from "@playwright/test";
 
 const CRISIS = /Tele-MANAS on 14416/;
 
-async function demoLogin(browser: Browser, role: "Client" | "Therapist"): Promise<Page> {
+async function signIn(browser: Browser, email: string, password: string, home: RegExp): Promise<Page> {
   const page = await (await browser.newContext()).newPage();
   await page.goto("/login");
   await expect(page.getByRole("contentinfo")).toContainText("Sample data");
-  await page.getByRole("button", { name: role, exact: true }).click();
-  await expect(page).toHaveURL(role === "Client" ? /\/client$/ : /\/therapist$/);
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: /^(Sign in|Log in|Login)$/ }).click();
+  await expect(page).toHaveURL(home);
   return page;
 }
 
-test("demo path with FAKE_LLM=1", async ({ browser }) => {
-  const therapist = await demoLogin(browser, "Therapist");
-  const client = await demoLogin(browser, "Client"); // Alpha: plateau alert -> plan update -> follow-up flag
-  const beta = await (await browser.newContext()).newPage(); // Beta: the exercise-release approval
-  await beta.goto("/login");
-  await beta.getByLabel("Email").fill("client2@example.com");
-  await beta.getByLabel("Password").fill("client123");
-  await beta.getByRole("button", { name: /^(Sign in|Log in|Login)$/ }).click();
-  await expect(beta).toHaveURL(/\/client$/);
+test("full story with FAKE_LLM=1", async ({ browser }) => {
+  const therapist = await signIn(browser, "therapist@example.com", "therapist123", /\/therapist$/);
+  const client = await signIn(browser, "client@example.com", "client123", /\/client$/); // Alpha: plateau alert -> plan update -> follow-up flag
+  const beta = await signIn(browser, "client2@example.com", "client123", /\/client$/); // Beta: the exercise-release approval
 
   // 0. therapist availability screen: seeded slots are there; add one and remove it again
   await therapist.goto("/therapist/availability");
