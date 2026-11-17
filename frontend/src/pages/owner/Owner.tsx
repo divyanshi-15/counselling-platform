@@ -1,19 +1,16 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
-import { Bot, Check, Sparkles, X } from "lucide-react";
+import { Link, Navigate } from "react-router-dom";
+import { Bot, Check, Settings2, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { NewPractice } from "./Setup";
 import { Empty, ErrorMsg, Loading } from "@/components/states";
 import { api, type PracticePage } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useFetch } from "@/lib/useFetch";
 import type { Schemas } from "../client/common";
 import { PracticeAnalytics } from "./PracticeAnalytics";
-
-const list = (v: string) => v.split(",").map((x) => x.trim()).filter(Boolean);
 
 function Preview({ page }: { page: PracticePage }) {
   return (
@@ -25,44 +22,6 @@ function Preview({ page }: { page: PracticePage }) {
       {!!page.what_to_expect?.length && <ul className="list-disc pl-5">{page.what_to_expect.map((w) => <li key={w}>{w}</li>)}</ul>}
       <p className="text-xs text-muted-foreground">{[page.location, page.languages?.join(", "), page.specialties?.join(", "), page.approaches?.join(", "), page.fee_range, page.session_type].filter(Boolean).join(" · ")}</p>
     </div>
-  );
-}
-
-function Onboarding({ onDone }: { onDone: () => void }) {
-  const [f, setF] = useState({ name: "", location: "", languages: "en", specialties: "", approaches: "", fee_range: "2000-3000", session_type: "online", tone: "warm and calm" });
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
-  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
-  async function submit(e: React.FormEvent) {
-    e.preventDefault(); setBusy(true); setError(null);
-    try {
-      await api<Schemas["PracticeDraftOut"]>("/practices/draft", { method: "POST", json: { ...f, languages: list(f.languages), specialties: list(f.specialties), approaches: list(f.approaches) } });
-      onDone();
-    } catch (err) { setError(err); } finally { setBusy(false); }
-  }
-  return (
-    <Card>
-      <CardHeader><CardTitle>Onboard a practice</CardTitle></CardHeader>
-      <CardContent>
-        <form className="grid gap-3 sm:grid-cols-2" onSubmit={(e) => void submit(e)}>
-          <div className="space-y-1"><Label htmlFor="name">Practice name</Label><Input id="name" required value={f.name} onChange={set("name")} /></div>
-          <div className="space-y-1"><Label htmlFor="location">Location</Label><Input id="location" required value={f.location} onChange={set("location")} /></div>
-          <div className="space-y-1"><Label htmlFor="languages">Languages (comma separated)</Label><Input id="languages" value={f.languages} onChange={set("languages")} /></div>
-          <div className="space-y-1"><Label htmlFor="specialties">Specialties</Label><Input id="specialties" value={f.specialties} onChange={set("specialties")} /></div>
-          <div className="space-y-1"><Label htmlFor="approaches">Approaches</Label><Input id="approaches" value={f.approaches} onChange={set("approaches")} /></div>
-          <div className="space-y-1"><Label htmlFor="fee">Fee range</Label><Input id="fee" value={f.fee_range} onChange={set("fee_range")} /></div>
-          <div className="space-y-1"><Label htmlFor="session_type">Session type</Label>
-            <select id="session_type" className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={f.session_type} onChange={set("session_type")}>
-              <option value="online">Online</option><option value="in-person">In person</option><option value="both">Both</option>
-            </select></div>
-          <div className="space-y-1"><Label htmlFor="tone">Tone</Label><Input id="tone" value={f.tone} onChange={set("tone")} /></div>
-          <div className="space-y-2 sm:col-span-2">
-            {error != null && <ErrorMsg error={error} />}
-            <Button disabled={busy}>{busy ? "Creating…" : "Create draft"}</Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -111,7 +70,8 @@ function PracticeCard({ p, onDraft }: { p: Schemas["PracticeItemOut"]; onDraft: 
         <span className="font-medium">{p.name}</span>
         <Badge>{p.status}</Badge>
         <Badge className={p.verified ? "border-emerald-400 text-emerald-800" : "text-muted-foreground"}>{p.verified ? "verified" : "not verified"}</Badge>
-        <Button className="ml-auto" variant="outline" disabled={busy} onClick={() => void draft()}><Sparkles className="mr-2 h-4 w-4" />{busy ? "Drafting…" : "Draft with agent"}</Button>
+        <Button className="ml-auto" asChild><Link to={`/owner/setup/${p.id}`}><Settings2 className="h-4 w-4" />Practice setup</Link></Button>
+        <Button variant="outline" disabled={busy} onClick={() => void draft()}><Sparkles className="mr-2 h-4 w-4" />{busy ? "Drafting…" : "Draft with agent"}</Button>
       </div>
       {p.status === "published" && !p.verified && <p className="text-xs text-muted-foreground">Published, but not shown publicly until an admin verifies it.</p>}
       {error != null && <ErrorMsg error={error} />}
@@ -160,11 +120,11 @@ function Body() {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Practice owner</h1>
       <PracticeAnalytics />
-      <Onboarding onDone={reload} />
+      <NewPractice />
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">My practices</h2>
         {practices.loading && !practices.data ? <Loading /> : practices.error != null ? <ErrorMsg error={practices.error} /> :
-          !practices.data?.items.length ? <Empty>No practices yet. Create a draft above.</Empty> :
+          !practices.data?.items.length ? <Empty>No practices yet. Start by setting one up above.</Empty> :
             <ul className="space-y-2">{practices.data.items.map((p) => <PracticeCard key={p.id} p={p} onDraft={reload} />)}</ul>}
       </section>
       <section className="space-y-3">

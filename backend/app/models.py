@@ -47,6 +47,47 @@ class Practice(Base):
     status: Mapped[str] = mapped_column(String(50), default="draft", nullable=False)
     verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     page_json: Mapped[str] = mapped_column(Text, default="{}", nullable=False)
+    # verification: `verified` (what public listings read) always follows verification_status
+    verification_status: Mapped[str] = mapped_column(String(24), nullable=False, default="draft", server_default="draft")
+    reviewer_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # structured details the owner edits
+    city: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    address: Mapped[str | None] = mapped_column(Text, nullable=True)
+    approach: Mapped[str | None] = mapped_column(Text, nullable=True)
+    specialisations: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list, server_default="[]")
+    languages: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list, server_default="[]")
+    session_formats: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list, server_default="[]")
+    fee_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    fee_max: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    hours: Mapped[str | None] = mapped_column(Text, nullable=True)
+    years_operating: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # editable page draft (AI proposes, the owner edits; publishing copies it into page_json)
+    page_tagline: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    page_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    page_source: Mapped[str | None] = mapped_column(String(16), nullable=True)  # ai | edited | manual
+    page_inputs: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    page_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class PracticeInvite(Base):
+    """Therapist invitation. Only a hash of the single-use token is stored; the token itself exists only in the email."""
+
+    __tablename__ = "practice_invites"
+    __table_args__ = (UniqueConstraint("practice_id", "idempotency_key", name="uq_practice_invite_idempotency"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    practice_id: Mapped[int] = mapped_column(ForeignKey("practices.id", ondelete="CASCADE"), nullable=False, index=True)
+    email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending", server_default="pending")
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utcnow)
+    created_by: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    idempotency_key: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    accepted_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
 
 class TherapistProfile(Base):
@@ -69,6 +110,8 @@ class TherapistProfile(Base):
     reviewer_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # set when the practice owner removes them from the team: unlisted and unbookable, existing care is untouched
+    left_practice_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class TherapistEducation(Base):
@@ -94,7 +137,7 @@ class TherapistLicense(Base):
 
 
 class VerificationDocument(Base):
-    """Private credential file. owner_type/owner_id is polymorphic (today: 'therapist' + therapist_profiles.id);
+    """Private credential file. owner_type/owner_id is polymorphic ('therapist' + therapist_profiles.id, 'practice' + practices.id);
     bytes live on a private volume under a random storage_key and are served only by an authenticated endpoint."""
 
     __tablename__ = "verification_documents"

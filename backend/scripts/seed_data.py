@@ -6,6 +6,7 @@ LOGINS = [  # (email, password, role, name)
     ("owner@example.com", "owner123", "practice_owner", "Sunita Rao"),
     ("owner2@example.com", "owner123", "practice_owner", "Prakash Gowda"),
     ("owner3@example.com", "owner123", "practice_owner", "Imran Qureshi"),
+    ("owner4@example.com", "owner123", "practice_owner", "Kiran Pillai"),
     ("therapist@example.com", "therapist123", "therapist", "Dr Meera Krishnan"),
     ("therapist2@example.com", "therapist123", "therapist", "Arjun Nair"),
     ("therapist4@example.com", "therapist123", "therapist", "Dr Kavya Shetty"),
@@ -53,6 +54,38 @@ PRACTICES = [  # slug, name, owner email, legacy slug (renamed in place on exist
               "location": "Hyderabad", "languages": ["en", "hi"], "specialties": ["work stress", "relationships", "anxiety"],
               "approaches": ["CBT", "ACT", "mindfulness-based"], "fee_range": "INR 1600-2600"}},
 ]
+# Structured details of the verified practices (what the owner's Practice setup screen shows).
+PRACTICE_DETAILS = {
+    "calm-minds-bengaluru": {"city": "Bengaluru", "address": "12, 4th Cross, Indiranagar, Bengaluru 560038",
+                             "approach": "CBT and CBT-I, with short between-session skill practice",
+                             "specialisations": ["sleep", "stress", "anxiety"], "session_formats": ["online", "in_person"],
+                             "fee_min": 1500, "fee_max": 2200, "hours": "Mon-Sat, 9:00-19:00 IST", "years_operating": 8},
+    "harbour-counselling-mysuru": {"city": "Mysuru", "address": "27, Vivekananda Road, Yadavagiri, Mysuru 570020",
+                                   "approach": "CBT and behavioural activation, family-aware",
+                                   "specialisations": ["family", "low mood", "life transitions"],
+                                   "session_formats": ["online", "in_person"], "fee_min": 1000, "fee_max": 1600,
+                                   "hours": "Mon-Fri, 10:00-18:00 IST", "years_operating": 5},
+    "lakeview-wellness-hyderabad": {"city": "Hyderabad", "address": "8-2-120, Road No. 2, Banjara Hills, Hyderabad 500034",
+                                    "approach": "CBT, ACT and mindfulness-based skills",
+                                    "specialisations": ["work stress", "relationships", "anxiety"],
+                                    "session_formats": ["online"], "fee_min": 1600, "fee_max": 2600,
+                                    "hours": "Mon-Sat, 8:00-20:00 IST", "years_operating": 6},
+}
+# A practice still being set up: details and an AI-proposed page saved, nothing submitted, one invitation pending.
+SETUP_PRACTICE = {
+    "slug": "greenleaf-counselling-mangaluru", "name": "Greenleaf Counselling Studio", "owner": "owner4@example.com",
+    "details": {"city": "Mangaluru", "address": "3rd Floor, Lighthouse Hill Road, Hampankatta, Mangaluru 575001",
+                "approach": "Person-centred and CBT-informed counselling with simple weekly skills",
+                "specialisations": ["student stress", "life transitions", "low mood"], "languages": ["en", "hi"],
+                "session_formats": ["online", "in_person"], "fee_min": 900, "fee_max": 1400,
+                "hours": "Tue-Sat, 10:00-17:00 IST", "years_operating": 3},
+    "tagline": "Unhurried, practical counselling for students and young adults in Mangaluru.",
+    "text": ("Greenleaf Counselling Studio offers collaborative, skill-building sessions for student stress, life "
+             "transitions and low mood, in English and Hindi.\n\nOur approach is person-centred and CBT-informed. "
+             "Each week you and your counsellor agree one small, clear step to try before the next session.\n\n"
+             "- Online and in-person sessions\n- Tuesday to Saturday, 10:00-17:00 IST\n- Fees from INR 900 to 1400"),
+}
+SETUP_INVITE = {"email": "therapist11@example.com", "token": "sample-invite-token-greenleaf-0001"}
 PRACTICE_SLUGS = [p["slug"] for p in PRACTICES] + [p["legacy"] for p in PRACTICES if p["legacy"]]
 COMMON_PAGE = {
     "services": [{"title": "Initial consultation", "description": "A first conversation to understand your needs."},

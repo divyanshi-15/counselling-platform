@@ -138,6 +138,7 @@ Result: in-domain 0.791-0.880, out-of-domain 0.749-0.844. The sets **overlap** (
 | Admin | admin@example.com | admin123 | verify toggle |
 | Practice owner | owner@example.com | owner123 | Calm Minds Counselling (published + verified) |
 | Practice owner | owner2@example.com | owner123 | Harbour Counselling (draft) |
+| Practice owner | owner4@example.com | owner123 | Greenleaf Counselling Studio (setup in progress; pending invite for therapist11@example.com, token `sample-invite-token-greenleaf-0001`, open `/invitation#token=...`) |
 | Therapist | therapist@example.com | therapist123 | clients Alpha, Beta |
 | Therapist | therapist2@example.com | therapist123 | client Gamma |
 | Therapist | therapist3@example.com | therapist123 | client Delta (practice 2, unverified) |

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Textarea } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Empty, ErrorMsg, Loading } from "@/components/states";
+import { RichText } from "@/components/RichText";
 import { TherapistCard } from "@/components/TherapistCard";
 import { api, type PracticeItem, type TherapistItem } from "@/lib/api";
 import { useFetch } from "@/lib/useFetch";
@@ -28,7 +29,7 @@ export default function PracticePage() {
         <h1 className="text-2xl font-semibold">{practice.name} <Badge className="ml-2 border-primary text-primary">Verified</Badge></h1>
         <p className="text-muted-foreground">{pg.tagline}</p>
       </section>
-      <section><h2 className="mb-2 text-lg font-semibold">About</h2><p>{pg.about}</p></section>
+      <section><h2 className="mb-2 text-lg font-semibold">About</h2><RichText text={pg.about} /></section>
       <section>
         <h2 className="mb-2 text-lg font-semibold">Services</h2>
         {pg.services?.length ? (

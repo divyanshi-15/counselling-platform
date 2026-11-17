@@ -18,11 +18,12 @@ from backend.app.auth import hash_password
 from backend.app.config import settings
 from backend.app.db import SessionLocal
 from backend.app.models import (Alert, Assessment, Assignment, AvailabilitySlot, Booking, CasePlan, Checkin, Exercise,
-                                IntakeForm, IntakeResponse, PendingAction, Practice, TherapistEducation, TherapistLicense,
+                                IntakeForm, IntakeResponse, PendingAction, Practice, PracticeInvite, TherapistEducation, TherapistLicense,
                                 TherapistProfile, TherapySession, User, VerificationDocument)
+from backend.app.practice_setup import _hash_token, INVITE_DAYS, set_practice_status
 from backend.app.verification import OWNER_TYPE, set_status, store_document, upload_dir
 from backend.scripts.seed_data import (COMMON_PAGE, CASES, INTAKE_FIELDS, LOGINS, PENDING_THERAPIST, PRACTICE_SLUGS,
-                                       PRACTICES, THERAPISTS, VERIFICATION)
+                                       PRACTICES, PRACTICE_DETAILS, SETUP_INVITE, SETUP_PRACTICE, THERAPISTS, VERIFICATION)
 
 def _items(total: int, n: int) -> list[int]:
     """Spread total over the first n-1 (PHQ-9) or n items, 0-3 each. PHQ-9 item 9 stays 0 (no risk flag in seed)."""
@@ -55,8 +56,40 @@ def _practice(db: Session, spec: dict, owner: User) -> Practice:
         db.add(practice)
     else:  # existing databases: rename/refresh in place
         practice.slug, practice.name, practice.page_json = spec["slug"], spec["name"], page
+    set_practice_status(practice, "verified")
+    d = PRACTICE_DETAILS[spec["slug"]]
+    practice.languages = spec["page"]["languages"]
+    for key, value in d.items():
+        setattr(practice, key, value)
     db.flush()
     return practice
+
+
+def _setup_practice(db: Session, now: datetime, users: dict[str, User]) -> None:
+    """Idempotent: a draft practice with saved details and an AI-proposed page, plus one pending invitation."""
+    spec = SETUP_PRACTICE
+    practice = db.scalar(select(Practice).where(Practice.slug == spec["slug"]))
+    if practice is None:
+        practice = Practice(slug=spec["slug"], name=spec["name"], owner_id=users[spec["owner"]].id, status="draft",
+                            verified=False, page_json="{}")
+        db.add(practice)
+        for key, value in spec["details"].items():
+            setattr(practice, key, value)
+        practice.page_tagline, practice.page_text, practice.page_source = spec["tagline"], spec["text"], "ai"
+        practice.page_updated_at = now
+        db.flush()
+        inputs = {"name": practice.name, **{k: v for k, v in spec["details"].items() if k != "address"}}
+        practice.page_inputs = inputs
+        set_practice_status(practice, "draft")
+    practice.owner_id = users[spec["owner"]].id
+    invite = db.scalar(select(PracticeInvite).where(PracticeInvite.token_hash == _hash_token(SETUP_INVITE["token"])))
+    if invite is None:
+        db.add(PracticeInvite(practice_id=practice.id, email=SETUP_INVITE["email"], status="pending",
+                              token_hash=_hash_token(SETUP_INVITE["token"]), created_by=practice.owner_id,
+                              expires_at=now + timedelta(days=INVITE_DAYS), idempotency_key="seed-invite-1"))
+    elif invite.status == "pending":
+        invite.expires_at = now + timedelta(days=INVITE_DAYS)
+    db.flush()
 
 
 def _profile(db: Session, user: User, practice: Practice, row: tuple, status: str = "verified") -> TherapistProfile:
@@ -251,6 +284,7 @@ def seed(db: Session, *, load_kb: bool = True, now: datetime | None = None) -> N
     now = now or datetime.now(timezone.utc)
     users = {email: _user(db, email, pw, role, name) for email, pw, role, name in LOGINS}
     practices = {p["slug"]: _practice(db, p, users[p["owner"]]) for p in PRACTICES}
+    _setup_practice(db, now, users)
     profiles = {row[0]: _profile(db, users[row[0]], practices[row[1]], row) for row in THERAPISTS}
     pending = PENDING_THERAPIST
     _profile(db, users[pending[0]], practices[pending[1]], pending, status="submitted")

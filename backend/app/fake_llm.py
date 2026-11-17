@@ -23,6 +23,14 @@ def assert_safe_config() -> None:
 
 def complete(system: str, text: str) -> str:
     """Canned text for the model call identified by its system prompt / prompt text."""
+    if system.startswith("You draft the public web page text"):
+        data = json.loads(re.search(r"<<<PRACTICE_DATA>>>\n(.*?)\n<<<END_PRACTICE_DATA>>>", text, re.S).group(1))
+        topics = ", ".join(data.get("specialisations") or ["everyday wellbeing"])
+        return json.dumps({
+            "tagline": f"Unhurried, practical counselling in {data.get('city', 'your city')}.",
+            "about": f"{data.get('name', 'This practice')} offers collaborative, skill-building sessions for {topics}.\n\n"
+                     f"Our approach: {data.get('approach', 'a warm, structured style')}. "
+                     "Between sessions you get small, clear next steps.\n\n- Warm, paced support\n- Clear goals you set together"})
     if system.startswith("You draft practice web pages"):
         owner = re.search(r"<owner-data>(.*?)</owner-data>", text, re.S)
         data: dict[str, Any] = json.loads(owner.group(1)) if owner else {}

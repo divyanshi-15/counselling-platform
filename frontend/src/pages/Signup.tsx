@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { ErrorMsg } from "@/components/states";
 import { api } from "@/lib/api";
 import { homeFor, useAuth } from "@/lib/auth";
+import { pendingInvite } from "@/lib/invite";
 
 export default function Signup() {
   const { login } = useAuth();
@@ -22,7 +23,8 @@ export default function Signup() {
     setBusy(true); setError(null);
     try {
       await api("/auth/register", { method: "POST", json: f });
-      nav(homeFor((await login(f.email, f.password)).role));
+      const role = (await login(f.email, f.password)).role;
+      nav(role === "therapist" && pendingInvite() ? "/invitation" : homeFor(role));
     } catch (err) { setError(err); } finally { setBusy(false); }
   }
 

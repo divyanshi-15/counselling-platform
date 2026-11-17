@@ -253,7 +253,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Download Document */
+        /**
+         * Download Document
+         * @description Therapist documents: that therapist and admins. Practice documents: that practice's owner and admins.
+         *     A role that never owns that kind of document gets 403; the wrong therapist or owner gets 404.
+         */
         get: operations["download_document_verification_documents__doc_id__download_get"];
         put?: never;
         post?: never;
@@ -308,6 +312,301 @@ export interface paths {
         put?: never;
         /** Review Therapist */
         post: operations["review_therapist_admin_therapists__therapist_id__review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/practices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Practice */
+        post: operations["create_practice_owner_practices_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/practices/{practice_id}/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Setup */
+        get: operations["get_setup_owner_practices__practice_id__setup_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/practices/{practice_id}/details": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save Details */
+        put: operations["save_details_owner_practices__practice_id__details_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/practices/{practice_id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Practice Document */
+        post: operations["upload_practice_document_owner_practices__practice_id__documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/practices/{practice_id}/documents/{doc_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Practice Document */
+        delete: operations["delete_practice_document_owner_practices__practice_id__documents__doc_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/practices/{practice_id}/invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Invite Therapist */
+        post: operations["invite_therapist_owner_practices__practice_id__invites_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/practices/{practice_id}/invites/{invite_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke Invite */
+        post: operations["revoke_invite_owner_practices__practice_id__invites__invite_id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/practices/{practice_id}/team/{therapist_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove Therapist
+         * @description Unlists the therapist from this practice. Their clients, notes and plans are not touched.
+         */
+        delete: operations["remove_therapist_owner_practices__practice_id__team__therapist_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invitations/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Invitation */
+        post: operations["preview_invitation_invitations_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invitations/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept Invitation */
+        post: operations["accept_invitation_invitations_accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invitations/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decline Invitation */
+        post: operations["decline_invitation_invitations_decline_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/practices/{practice_id}/page/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate Page */
+        post: operations["generate_page_owner_practices__practice_id__page_generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/practices/{practice_id}/page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save Page */
+        put: operations["save_page_owner_practices__practice_id__page_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/practices/{practice_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Practice */
+        post: operations["submit_practice_owner_practices__practice_id__submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/practices/{practice_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish Practice
+         * @description Human action. Public pages also need `verified`; this refuses until an admin has verified the practice.
+         */
+        post: operations["publish_practice_owner_practices__practice_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/practices/{practice_id}/verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Practice Verification */
+        get: operations["admin_practice_verification_admin_practices__practice_id__verification_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/practices/{practice_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Review Practice */
+        post: operations["review_practice_admin_practices__practice_id__review_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1145,6 +1444,31 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdminPracticeVerificationOut */
+        AdminPracticeVerificationOut: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /** Owner Name */
+            owner_name?: string | null;
+            /** Verification Status */
+            verification_status: string;
+            /** Reviewer Note */
+            reviewer_note?: string | null;
+            /** Submitted At */
+            submitted_at?: string | null;
+            /** Reviewed At */
+            reviewed_at?: string | null;
+            details: components["schemas"]["DetailsOut"];
+            /** Documents */
+            documents: components["schemas"]["DocumentOut"][];
+            /** Team */
+            team: components["schemas"]["MemberOut"][];
+            page: components["schemas"]["PageOut"];
+        };
         /** AdminTherapistItem */
         AdminTherapistItem: {
             /** Id */
@@ -1311,6 +1635,13 @@ export interface components {
         };
         /** Body_upload_document_therapists_me_documents_post */
         Body_upload_document_therapists_me_documents_post: {
+            /** Doc Type */
+            doc_type: string;
+            /** File */
+            file: string;
+        };
+        /** Body_upload_practice_document_owner_practices__practice_id__documents_post */
+        Body_upload_practice_document_owner_practices__practice_id__documents_post: {
             /** Doc Type */
             doc_type: string;
             /** File */
@@ -1552,6 +1883,13 @@ export interface components {
             /** Note */
             note: string;
         };
+        /** CreatePracticeIn */
+        CreatePracticeIn: {
+            /** Name */
+            name: string;
+            /** City */
+            city: string;
+        };
         /** DashboardTherapist */
         DashboardTherapist: {
             /** Id */
@@ -1567,6 +1905,65 @@ export interface components {
             /** Fee */
             fee?: number | null;
             practice: components["schemas"]["PracticeRef"];
+        };
+        /** DetailsIn */
+        DetailsIn: {
+            /** Name */
+            name?: string | null;
+            /** City */
+            city?: string | null;
+            /** Address */
+            address?: string | null;
+            /** Approach */
+            approach?: string | null;
+            /** Specialisations */
+            specialisations?: string[] | null;
+            /** Languages */
+            languages?: ("en" | "hi")[] | null;
+            /** Session Formats */
+            session_formats?: ("online" | "in_person")[] | null;
+            /** Fee Min */
+            fee_min?: number | null;
+            /** Fee Max */
+            fee_max?: number | null;
+            /** Hours */
+            hours?: string | null;
+            /** Years Operating */
+            years_operating?: number | null;
+        };
+        /** DetailsOut */
+        DetailsOut: {
+            /** Name */
+            name: string;
+            /** City */
+            city?: string | null;
+            /** Address */
+            address?: string | null;
+            /** Approach */
+            approach?: string | null;
+            /**
+             * Specialisations
+             * @default []
+             */
+            specialisations: string[];
+            /**
+             * Languages
+             * @default []
+             */
+            languages: string[];
+            /**
+             * Session Formats
+             * @default []
+             */
+            session_formats: string[];
+            /** Fee Min */
+            fee_min?: number | null;
+            /** Fee Max */
+            fee_max?: number | null;
+            /** Hours */
+            hours?: string | null;
+            /** Years Operating */
+            years_operating?: number | null;
         };
         /** DocumentOut */
         DocumentOut: {
@@ -1642,6 +2039,14 @@ export interface components {
             /** Status */
             status: string;
             template: components["schemas"]["ExerciseTemplate"];
+        };
+        /** GenerateIn */
+        GenerateIn: {
+            /**
+             * Confirm
+             * @default false
+             */
+            confirm: boolean;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1722,6 +2127,82 @@ export interface components {
             submitted_at: string;
             safety: components["schemas"]["IntakeSafety"];
         };
+        /** InviteAcceptOut */
+        InviteAcceptOut: {
+            /** Practice Id */
+            practice_id: number;
+            /** Practice Name */
+            practice_name: string;
+            /** Therapist Id */
+            therapist_id: number;
+        };
+        /** InviteCreateOut */
+        InviteCreateOut: {
+            /** Id */
+            id: number;
+            /** Email */
+            email: string;
+            /** Status */
+            status: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Email Status */
+            email_status: string;
+        };
+        /** InviteDeclineOut */
+        InviteDeclineOut: {
+            /** Status */
+            status: string;
+        };
+        /** InviteIn */
+        InviteIn: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+        };
+        /** InviteOut */
+        InviteOut: {
+            /** Id */
+            id: number;
+            /** Email */
+            email: string;
+            /** Status */
+            status: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** InvitePreviewOut */
+        InvitePreviewOut: {
+            /** Practice Name */
+            practice_name: string;
+            /** City */
+            city?: string | null;
+            /** Invited Email */
+            invited_email: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+        };
         /** LicenseIn */
         LicenseIn: {
             /** License Type */
@@ -1758,6 +2239,17 @@ export interface components {
             latest: number | null;
             /** Change */
             change: number | null;
+        };
+        /** MemberOut */
+        MemberOut: {
+            /** Id */
+            id: number;
+            /** Name */
+            name?: string | null;
+            /** Email */
+            email: string;
+            /** Verified */
+            verified: boolean;
         };
         /** MessageResponse */
         MessageResponse: {
@@ -1844,6 +2336,35 @@ export interface components {
         OwnerActionsOut: {
             /** Items */
             items: components["schemas"]["OwnerActionItem"][];
+        };
+        /** PageIn */
+        PageIn: {
+            /** Tagline */
+            tagline: string;
+            /** Text */
+            text: string;
+        };
+        /** PageOut */
+        PageOut: {
+            /** Has Draft */
+            has_draft: boolean;
+            /** Tagline */
+            tagline?: string | null;
+            /** Text */
+            text?: string | null;
+            /** Source */
+            source?: string | null;
+            /** Inputs */
+            inputs?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Inputs Changed
+             * @default false
+             */
+            inputs_changed: boolean;
+            /** Updated At */
+            updated_at?: string | null;
         };
         /** PendingActionOut */
         PendingActionOut: {
@@ -1998,6 +2519,19 @@ export interface components {
             name: string;
             /** Slug */
             slug: string;
+        };
+        /** PracticeReviewOut */
+        PracticeReviewOut: {
+            /** Id */
+            id: number;
+            /** Status */
+            status: string;
+            /** Verified */
+            verified: boolean;
+            /** Reviewer Note */
+            reviewer_note?: string | null;
+            /** Reviewed At */
+            reviewed_at?: string | null;
         };
         /** PracticesOut */
         PracticesOut: {
@@ -2207,6 +2741,15 @@ export interface components {
             /** Items */
             items: components["schemas"]["PublicTherapist"][];
         };
+        /** RequiredDocOut */
+        RequiredDocOut: {
+            /** Doc Type */
+            doc_type: string;
+            /** Label */
+            label: string;
+            /** Uploaded */
+            uploaded: boolean;
+        };
         /** RetrievedRef */
         RetrievedRef: {
             /** Id */
@@ -2292,6 +2835,50 @@ export interface components {
             flagged: boolean;
             /** Message */
             message?: string | null;
+        };
+        /** SetupOut */
+        SetupOut: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /** Status */
+            status: string;
+            /** Verification Status */
+            verification_status: string;
+            /** Verified */
+            verified: boolean;
+            /** Reviewer Note */
+            reviewer_note?: string | null;
+            /** Submitted At */
+            submitted_at?: string | null;
+            /** Reviewed At */
+            reviewed_at?: string | null;
+            /** Can Edit Details */
+            can_edit_details: boolean;
+            /** Can Edit Documents */
+            can_edit_documents: boolean;
+            /** Can Edit Page */
+            can_edit_page: boolean;
+            /** Can Submit */
+            can_submit: boolean;
+            /** Can Publish */
+            can_publish: boolean;
+            /** Missing */
+            missing: string[];
+            details: components["schemas"]["DetailsOut"];
+            /** Required Documents */
+            required_documents: components["schemas"]["RequiredDocOut"][];
+            /** Documents */
+            documents: components["schemas"]["DocumentOut"][];
+            /** Team */
+            team: components["schemas"]["MemberOut"][];
+            /** Invites */
+            invites: components["schemas"]["InviteOut"][];
+            page: components["schemas"]["PageOut"];
+            preview: components["schemas"]["PublicPracticePage"];
         };
         /** SlotOut */
         SlotOut: {
@@ -2441,6 +3028,11 @@ export interface components {
             available_slots: number;
             /** Utilisation */
             utilisation: number | null;
+        };
+        /** TokenIn */
+        TokenIn: {
+            /** Token */
+            token: string;
         };
         /** UpcomingSession */
         UpcomingSession: {
@@ -3208,6 +3800,566 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_practice_owner_practices_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePracticeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetupOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_setup_owner_practices__practice_id__setup_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                practice_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetupOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_details_owner_practices__practice_id__details_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                practice_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DetailsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetupOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_practice_document_owner_practices__practice_id__documents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                practice_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_practice_document_owner_practices__practice_id__documents_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_practice_document_owner_practices__practice_id__documents__doc_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                practice_id: number;
+                doc_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    invite_therapist_owner_practices__practice_id__invites_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                practice_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteCreateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_invite_owner_practices__practice_id__invites__invite_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                practice_id: number;
+                invite_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_therapist_owner_practices__practice_id__team__therapist_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                practice_id: number;
+                therapist_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_invitation_invitations_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitePreviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_invitation_invitations_accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteAcceptOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decline_invitation_invitations_decline_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteDeclineOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_page_owner_practices__practice_id__page_generate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                practice_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_page_owner_practices__practice_id__page_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                practice_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PageIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_practice_owner_practices__practice_id__submit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                practice_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetupOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_practice_owner_practices__practice_id__publish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                practice_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetupOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_practice_verification_admin_practices__practice_id__verification_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                practice_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPracticeVerificationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    review_practice_admin_practices__practice_id__review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                practice_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PracticeReviewOut"];
                 };
             };
             /** @description Validation Error */

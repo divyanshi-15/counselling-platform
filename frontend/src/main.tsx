@@ -14,6 +14,8 @@ import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import PracticePage from "@/pages/PracticePage";
 import Owner from "@/pages/owner/Owner";
+import PracticeSetup from "@/pages/owner/Setup";
+import Invitation from "@/pages/therapist/Invitation";
 import Admin from "@/pages/admin/Admin";
 import ClientDashboard from "@/pages/client/Dashboard";
 import Book from "@/pages/client/Book";
@@ -58,6 +60,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="/therapist/bookings/:bookingId" element={<BookingDetail />} />
             <Route path="/therapist/clients/:clientId" element={<TherapistClient />} />
             <Route path="/owner" element={<Owner />} />
+            <Route path="/owner/setup/:id" element={<PracticeSetup />} />
+            <Route path="/invitation" element={<Invitation />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<p>Page not found.</p>} />
           </Route>

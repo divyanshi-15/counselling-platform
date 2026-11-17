@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 from backend.app.auth import get_current_user, require_roles
 from backend.app.db import get_db
 from backend.app.schemas import TherapistProfileOut
-from backend.app.models import (AuditLog, TherapistEducation, TherapistLicense, TherapistProfile, User, UserRole,
+from backend.app.models import (AuditLog, Practice, TherapistEducation, TherapistLicense, TherapistProfile, User, UserRole,
                                 VerificationDocument)
 
 router = APIRouter(tags=["verification"])
@@ -30,6 +30,7 @@ MAX_DOCS_PER_THERAPIST = 10
 DOC_TYPES = ("degree_certificate", "registration_certificate", "identity_proof", "other")
 EDITABLE_DOC_STATES = ("draft", "changes_requested")
 OWNER_TYPE = "therapist"
+PRACTICE_OWNER_TYPE = "practice"
 FIRST_YEAR = 1950
 
 # content signature -> (content type, allowed filename extensions)
@@ -234,8 +235,8 @@ def clean_filename(name: str) -> str:
     return stem[:100] + ext[:10]
 
 
-def store_document(db: Session, profile: TherapistProfile, doc_type: str, filename: str, data: bytes) -> VerificationDocument:
-    """Validate, write under a random key, add the row (caller commits). Shared by the upload endpoint and the seed."""
+def store_file(db: Session, owner_type: str, owner_id: int, doc_type: str, filename: str, data: bytes) -> VerificationDocument:
+    """Validate, write under a random key, add the row (caller commits). Shared by therapist and practice uploads and the seed."""
     content_type = sniff(data, filename)
     key = secrets.token_hex(16)
     path = upload_dir() / key
@@ -243,11 +244,28 @@ def store_document(db: Session, profile: TherapistProfile, doc_type: str, filena
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, "wb") as f:
         f.write(data)
-    doc = VerificationDocument(owner_type=OWNER_TYPE, owner_id=profile.id, doc_type=doc_type,
+    doc = VerificationDocument(owner_type=owner_type, owner_id=owner_id, doc_type=doc_type,
                                filename=clean_filename(filename), content_type=content_type, size=len(data),
                                storage_key=key)
     db.add(doc)
     return doc
+
+
+def store_document(db: Session, profile: TherapistProfile, doc_type: str, filename: str, data: bytes) -> VerificationDocument:
+    return store_file(db, OWNER_TYPE, profile.id, doc_type, filename, data)
+
+
+def read_upload(request: Request, file: UploadFile) -> bytes:
+    """Size and emptiness checks shared by every document upload endpoint."""
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > MAX_UPLOAD_BYTES + 64 * 1024:
+        raise HTTPException(status_code=413, detail="File is larger than 5 MB")
+    data = file.file.read(MAX_UPLOAD_BYTES + 1)
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File is larger than 5 MB")
+    if not data:
+        raise HTTPException(status_code=422, detail="File is empty")
+    return data
 
 
 def _audit(db: Session, actor: User, action: str, profile: TherapistProfile, **details: object) -> None:
@@ -371,14 +389,7 @@ def upload_document(request: Request, doc_type: Annotated[str, Form()], file: An
     _require_docs_editable(profile)
     if doc_type not in DOC_TYPES:
         raise HTTPException(status_code=422, detail="Unknown document type")
-    declared = request.headers.get("content-length")
-    if declared and declared.isdigit() and int(declared) > MAX_UPLOAD_BYTES + 64 * 1024:
-        raise HTTPException(status_code=413, detail="File is larger than 5 MB")
-    data = file.file.read(MAX_UPLOAD_BYTES + 1)
-    if len(data) > MAX_UPLOAD_BYTES:
-        raise HTTPException(status_code=413, detail="File is larger than 5 MB")
-    if not data:
-        raise HTTPException(status_code=422, detail="File is empty")
+    data = read_upload(request, file)
     count = db.query(VerificationDocument).filter(VerificationDocument.owner_type == OWNER_TYPE,
                                                   VerificationDocument.owner_id == profile.id).count()
     if count >= MAX_DOCS_PER_THERAPIST:
@@ -407,19 +418,37 @@ def delete_document(doc_id: int, db: Session = Depends(get_db), user: User = Dep
 
 
 @router.get("/verification-documents/{doc_id}/download")
-def download_document(doc_id: int, db: Session = Depends(get_db), user: User = Depends(require_roles(UserRole.therapist, UserRole.admin))):
+def download_document(doc_id: int, db: Session = Depends(get_db),
+                      user: User = Depends(require_roles(UserRole.therapist, UserRole.practice_owner, UserRole.admin))):
+    """Therapist documents: that therapist and admins. Practice documents: that practice's owner and admins.
+    A role that never owns that kind of document gets 403; the wrong therapist or owner gets 404."""
     doc = db.get(VerificationDocument, doc_id)
     if doc is None:
         raise HTTPException(status_code=404, detail="Not found")
-    profile = db.get(TherapistProfile, doc.owner_id) if doc.owner_type == OWNER_TYPE else None
-    if user.role != UserRole.admin and (profile is None or profile.user_id != user.id):
+    kind_role = {OWNER_TYPE: UserRole.therapist, PRACTICE_OWNER_TYPE: UserRole.practice_owner}.get(doc.owner_type)
+    if user.role != UserRole.admin and user.role != kind_role:
+        raise HTTPException(status_code=403, detail="Access denied")
+    profile = practice = None
+    if doc.owner_type == OWNER_TYPE:
+        profile = db.get(TherapistProfile, doc.owner_id)
+        allowed = profile is not None and user.role == UserRole.therapist and profile.user_id == user.id
+    elif doc.owner_type == PRACTICE_OWNER_TYPE:
+        practice = db.get(Practice, doc.owner_id)
+        allowed = practice is not None and user.role == UserRole.practice_owner and practice.owner_id == user.id
+    else:
+        allowed = False
+    if user.role != UserRole.admin and not allowed:
         raise HTTPException(status_code=404, detail="Not found")
     path = upload_dir() / doc.storage_key
     if not path.is_file():
         raise HTTPException(status_code=404, detail="File is no longer available")
-    if user.role == UserRole.admin and profile is not None:
-        _audit(db, user, "verification_document.download", profile, document_id=doc.id)
-        db.commit()
+    if user.role == UserRole.admin:
+        entity = profile or practice
+        if entity is not None:
+            db.add(AuditLog(action="verification_document.download", actor_id=user.id,
+                            entity_type="therapist_profile" if profile is not None else "practice", entity_id=entity.id,
+                            details={"document_id": doc.id}))
+            db.commit()
     return FileResponse(path, media_type=doc.content_type, filename=doc.filename,
                         headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
 

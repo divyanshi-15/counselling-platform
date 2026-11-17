@@ -54,6 +54,7 @@ from backend.app.models import (
 )
 from backend.app.analytics import router as analytics_router
 from backend.app.verification import profile_dict, router as verification_router, set_status
+from backend.app.practice_setup import generate_unique_slug as _generate_unique_slug, router as practice_setup_router, set_practice_status
 from backend.app.braindump import DraftEdit, router as braindump_router
 from backend.app.exercises import approved_exercises, template_for, router as exercises_router, with_notice
 from backend.app.ratelimit import client_rate_limit, contact_rate_limit
@@ -106,25 +107,7 @@ app.include_router(exercises_router)
 app.include_router(braindump_router)
 app.include_router(analytics_router)
 app.include_router(verification_router)
-
-
-def _slugify(raw: str) -> str:
-    slug = re.sub(r"[^a-z0-9]+", "-", (raw or "practice").lower()).strip("-")
-    return slug[:120] or "practice"
-
-
-def _generate_unique_slug(db: Session, raw: str, exclude_id: int | None = None) -> str:
-    base = _slugify(raw)
-    slug = base
-    index = 2
-    while True:
-        existing = db.query(Practice).filter(Practice.slug == slug)
-        if exclude_id is not None:
-            existing = existing.filter(Practice.id != exclude_id)
-        if existing.first() is None:
-            return slug
-        slug = f"{base}-{index}"
-        index += 1
+app.include_router(practice_setup_router)
 
 
 def _create_publish_action(db: Session, practice: Practice, page: dict[str, object], run_id: str | None = None) -> PendingAction:
@@ -333,6 +316,7 @@ def _public_therapist_query(db: Session, therapist_id: int | None = None):
         .join(Practice, Practice.id == TherapistProfile.practice_id)
         .filter(
             TherapistProfile.verified.is_(True),
+            TherapistProfile.left_practice_at.is_(None),
             Practice.status == "published",
             Practice.verified.is_(True),
         )
@@ -625,6 +609,8 @@ def save_therapist_profile(
     if practice is None:
         raise HTTPException(status_code=404, detail="Practice not found")
     profile = db.query(TherapistProfile).filter(TherapistProfile.user_id == current_user.id).first()
+    if profile is not None and profile.left_practice_at is not None:
+        raise HTTPException(status_code=409, detail="You were removed from your practice. Ask a practice to invite you.")
     if profile is None:
         profile = TherapistProfile(user_id=current_user.id, practice_id=payload.practice_id, verified=False)
         db.add(profile)
@@ -993,7 +979,7 @@ def verify_practice(
     record = db.query(Practice).filter(Practice.id == practice_id).first()
     if not record:
         raise HTTPException(status_code=404, detail="Practice not found")
-    record.verified = payload.verified if payload else True
+    set_practice_status(record, "verified" if (payload.verified if payload else True) else "rejected", None, reviewed=True)
     db.add(AuditLog(
         action="practice.verify",
         actor_id=current_user.id,
@@ -1056,7 +1042,8 @@ def approve_pending_action(
         if practice is None or not isinstance(draft, dict):
             raise HTTPException(status_code=409, detail="Pending action draft is unavailable")
         practice.page_json = json.dumps(draft)
-        practice.status = "published"
+        if practice.verification_status == "verified":  # an unverified practice stays a draft until an admin verifies it
+            practice.status = "published"
         action.status = "approved"
         action.decided_by = current_user.id
         action.decided_at = datetime.now(timezone.utc)
@@ -1185,7 +1172,7 @@ def draft_practice_with_agent(
     page_json = json.dumps(result["page"])
     practice.page_json = page_json
     practice.status = "draft"
-    practice.verified = False
+    set_practice_status(practice, "draft")
     db.add(practice)
     for run in result.get("agent_runs", []):
         db.add(AgentRun(practice_id=practice.id, run_id=str(run["run_id"]), step=int(run["step"]), tool=str(run["tool"]), summary=str(run["summary"])))

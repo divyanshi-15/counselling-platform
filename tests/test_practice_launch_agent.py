@@ -210,7 +210,7 @@ def test_agent_creates_one_action_and_owner_approval_publishes_once() -> None:
         assert repeated.json() == approved.json()
         with SessionLocal() as db:
             saved = db.query(Practice).filter(Practice.id == practice.id).first()
-            assert saved.status == "published"
+            assert saved.status == "draft"  # approved, but an unverified practice is never published
             assert saved.page_json == saved_page
             action = db.query(PendingAction).filter(PendingAction.id == action_data["id"]).first()
             assert action.decided_at == decided_at
