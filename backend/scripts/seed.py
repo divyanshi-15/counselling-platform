@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import json
+import secrets
 import sys
 from datetime import datetime, timedelta, timezone
 
@@ -165,6 +166,43 @@ def _seed_client(db: Session, now: datetime, idx: int, client: User, therapist: 
                              payload={"client_id": client.id, "seed": True, **extra}))
 
 
+HISTORY_WEEKS = 26
+HISTORY_TIMES_UTC = ((5, 45), (7, 45), (9, 45))  # minute 45: no clash with case (0-3) or open (30) slots
+PAST_CLIENTS_PER_THERAPIST = 2
+_FIRST = ["Aarav", "Diya", "Vivaan", "Meera", "Kabir", "Ira", "Reyansh", "Tara", "Arnav", "Saanvi", "Dev", "Navya",
+          "Yash", "Anika", "Neel", "Kiara", "Om", "Riya"]
+_LAST = ["Shah", "Nair", "Gowda", "Kapoor", "Pillai", "Sharma", "Rao", "Menon", "Iyer"]
+
+
+def seed_history(db: Session, now: datetime, profiles: dict[str, TherapistProfile]) -> None:
+    """Idempotent: ~6 months of past sessions so practice analytics have a history. They belong to separate past
+    clients (no assessments, notes or plans), so no existing client gains a therapist and nothing clinical is added."""
+    for t, profile in enumerate(profiles.values()):
+        clients = []
+        for j in range(PAST_CLIENTS_PER_THERAPIST):
+            n = t * PAST_CLIENTS_PER_THERAPIST + j
+            email = f"past.client{n + 1}@example.com"
+            user = db.scalar(select(User).where(User.email == email))
+            if user is None:
+                user = User(email=email, password_hash=hash_password(secrets.token_hex(16)), role="client", language="en",
+                            name=f"{_FIRST[n % len(_FIRST)]} {_LAST[(n * 5) % len(_LAST)]}")
+                db.add(user)
+                db.flush()
+            clients.append(user.id)
+        have = set(db.scalars(select(AvailabilitySlot.starts_at).where(AvailabilitySlot.therapist_id == profile.id)))
+        n = 0
+        for week in range(1, HISTORY_WEEKS + 1):
+            day = (now - timedelta(weeks=week)).replace(hour=0, minute=0, second=0, microsecond=0)
+            for k in range(1 + (week + t) % 3):
+                hour, minute = HISTORY_TIMES_UTC[k]
+                start = (day + timedelta(days=(week + k + t) % 5)).replace(hour=hour, minute=minute)
+                if start in have:
+                    continue
+                db.add(Booking(client_id=clients[n % len(clients)], availability_slot_id=_slot(db, profile, start).id))
+                n += 1
+        db.flush()
+
+
 def seed(db: Session, *, load_kb: bool = True, now: datetime | None = None) -> None:
     now = now or datetime.now(timezone.utc)
     users = {email: _user(db, email, pw, role, name) for email, pw, role, name in LOGINS}
@@ -176,6 +214,7 @@ def seed(db: Session, *, load_kb: bool = True, now: datetime | None = None) -> N
     for idx, (email, spec) in enumerate(CASES.items()):
         if spec is not None:
             _seed_client(db, now, idx, users[email], users[spec["therapist"]], profiles[spec["therapist"]], spec)
+    seed_history(db, now, profiles)
     refresh_slots(db, list(profiles.values()), now)
     db.commit()
 

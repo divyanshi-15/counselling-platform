@@ -11,6 +11,7 @@ import { api, type PracticePage } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useFetch } from "@/lib/useFetch";
 import type { Schemas } from "../client/common";
+import { PracticeAnalytics } from "./PracticeAnalytics";
 
 const list = (v: string) => v.split(",").map((x) => x.trim()).filter(Boolean);
 
@@ -158,6 +159,7 @@ function Body() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Practice owner</h1>
+      <PracticeAnalytics />
       <Onboarding onDone={reload} />
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">My practices</h2>

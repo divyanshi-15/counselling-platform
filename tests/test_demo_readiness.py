@@ -70,10 +70,11 @@ def test_seed_rerun_later_refreshes_expired_slots_and_keeps_booked(seeded):
     with SessionLocal() as db:
         booked_ids = {b for (b,) in db.query(Booking.availability_slot_id).all()}
         seed_mod.seed(db, load_kb=False, now=later)
+        booked_now = {b for (b,) in db.query(Booking.availability_slot_id).all()}
         gen = _generated(db, "therapist@example.com", later)
         assert gen and all(later < s <= later + timedelta(days=14) for s in gen)
         assert max(gen) > T0 + timedelta(days=14)  # window moved forward
-        expired_unbooked = [s for s in _slots(db, "therapist@example.com") if s.starts_at <= later and s.id not in booked_ids]
+        expired_unbooked = [s for s in _slots(db, "therapist@example.com") if s.starts_at <= later and s.id not in booked_now]
         assert expired_unbooked == []
         assert booked_ids <= set(db.scalars(select(AvailabilitySlot.id)))  # past booked sessions survive
         count = db.scalar(select(func.count()).select_from(AvailabilitySlot))

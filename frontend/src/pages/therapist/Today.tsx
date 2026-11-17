@@ -9,6 +9,7 @@ import { Empty, ErrorMsg, Loading } from "@/components/states";
 import { api } from "@/lib/api";
 import { useFetch } from "@/lib/useFetch";
 import { AckButton, AiBadge, InferredBadge, RiskAlerts, Shell, SupportedBadge, fmt, type Schemas } from "./common";
+import { TherapistAnalytics } from "./Analytics";
 
 type Briefing = Schemas["BriefingItem"];
 
@@ -111,6 +112,7 @@ function Body() {
     <div className="space-y-5">
       {alerts.error != null && <ErrorMsg error={alerts.error} />}
       {alerts.data && <RiskAlerts alerts={alerts.data.items} names={names}>{(a) => <AckButton id={a.id} onDone={alerts.reload} />}</RiskAlerts>}
+      <TherapistAnalytics />
 
       <section className="rounded-lg border bg-gradient-to-br from-primary/10 to-transparent p-4 sm:p-6">
         <h1 className="text-2xl font-semibold">Prepare my day</h1>

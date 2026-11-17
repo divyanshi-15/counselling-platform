@@ -55,6 +55,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/analytics/therapist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Therapist Analytics */
+        get: operations["therapist_analytics_analytics_therapist_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/analytics/practice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Practice Analytics */
+        get: operations["practice_analytics_analytics_practice_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/": {
         parameters: {
             query?: never;
@@ -1207,6 +1241,15 @@ export interface components {
             /** Approved Exercises */
             approved_exercises: components["schemas"]["ApprovedExercise"][];
         };
+        /** ClientTrend */
+        ClientTrend: {
+            /** Client Id */
+            client_id: number;
+            /** Name */
+            name: string | null;
+            phq9: components["schemas"]["MeasureSeries"];
+            gad7: components["schemas"]["MeasureSeries"];
+        };
         /**
          * ClientView
          * @description Exactly what the client would see if this action is approved.
@@ -1345,10 +1388,35 @@ export interface components {
             submitted_at: string;
             safety: components["schemas"]["IntakeSafety"];
         };
+        /** MeasureSeries */
+        MeasureSeries: {
+            /** Points */
+            points: components["schemas"]["MonthPoint"][];
+            /** Latest */
+            latest: number | null;
+            /** Change */
+            change: number | null;
+        };
         /** MessageResponse */
         MessageResponse: {
             /** Message */
             message: string;
+        };
+        /** MonthPoint */
+        MonthPoint: {
+            /** Month */
+            month: string;
+            /** Average */
+            average: number;
+        };
+        /** MonthRevenue */
+        MonthRevenue: {
+            /** Month */
+            month: string;
+            /** Sessions */
+            sessions: number;
+            /** Revenue Inr */
+            revenue_inr: number;
         };
         /** MySlotOut */
         MySlotOut: {
@@ -1472,6 +1540,16 @@ export interface components {
             update_notes?: string | null;
             /** Update Notes Label */
             update_notes_label?: string | null;
+        };
+        /** PracticeAnalyticsOut */
+        PracticeAnalyticsOut: {
+            /** Bookings Per Week */
+            bookings_per_week: components["schemas"]["WeekCount"][];
+            utilisation_next_14_days: components["schemas"]["UtilisationOut"];
+            /** Revenue Per Month */
+            revenue_per_month: components["schemas"]["MonthRevenue"][];
+            /** Top Specialisations */
+            top_specialisations: components["schemas"]["SpecialisationCount"][];
         };
         /** PracticeContact */
         PracticeContact: {
@@ -1768,6 +1846,13 @@ export interface components {
             /** Room Name */
             room_name: string;
         };
+        /** SessionKpi */
+        SessionKpi: {
+            /** Last 30 Days */
+            last_30_days: number;
+            /** Previous 30 Days */
+            previous_30_days: number;
+        };
         /** SessionNotesIn */
         SessionNotesIn: {
             /** Raw Notes */
@@ -1819,6 +1904,13 @@ export interface components {
             /** Ends At */
             ends_at: string;
         };
+        /** SpecialisationCount */
+        SpecialisationCount: {
+            /** Specialisation */
+            specialisation: string;
+            /** Bookings */
+            bookings: number;
+        };
         /** TemplateField */
         TemplateField: {
             /** Id */
@@ -1861,6 +1953,20 @@ export interface components {
         TherapistActionsOut: {
             /** Items */
             items: components["schemas"]["TherapistActionItem"][];
+        };
+        /** TherapistAnalyticsOut */
+        TherapistAnalyticsOut: {
+            sessions_completed: components["schemas"]["SessionKpi"];
+            /** Upcoming Sessions 7 Days */
+            upcoming_sessions_7_days: number;
+            /** Exercise Completion Rate */
+            exercise_completion_rate: number | null;
+            /** Exercises Assigned */
+            exercises_assigned: number;
+            /** Open Alerts */
+            open_alerts: number;
+            /** Clients */
+            clients: components["schemas"]["ClientTrend"][];
         };
         /** TherapistBookingItem */
         TherapistBookingItem: {
@@ -1911,6 +2017,17 @@ export interface components {
             fee?: number | null;
             /** Verified */
             verified: boolean;
+        };
+        /** TherapistUtilisation */
+        TherapistUtilisation: {
+            /** Therapist */
+            therapist: string | null;
+            /** Booked Slots */
+            booked_slots: number;
+            /** Available Slots */
+            available_slots: number;
+            /** Utilisation */
+            utilisation: number | null;
         };
         /** UpcomingSession */
         UpcomingSession: {
@@ -1969,6 +2086,17 @@ export interface components {
             /** Name */
             name?: string | null;
         };
+        /** UtilisationOut */
+        UtilisationOut: {
+            /** Booked Slots */
+            booked_slots: number;
+            /** Available Slots */
+            available_slots: number;
+            /** Utilisation */
+            utilisation: number | null;
+            /** By Therapist */
+            by_therapist: components["schemas"]["TherapistUtilisation"][];
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -1998,6 +2126,13 @@ export interface components {
             verified: boolean;
             /** Status */
             status?: string | null;
+        };
+        /** WeekCount */
+        WeekCount: {
+            /** Week Start */
+            week_start: string;
+            /** Bookings */
+            bookings: number;
         };
     };
     responses: never;
@@ -2092,6 +2227,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    therapist_analytics_analytics_therapist_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TherapistAnalyticsOut"];
+                };
+            };
+        };
+    };
+    practice_analytics_analytics_practice_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PracticeAnalyticsOut"];
                 };
             };
         };

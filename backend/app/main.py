@@ -52,6 +52,7 @@ from backend.app.models import (
     User,
     UserRole,
 )
+from backend.app.analytics import router as analytics_router
 from backend.app.exercises import approved_exercises, template_for, router as exercises_router, with_notice
 from backend.app.ratelimit import client_rate_limit, contact_rate_limit
 from backend.app.rag import index_session_notes
@@ -100,6 +101,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="Counselling Practice Platform", lifespan=lifespan, root_path="/api")
 app.include_router(exercises_router)
+app.include_router(analytics_router)
 
 
 def _slugify(raw: str) -> str:
