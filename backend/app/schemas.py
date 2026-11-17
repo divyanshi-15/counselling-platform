@@ -486,17 +486,6 @@ class AgentRunsOut(_Out):
 
 # ---------- owner / admin responses ----------
 
-class VerifyIn(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    verified: bool = True
-
-
-class VerifyOut(_Out):
-    id: int
-    verified: bool
-    status: str | None = None
-
-
 class PracticeItemOut(_Out):
     id: int
     name: str

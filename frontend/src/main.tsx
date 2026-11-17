@@ -17,6 +17,7 @@ import Owner from "@/pages/owner/Owner";
 import PracticeSetup from "@/pages/owner/Setup";
 import Invitation from "@/pages/therapist/Invitation";
 import Admin from "@/pages/admin/Admin";
+import AdminReview from "@/pages/admin/Review";
 import ClientDashboard from "@/pages/client/Dashboard";
 import Book from "@/pages/client/Book";
 import Intake from "@/pages/client/Intake";
@@ -63,6 +64,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="/owner/setup/:id" element={<PracticeSetup />} />
             <Route path="/invitation" element={<Invitation />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/review/:subject/:id" element={<AdminReview />} />
             <Route path="*" element={<p>Page not found.</p>} />
           </Route>
         </Routes>

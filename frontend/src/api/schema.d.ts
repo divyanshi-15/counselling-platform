@@ -318,6 +318,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/verification-queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Verification Queue */
+        get: operations["verification_queue_admin_verification_queue_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/therapists/{therapist_id}/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Therapist Audit */
+        get: operations["therapist_audit_admin_therapists__therapist_id__audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/practices/{practice_id}/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Practice Audit */
+        get: operations["practice_audit_admin_practices__practice_id__audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/owner/practices": {
         parameters: {
             query?: never;
@@ -1040,40 +1091,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/therapists/{therapist_id}/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Verify Therapist */
-        post: operations["verify_therapist_admin_therapists__therapist_id__verify_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/practices/{practice_id}/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Verify Practice */
-        post: operations["verify_practice_admin_practices__practice_id__verify_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/pending-actions": {
         parameters: {
             query?: never;
@@ -1516,6 +1533,34 @@ export interface components {
             id: number;
             /** Name */
             name?: string | null;
+            /** Practice Name */
+            practice_name?: string | null;
+            /** City */
+            city?: string | null;
+            /**
+             * Bio
+             * @default
+             */
+            bio: string;
+            /**
+             * Approaches
+             * @default []
+             */
+            approaches: string[];
+            /**
+             * Languages
+             * @default []
+             */
+            languages: string[];
+            /**
+             * Specialisations
+             * @default []
+             */
+            specialisations: string[];
+            /** Fee */
+            fee?: number | null;
+            /** Years Experience */
+            years_experience?: number | null;
         };
         /** AgentRunItem */
         AgentRunItem: {
@@ -1614,6 +1659,31 @@ export interface components {
             crisis_line: string;
             /** Items */
             items: components["schemas"]["ApprovedExercise"][];
+        };
+        /** AuditItem */
+        AuditItem: {
+            /** Id */
+            id: number;
+            /** Action */
+            action: string;
+            /** Actor Name */
+            actor_name?: string | null;
+            /** Actor Role */
+            actor_role?: string | null;
+            /** Decision */
+            decision?: string | null;
+            /** Note */
+            note?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** AuditOut */
+        AuditOut: {
+            /** Items */
+            items: components["schemas"]["AuditItem"][];
         };
         /** AvailabilityOut */
         AvailabilityOut: {
@@ -1882,6 +1952,15 @@ export interface components {
             fields: string[];
             /** Note */
             note: string;
+        };
+        /** CompletenessItem */
+        CompletenessItem: {
+            /** Label */
+            label: string;
+            /** Ok */
+            ok: boolean;
+            /** Count */
+            count?: number | null;
         };
         /** CreatePracticeIn */
         CreatePracticeIn: {
@@ -2743,6 +2822,26 @@ export interface components {
             /** Items */
             items: components["schemas"]["PublicTherapist"][];
         };
+        /** QueueItem */
+        QueueItem: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** City */
+            city?: string | null;
+            /** Verification Status */
+            verification_status: string;
+            /** Submitted At */
+            submitted_at?: string | null;
+            /** Completeness */
+            completeness: components["schemas"]["CompletenessItem"][];
+        };
+        /** QueueOut */
+        QueueOut: {
+            /** Items */
+            items: components["schemas"]["QueueItem"][];
+        };
         /** RequiredDocOut */
         RequiredDocOut: {
             /** Doc Type */
@@ -3135,23 +3234,6 @@ export interface components {
             licenses: components["schemas"]["LicenseOut"][];
             /** Documents */
             documents: components["schemas"]["DocumentOut"][];
-        };
-        /** VerifyIn */
-        VerifyIn: {
-            /**
-             * Verified
-             * @default true
-             */
-            verified: boolean;
-        };
-        /** VerifyOut */
-        VerifyOut: {
-            /** Id */
-            id: number;
-            /** Verified */
-            verified: boolean;
-            /** Status */
-            status?: string | null;
         };
         /** WeekCount */
         WeekCount: {
@@ -3800,6 +3882,100 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verification_queue_admin_verification_queue_get: {
+        parameters: {
+            query?: {
+                subject?: "therapist" | "practice";
+                status?: "submitted" | "changes_requested" | "rejected" | "verified";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueueOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    therapist_audit_admin_therapists__therapist_id__audit_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                therapist_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    practice_audit_admin_practices__practice_id__audit_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                practice_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditOut"];
                 };
             };
             /** @description Validation Error */
@@ -5127,76 +5303,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminTherapistsOut"];
-                };
-            };
-        };
-    };
-    verify_therapist_admin_therapists__therapist_id__verify_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                therapist_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["VerifyIn"] | null;
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VerifyOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    verify_practice_admin_practices__practice_id__verify_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                practice_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["VerifyIn"] | null;
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VerifyOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

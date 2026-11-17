@@ -267,8 +267,8 @@ def own_practice(db: Session, practice_id: int, user: User) -> Practice:
     return practice
 
 
-def _audit(db: Session, actor: User, action: str, practice: Practice, **details: object) -> None:
-    db.add(AuditLog(action=action, actor_id=actor.id, entity_type="practice", entity_id=practice.id, details=details))
+def _audit(db: Session, actor: User, action: str, practice: Practice, *, note: str | None = None, **details: object) -> None:
+    db.add(AuditLog(action=action, actor_id=actor.id, entity_type="practice", entity_id=practice.id, details=details, note=note))
 
 
 def details_dict(p: Practice) -> dict[str, Any]:
@@ -742,13 +742,16 @@ def admin_practice_verification(practice_id: int, db: Session = Depends(get_db),
 
 @router.post("/admin/practices/{practice_id}/review", response_model=PracticeReviewOut)
 def review_practice(practice_id: int, payload: ReviewIn, db: Session = Depends(get_db), admin: User = Depends(admin_only)):
-    practice = db.get(Practice, practice_id)
+    practice = db.get(Practice, practice_id, with_for_update=True)
     if practice is None:
         raise HTTPException(status_code=404, detail="Practice not found")
-    if practice.verification_status != "submitted":
+    if practice.verification_status == payload.decision:
+        pass  # repeat of the decision already taken: same answer, no second audit row
+    elif practice.verification_status != "submitted":
         raise HTTPException(status_code=409, detail="Only a submitted practice can be reviewed")
-    set_practice_status(practice, payload.decision, payload.note, reviewed=True)
-    _audit(db, admin, "practice.review", practice, decision=payload.decision)
-    db.commit()
+    else:
+        set_practice_status(practice, payload.decision, payload.note, reviewed=True)
+        _audit(db, admin, "practice.review", practice, note=payload.note, decision=payload.decision)
+        db.commit()
     return {"id": practice.id, "status": practice.verification_status, "verified": practice.verified,
             "reviewer_note": practice.reviewer_note, "reviewed_at": practice.reviewed_at}

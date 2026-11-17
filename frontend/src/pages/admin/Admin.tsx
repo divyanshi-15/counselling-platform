@@ -1,63 +1,94 @@
-import { Avatar } from "@/components/Avatar";
+import { CheckCircle2, Circle } from "lucide-react";
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+import { Avatar } from "@/components/Avatar";
 import { Empty, ErrorMsg, Loading } from "@/components/states";
-import { Button } from "@/components/ui/button";
-import { api } from "@/lib/api";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth";
 import { useFetch } from "@/lib/useFetch";
 import type { Schemas } from "../client/common";
+import { fmt } from "../client/common";
 
-function Toggle({ label, avatar, verified, path, onDone }: { label: string; avatar?: string | null; verified: boolean; path: string; onDone: () => void }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
-  async function flip() {
-    setBusy(true); setError(null);
-    try { await api(path, { method: "POST", json: { verified: !verified } }); onDone(); }
-    catch (e) { setError(e); } finally { setBusy(false); }
-  }
+export type Subject = "therapist" | "practice";
+type Status = "submitted" | "changes_requested" | "rejected" | "verified";
+export const STATUS_LABEL: Record<string, string> = { submitted: "Awaiting review", changes_requested: "Changes requested", rejected: "Rejected", verified: "Verified", draft: "Draft" };
+const STATUSES: Status[] = ["submitted", "changes_requested", "rejected", "verified"];
+
+function Completeness({ items }: { items: Schemas["CompletenessItem"][] }) {
   return (
-    <li className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3 text-sm">
-      <span className="flex items-center gap-2"><Avatar name={avatar ?? label} size={28} />{label}</span>
-      <span className="flex items-center gap-2">
-        {error != null && <ErrorMsg error={error} />}
-        <Button variant={verified ? "default" : "outline"} aria-pressed={verified} aria-label={`${verified ? "Unverify" : "Verify"} ${label}`} disabled={busy} onClick={() => void flip()}>
-          {verified ? "Verified" : "Not verified"}
-        </Button>
-      </span>
-    </li>
+    <ul className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+      {items.map((c) => (
+        <li key={c.label} className={`flex items-center gap-1 ${c.ok ? "text-foreground" : "text-muted-foreground"}`}>
+          {c.ok ? <CheckCircle2 className="h-3.5 w-3.5 text-primary" aria-label="complete" /> : <Circle className="h-3.5 w-3.5" aria-label="missing" />}
+          {c.label}{c.count != null ? ` (${c.count})` : ""}
+        </li>
+      ))}
+    </ul>
   );
 }
 
-function Body() {
-  const practices = useFetch<Schemas["PracticesOut"]>("/practices");
-  const therapists = useFetch<Schemas["AdminTherapistsOut"]>("/admin/therapists");
+function Queue() {
+  const [subject, setSubject] = useState<Subject>("therapist");
+  const [status, setStatus] = useState<Status>("submitted");
+  const { data, error, loading } = useFetch<Schemas["QueueOut"]>("/admin/verification-queue", { subject, status });
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold">Admin: verification</h1>
+        <h1 className="text-2xl font-semibold">Verification queue</h1>
         <p className="text-sm text-muted-foreground">Only published and verified practices, and verified therapists, appear publicly.</p>
       </div>
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">Practices</h2>
-        {practices.loading && !practices.data ? <Loading /> : practices.error != null ? <ErrorMsg error={practices.error} /> :
-          !practices.data?.items.length ? <Empty>No practices.</Empty> :
-            <ul className="space-y-2">{practices.data.items.map((p) => <Toggle key={p.id} label={`${p.name} (${p.status})`} verified={p.verified} path={`/admin/practices/${p.id}/verify`} onDone={practices.reload} />)}</ul>}
-      </section>
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">Therapists</h2>
-        {therapists.loading && !therapists.data ? <Loading /> : therapists.error != null ? <ErrorMsg error={therapists.error} /> :
-          !therapists.data?.items.length ? <Empty>No therapists.</Empty> :
-            <ul className="space-y-2">{therapists.data.items.map((t) => <Toggle key={t.id} avatar={t.name} label={`${t.name ?? `Therapist #${t.id}`} · ${t.practice_name}`} verified={t.verified} path={`/admin/therapists/${t.id}/verify`} onDone={therapists.reload} />)}</ul>}
-      </section>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div role="tablist" aria-label="Subject" className="inline-flex rounded-md border p-0.5">
+          {(["therapist", "practice"] as Subject[]).map((s) => (
+            <button key={s} role="tab" aria-selected={subject === s} onClick={() => setSubject(s)}
+              className={`rounded px-4 py-1.5 text-sm font-medium ${subject === s ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
+              {s === "therapist" ? "Therapists" : "Practices"}
+            </button>
+          ))}
+        </div>
+        <label className="flex items-center gap-2 text-sm">Status
+          <select className="h-9 rounded-md border bg-background px-2" value={status} onChange={(e) => setStatus(e.target.value as Status)}>
+            {STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
+          </select>
+        </label>
+      </div>
+      {loading && !data ? <Loading /> : error != null ? <ErrorMsg error={error} /> :
+        !data?.items.length ? <Empty>Nothing {status === "submitted" ? "waiting for review" : `with status “${STATUS_LABEL[status].toLowerCase()}”`}.</Empty> : (
+          <div className="overflow-x-auto rounded-md border">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+                <tr><th className="p-3">{subject === "therapist" ? "Therapist" : "Practice"}</th><th className="p-3">City</th><th className="p-3">Submitted</th><th className="p-3">Completeness</th></tr>
+              </thead>
+              <tbody>
+                {data.items.map((i) => (
+                  <tr key={i.id} className="border-t align-top">
+                    <td className="p-3">
+                      <Link className="flex items-center gap-2 font-medium text-primary hover:underline" to={`/admin/review/${subject}/${i.id}`}>
+                        <Avatar name={i.name} size={28} />{i.name}
+                      </Link>
+                      {status !== "submitted" && <Badge className="mt-1">{STATUS_LABEL[i.verification_status] ?? i.verification_status}</Badge>}
+                    </td>
+                    <td className="p-3">{i.city ?? "—"}</td>
+                    <td className="p-3 whitespace-nowrap">{i.submitted_at ? fmt(i.submitted_at) : "—"}</td>
+                    <td className="p-3"><Completeness items={i.completeness} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
     </div>
   );
 }
 
-export default function Admin() {
+export function RequireAdmin({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <Loading />;
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== "admin") return <Navigate to="/" replace />;
-  return <Body />;
+  return <>{children}</>;
+}
+
+export default function Admin() {
+  return <RequireAdmin><Queue /></RequireAdmin>;
 }

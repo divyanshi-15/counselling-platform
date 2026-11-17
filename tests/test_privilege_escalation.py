@@ -74,8 +74,8 @@ def test_self_registered_therapist_is_not_public_and_cannot_self_verify() -> Non
         tid = profile.id
         assert profile.verified is False
     assert tid not in [i["id"] for i in client.get("/therapists/public").json()["items"]]
-    assert t.post(f"/admin/therapists/{tid}/verify").status_code == 403
-    assert _login(owner_email).post(f"/admin/practices/{pid}/verify").status_code == 403
+    assert t.post(f"/admin/therapists/{tid}/review", json={"decision": "verified"}).status_code == 403
+    assert _login(owner_email).post(f"/admin/practices/{pid}/review", json={"decision": "verified"}).status_code == 403
 
 
 def test_unverified_practice_stays_invisible_and_owner_cannot_verify() -> None:
@@ -88,7 +88,7 @@ def test_unverified_practice_stays_invisible_and_owner_cannot_verify() -> None:
     pid, action = r.json()["id"], r.json()["pending_action"]
     assert o.post(f"/pending-actions/{action['id']}/approve", headers={"Idempotency-Key": action["idempotency_key"]}).status_code == 200
     assert pid not in [i["id"] for i in client.get("/practices/public").json()["items"]]
-    assert o.post(f"/admin/practices/{pid}/verify").status_code == 403
+    assert o.post(f"/admin/practices/{pid}/review", json={"decision": "verified"}).status_code == 403
 
 
 def test_client_cannot_patch_or_escalate_own_role() -> None:
@@ -99,7 +99,7 @@ def test_client_cannot_patch_or_escalate_own_role() -> None:
         assert r.status_code in (404, 405, 403)
     assert c.get("/auth/me").json()["role"] == "client"
     assert c.post("/practices/draft", json={"name": "X", "location": "Y"}).status_code == 403
-    assert c.post("/admin/practices/1/verify").status_code == 403
+    assert c.post("/admin/practices/1/review", json={"decision": "verified"}).status_code == 403
 
 
 def test_demo_login_refuses_admin_and_404_when_off(monkeypatch) -> None:

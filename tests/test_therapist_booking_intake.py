@@ -155,7 +155,7 @@ def test_practice_owner_cannot_access_another_practices_bookings_or_intake(scena
         "starts_at": (datetime.now(timezone.utc) + timedelta(days=4)).isoformat(),
         "ends_at": (datetime.now(timezone.utc) + timedelta(days=4, minutes=50)).isoformat(),
     }, headers=owner).status_code == 403
-    assert client.post(f"/admin/therapists/{scenario['therapist_b'].id}/verify", headers=owner).status_code == 403
+    assert client.post(f"/admin/therapists/{scenario['therapist_b'].id}/review", json={"decision": "verified"}, headers=owner).status_code == 403
 
 
 def test_client_cannot_read_another_clients_intake_or_dashboard(scenario) -> None:

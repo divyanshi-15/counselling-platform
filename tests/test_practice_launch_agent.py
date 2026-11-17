@@ -308,19 +308,23 @@ def test_admin_verification_does_not_publish_or_change_page_and_is_audited() -> 
         admin_token, admin_id = _register_user(client, "admin")
         practice = _create_practice(admin_id)
         original_page = practice.page_json
+        with SessionLocal() as db:
+            db.query(Practice).filter(Practice.id == practice.id).update({"verification_status": "submitted"})
+            db.commit()
         response = client.post(
-            f"/admin/practices/{practice.id}/verify",
+            f"/admin/practices/{practice.id}/review",
             headers={"Authorization": f"Bearer {admin_token}"},
+            json={"decision": "verified"},
         )
         assert response.status_code == 200
-        assert response.json()["status"] == "draft"
+        assert response.json()["status"] == "verified"
         assert response.json()["verified"] is True
         with SessionLocal() as db:
             updated = db.query(Practice).filter(Practice.id == practice.id).first()
             assert updated.status == "draft"
             assert updated.page_json == original_page
             audit = db.query(AuditLog).filter(
-                AuditLog.action == "practice.verify",
+                AuditLog.action == "practice.review",
                 AuditLog.entity_id == practice.id,
             ).one()
             assert audit.actor_id == admin_id

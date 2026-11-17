@@ -143,6 +143,7 @@ class ReviewIn(_In):
 
     @model_validator(mode="after")
     def _check(self):
+        self.note = (self.note or "").strip() or None
         if self.decision != "verified" and not self.note:
             raise ValueError("A reviewer note is required")
         return self
@@ -159,6 +160,14 @@ class ReviewOut(_Out):
 class AdminVerificationOut(VerificationOut):
     id: int
     name: str | None = None
+    practice_name: str | None = None
+    city: str | None = None
+    bio: str = ""
+    approaches: list[str] = []
+    languages: list[str] = []
+    specialisations: list[str] = []
+    fee: int | None = None
+    years_experience: int | None = None
 
 
 # ---------- helpers ----------
@@ -268,8 +277,8 @@ def read_upload(request: Request, file: UploadFile) -> bytes:
     return data
 
 
-def _audit(db: Session, actor: User, action: str, profile: TherapistProfile, **details: object) -> None:
-    db.add(AuditLog(action=action, actor_id=actor.id, entity_type="therapist_profile", entity_id=profile.id, details=details))
+def _audit(db: Session, actor: User, action: str, profile: TherapistProfile, *, note: str | None = None, **details: object) -> None:
+    db.add(AuditLog(action=action, actor_id=actor.id, entity_type="therapist_profile", entity_id=profile.id, details=details, note=note))
 
 
 # ---------- therapist: profile ----------
@@ -478,19 +487,27 @@ def admin_verification(therapist_id: int, db: Session = Depends(get_db), _: User
     if profile is None:
         raise HTTPException(status_code=404, detail="Therapist profile not found")
     owner = db.get(User, profile.user_id)
-    return {"id": profile.id, "name": owner.name if owner else None, **verification_summary(db, profile)}
+    practice = db.get(Practice, profile.practice_id)
+    return {"id": profile.id, "name": owner.name if owner else None,
+            "practice_name": practice.name if practice else None, "city": practice.city if practice else None,
+            "bio": profile.bio, "approaches": profile.approaches or [], "languages": profile.languages or [],
+            "specialisations": profile.specialisations or [], "fee": profile.fee, "years_experience": profile.years_experience,
+            **verification_summary(db, profile)}
 
 
 @router.post("/admin/therapists/{therapist_id}/review", response_model=ReviewOut)
 def review_therapist(therapist_id: int, payload: ReviewIn, db: Session = Depends(get_db),
                      admin: User = Depends(require_roles(UserRole.admin))):
-    profile = db.get(TherapistProfile, therapist_id)
+    profile = db.get(TherapistProfile, therapist_id, with_for_update=True)
     if profile is None:
         raise HTTPException(status_code=404, detail="Therapist profile not found")
-    if profile.verification_status != "submitted":
+    if profile.verification_status == payload.decision:
+        pass  # repeat of the decision already taken: same answer, no second audit row
+    elif profile.verification_status != "submitted":
         raise HTTPException(status_code=409, detail="Only a submitted profile can be reviewed")
-    set_status(profile, payload.decision, payload.note, reviewed=True)
-    _audit(db, admin, "therapist.review", profile, decision=payload.decision)
-    db.commit()
+    else:
+        set_status(profile, payload.decision, payload.note, reviewed=True)
+        _audit(db, admin, "therapist.review", profile, note=payload.note, decision=payload.decision)
+        db.commit()
     return {"id": profile.id, "status": profile.verification_status, "verified": profile.verified,
             "reviewer_note": profile.reviewer_note, "reviewed_at": profile.reviewed_at}

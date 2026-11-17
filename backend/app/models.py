@@ -237,6 +237,7 @@ class AuditLog(Base):
     entity_type: Mapped[str] = mapped_column(String(100), nullable=False)
     entity_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     details: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, nullable=False)
 
 

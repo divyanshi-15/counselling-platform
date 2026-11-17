@@ -53,8 +53,9 @@ from backend.app.models import (
     UserRole,
 )
 from backend.app.analytics import router as analytics_router
-from backend.app.verification import profile_dict, router as verification_router, set_status
-from backend.app.practice_setup import generate_unique_slug as _generate_unique_slug, router as practice_setup_router, set_practice_status
+from backend.app.admin_queue import router as admin_queue_router
+from backend.app.verification import profile_dict, router as verification_router
+from backend.app.practice_setup import generate_unique_slug as _generate_unique_slug, router as practice_setup_router
 from backend.app.braindump import DraftEdit, router as braindump_router
 from backend.app.exercises import approved_exercises, template_for, router as exercises_router, with_notice
 from backend.app.ratelimit import client_rate_limit, contact_rate_limit
@@ -62,7 +63,7 @@ from backend.app.rag import index_session_notes
 from backend.app.safety import CRISIS_MESSAGE, check_claims, clinical_output_violations, render_prompt_data, risk_scan, validate_ai_output
 from backend.app.schemas import (
     PublicPracticeDetailOut, PublicPracticesOut, PublicTherapist, PublicTherapistsOut,
-    AdminTherapistsOut, AgentRunsOut, AlertItem, AlertsOut, OwnerActionsOut, PracticeDraftOut, PracticesOut, VerifyIn, VerifyOut, AssessmentOut, AssessmentsOut, BriefingsOut, CasePlanOut, CasePlansOut,
+    AdminTherapistsOut, AgentRunsOut, AlertItem, AlertsOut, OwnerActionsOut, PracticeDraftOut, PracticesOut, AssessmentOut, AssessmentsOut, BriefingsOut, CasePlanOut, CasePlansOut,
     OvernightOut, PendingActionOut, PrepareDayOut, SessionNotesOut, TherapistActionsOut,
     TherapistBookingsOut, TherapistProfileOut,
     MessageResponse,
@@ -107,6 +108,7 @@ app.include_router(exercises_router)
 app.include_router(braindump_router)
 app.include_router(analytics_router)
 app.include_router(verification_router)
+app.include_router(admin_queue_router)
 app.include_router(practice_setup_router)
 
 
@@ -945,47 +947,6 @@ def admin_therapists(
     return {"items": [{"id": p.id, "name": u.name, "practice_id": pr.id, "practice_name": pr.name, "verified": p.verified,
                        "verification_status": p.verification_status}
                       for p, u, pr in rows]}
-
-
-@app.post("/admin/therapists/{therapist_id}/verify", response_model=VerifyOut)
-def verify_therapist(
-    therapist_id: int,
-    payload: VerifyIn | None = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.admin)),
-) -> dict[str, object]:
-    profile = db.query(TherapistProfile).filter(TherapistProfile.id == therapist_id).first()
-    if profile is None:
-        raise HTTPException(status_code=404, detail="Therapist profile not found")
-    verified = payload.verified if payload else True
-    set_status(profile, "verified" if verified else "rejected", None, reviewed=True)
-    db.add(AuditLog(action="therapist.verify", actor_id=current_user.id, entity_type="therapist_profile",
-                    entity_id=profile.id, details={"verified": profile.verified}))
-    db.commit()
-    return {"id": profile.id, "verified": profile.verified}
-
-
-@app.post("/admin/practices/{practice_id}/verify", response_model=VerifyOut)
-def verify_practice(
-    practice_id: int,
-    payload: VerifyIn | None = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.admin)),
-) -> dict[str, object]:
-    record = db.query(Practice).filter(Practice.id == practice_id).first()
-    if not record:
-        raise HTTPException(status_code=404, detail="Practice not found")
-    set_practice_status(record, "verified" if (payload.verified if payload else True) else "rejected", None, reviewed=True)
-    db.add(AuditLog(
-        action="practice.verify",
-        actor_id=current_user.id,
-        entity_type="practice",
-        entity_id=record.id,
-        details={"verified": record.verified},
-    ))
-    db.commit()
-    db.refresh(record)
-    return {"id": record.id, "status": record.status, "verified": record.verified}
 
 
 @app.get("/pending-actions", response_model=OwnerActionsOut)

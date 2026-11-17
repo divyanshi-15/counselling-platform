@@ -275,11 +275,69 @@ def test_rejected_practice_is_locked(world) -> None:
     assert client.put(f"/owner/practices/{pid}/page", headers=h, json={"tagline": "t", "text": "plain text"}).status_code == 409
 
 
-def test_legacy_admin_toggle_keeps_status_in_sync(world) -> None:
+def test_admin_queue_lists_submitted_practices_with_completeness(world) -> None:
+    pid = _ready(world)
+    h, a = world["h"]["owner"], world["h"]["admin"]
+    q = lambda **p: client.get("/admin/verification-queue", headers=a, params={"subject": "practice", **p}).json()["items"]
+    assert pid not in [i["id"] for i in q()]
+    client.post(f"/owner/practices/{pid}/submit", headers=h)
+    item = next(i for i in q() if i["id"] == pid)
+    assert item["name"] == "Setup Practice" and item["city"] == "Pune" and item["submitted_at"]
+    assert {c["label"]: c["ok"] for c in item["completeness"]} == {"Details complete": True, "Documents": True, "Team": False,
+                                                                    "Page text saved": True}
+    assert next(c for c in item["completeness"] if c["label"] == "Documents")["count"] == 1
+    client.post(f"/admin/practices/{pid}/review", headers=a, json={"decision": "rejected", "note": "Not eligible."})
+    assert pid not in [i["id"] for i in q()] and pid in [i["id"] for i in q(status="rejected")]
+    assert client.get("/admin/verification-queue", headers=a, params={"status": "draft"}).status_code == 422
+
+
+@pytest.mark.parametrize("who", ["owner", "ther", "client"])
+def test_admin_queue_review_and_audit_are_admin_only(world, who) -> None:
+    pid = _ready(world)
+    h = world["h"][who]
+    assert client.get("/admin/verification-queue", headers=h).status_code == 403
+    assert client.get(f"/admin/practices/{pid}/audit", headers=h).status_code == 403
+    assert client.get(f"/admin/therapists/{world['other_profile']}/audit", headers=h).status_code == 403
+    assert client.post(f"/admin/practices/{pid}/review", headers=h, json={"decision": "verified"}).status_code == 403
+    assert client.get("/admin/verification-queue").status_code == 401
+
+
+def test_legacy_verify_toggle_is_gone(world) -> None:
     pid = _create(world)
-    r = client.post(f"/admin/practices/{pid}/verify", headers=world["h"]["admin"], json={"verified": True})
-    assert r.json()["verified"] is True
-    assert client.get(f"/admin/practices/{pid}/verification", headers=world["h"]["admin"]).json()["verification_status"] == "verified"
+    for path in (f"/admin/practices/{pid}/verify", f"/admin/therapists/{world['other_profile']}/verify"):
+        assert client.post(path, headers=world["h"]["admin"], json={"verified": True}).status_code in (404, 405)
+
+
+def test_review_decisions_are_audited_once_and_idempotent(world) -> None:
+    pid = _ready(world)
+    h, a = world["h"]["owner"], world["h"]["admin"]
+    client.post(f"/owner/practices/{pid}/submit", headers=h)
+    assert client.post(f"/admin/practices/{pid}/review", headers=a, json={"decision": "changes_requested", "note": "  "}).status_code == 422
+    body = {"decision": "changes_requested", "note": "Add an address proof."}
+    first = client.post(f"/admin/practices/{pid}/review", headers=a, json=body)
+    again = client.post(f"/admin/practices/{pid}/review", headers=a, json=body)  # double click
+    assert first.status_code == again.status_code == 200 and first.json() == again.json()
+    assert client.post(f"/admin/practices/{pid}/review", headers=a, json={"decision": "verified"}).status_code == 409
+    client.post(f"/owner/practices/{pid}/submit", headers=h)
+    client.post(f"/admin/practices/{pid}/review", headers=a, json={"decision": "verified"})
+    assert client.post(f"/admin/practices/{pid}/review", headers=a, json={"decision": "verified"}).status_code == 200
+    assert client.post(f"/admin/practices/{pid}/review", headers=a, json={"decision": "rejected", "note": "x"}).status_code == 409
+    hist = client.get(f"/admin/practices/{pid}/audit", headers=a).json()["items"]
+    reviews = [i for i in hist if i["action"] == "practice.review"]
+    assert [(r["decision"], r["note"]) for r in reviews] == [("verified", None), ("changes_requested", "Add an address proof.")]
+    assert all(r["actor_name"] == "Admin" and r["actor_role"] == "admin" for r in reviews)
+    assert client.get("/admin/practices/999999/audit", headers=a).status_code == 404
+
+
+def test_admin_downloads_practice_document_and_it_is_audited(world) -> None:
+    pid = _create(world)
+    doc_id = _doc(world, pid).json()["id"]
+    url = f"/verification-documents/{doc_id}/download"
+    assert client.get(url, headers=world["h"]["admin"]).content == PDF
+    actions = [i["action"] for i in client.get(f"/admin/practices/{pid}/audit", headers=world["h"]["admin"]).json()["items"]]
+    assert "verification_document.download" in actions
+    assert client.get(url, headers=world["h"]["owner_b"]).status_code == 404
+    assert client.get(url, headers=world["h"]["client"]).status_code == 403
 
 
 # ---------- page draft ----------

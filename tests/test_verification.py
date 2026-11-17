@@ -310,13 +310,48 @@ def test_verified_therapist_editing_license_returns_to_review(world) -> None:
     assert client.delete(f"/therapists/me/licenses/{lic['id']}", headers=h).status_code in (409,)
 
 
-def test_legacy_admin_verify_toggle_keeps_status_in_sync(world) -> None:
+def test_admin_queue_lists_submitted_therapists_with_completeness(world) -> None:
     pid = world["p"]["a"]
-    assert client.post(f"/admin/therapists/{pid}/verify", headers=world["h"]["admin"], json={"verified": True}).json()["verified"] is True
-    assert _status(world) == "verified"
-    client.post(f"/admin/therapists/{pid}/verify", headers=world["h"]["admin"], json={"verified": False})
-    assert _status(world) == "rejected"
-    assert client.post(f"/admin/therapists/{pid}/verify", headers=world["h"]["a"], json={"verified": True}).status_code == 403
+    admin = world["h"]["admin"]
+    q = lambda **p: client.get("/admin/verification-queue", headers=admin, params=p).json()["items"]
+    assert pid not in [i["id"] for i in q()]
+    _complete(world)
+    client.post("/therapists/me/verification/submit", headers=world["h"]["a"])
+    item = next(i for i in q() if i["id"] == pid)
+    assert item["name"] == "Therapist-A" and item["submitted_at"] and item["verification_status"] == "submitted"
+    assert {c["label"]: c["count"] for c in item["completeness"]} == {"Education": 1, "Licences": 1, "Documents": 1}
+    assert _review(world, pid, "rejected", "Registration number does not match.").status_code == 200
+    assert pid not in [i["id"] for i in q()] and pid in [i["id"] for i in q(status="rejected")]
+
+
+@pytest.mark.parametrize("who", ["a", "client", "owner"])
+def test_therapist_audit_and_queue_are_admin_only(world, who) -> None:
+    assert client.get("/admin/verification-queue", headers=world["h"][who]).status_code == 403
+    assert client.get(f"/admin/therapists/{world['p']['a']}/audit", headers=world["h"][who]).status_code == 403
+
+
+def test_therapist_review_is_audited_with_note_and_idempotent(world) -> None:
+    pid = world["p"]["a"]
+    _complete(world)
+    client.post("/therapists/me/verification/submit", headers=world["h"]["a"])
+    assert _review(world, pid, "changes_requested").status_code == 422
+    assert _review(world, pid, "rejected", "   ").status_code == 422
+    assert _review(world, pid, "changes_requested", "Upload a clearer licence scan.").status_code == 200
+    assert _review(world, pid, "changes_requested", "Upload a clearer licence scan.").status_code == 200
+    assert _review(world, pid, "verified").status_code == 409  # no longer submitted
+    client.post("/therapists/me/verification/submit", headers=world["h"]["a"])
+    assert _review(world, pid, "verified").status_code == 200
+    assert _review(world, pid, "verified").status_code == 200
+    assert _review(world, pid, "rejected", "Changed my mind.").status_code == 409
+    hist = client.get(f"/admin/therapists/{pid}/audit", headers=world["h"]["admin"]).json()["items"]
+    reviews = [i for i in hist if i["action"] == "therapist.review"]
+    assert [(r["decision"], r["note"]) for r in reviews] == [("verified", None), ("changes_requested", "Upload a clearer licence scan.")]
+    assert reviews[0]["actor_role"] == "admin"
+    assert client.get("/admin/therapists/999999/audit", headers=world["h"]["admin"]).status_code == 404
+
+
+def test_legacy_therapist_verify_toggle_is_gone(world) -> None:
+    assert client.post(f"/admin/therapists/{world['p']['a']}/verify", headers=world["h"]["admin"], json={"verified": True}).status_code in (404, 405)
 
 
 def test_admin_review_detail_is_admin_only(world) -> None:
