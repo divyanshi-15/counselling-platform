@@ -94,6 +94,44 @@ Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2, Alembic, APScheduler; PostgreSQ
 
 The hosted site runs with `DEMO_MODE=0` and `FAKE_LLM=0`. The app refuses `FAKE_LLM=1` with `DEMO_MODE=0` and `APP_ENV=production`. `DEMO_MODE=1` and `FAKE_LLM=1` are for local demos and e2e only. All variables are listed in `.env.example`.
 
+## Hackathon: idea to launch
+
+A practice owner describes their practice in a sentence. The launch agent proposes a page address (`/p/<slug>`), a draft page, a welcome email and a checklist as one pending action. The owner reviews, edits and approves; an admin verifies the practice; it goes live and clients book inside Saarthi.
+
+```mermaid
+flowchart LR
+    Owner[Practice owner] -->|one-sentence idea| Launch[Launch agent<br/>bounded tool loop]
+    Launch --> Claude[Claude: drafts page, email, checklist]
+    Launch --> GD[GoDaddy API: domain search links, DNS record guidance]
+    Launch -->|proposes only| Pending[(pending_action)]
+    Pending -->|owner approves / edits| Draft[Draft page + slug]
+    Draft -->|admin verifies| Live[Published page /p/slug]
+    Live --> Book[Clients book in Saarthi]
+    Pending --> Audit[(audit log)]
+    Draft --> Audit
+    Client[Client free text] --> Safety[No-LLM crisis path<br/>keywords + classifier]
+    Safety -->|hit| Fixed[Fixed Tele-MANAS 14416 message<br/>+ therapist alert]
+```
+
+**Where Claude is used:** the launch agent (page draft, welcome email, checklist), the therapist copilot (briefings, plan-update and exercise proposals) and the overnight monitor. All output is Pydantic-validated and post-checked for diagnoses and medication advice.
+
+**Where GoDaddy is used:** domain, DNS, hosting and business email. Owners who want their own domain get GoDaddy search links and the exact DNS records to add. DNS is written only when `GODADDY_ALLOW_DNS_WRITE=1` and the owner confirms.
+
+**Safety design**
+- Crisis detection runs on all client free text with no LLM call and returns a fixed message with Tele-MANAS 14416 plus a high-priority therapist alert.
+- AI only proposes. Publishing, releasing an exercise, applying a plan update and sending email each need an authenticated human action with an idempotency key.
+- Approvals, edits and verification decisions are written to the audit log.
+
+**Known limits**
+- Serving a practice on its custom domain is not built; the page is served at `/p/<slug>`.
+- Domain availability is a link out to GoDaddy search, not a live check, and no domain is bought automatically.
+- The welcome email is a draft for the owner to send; Saarthi does not send it.
+- Contact-form messages that look like a crisis are saved, not emailed.
+
+**What's next:** serve verified practices on their own domains, in-app welcome email sending, more regional languages, and the roadmap items below.
+
+**Review accounts:** `JUDGE_PASSWORD_CLIENT=... JUDGE_PASSWORD_THERAPIST=... JUDGE_PASSWORD_OWNER=... python -m backend.scripts.create_judge_accounts` creates or refreshes one client, one verified therapist with fictional case data, and one owner with a draft practice. Passwords are read from the environment (12+ characters) and never stored in the repo.
+
 ## Seeded accounts (LOCAL use only)
 
 All people are fictional. **Change every seeded password before any public hosting, or do not seed.**

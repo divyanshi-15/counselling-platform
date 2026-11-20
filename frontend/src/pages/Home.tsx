@@ -10,6 +10,14 @@ const STEPS = [
   ["Practise between sessions", "Your therapist releases short, evidence-based exercises. Check-ins feed back into your next session."],
 ] as const;
 
+const LAUNCH = [
+  ["Describe your practice", "Tell us about it in a sentence."],
+  ["AI proposes the setup", "A page address (saarthi-cares.com/p/your-practice), a draft page, a welcome email and a checklist."],
+  ["You review and approve", "Edit anything. Nothing is applied until you approve."],
+  ["Verified and live", "Once the practice is verified, the page goes live."],
+  ["Clients book in Saarthi", "Bookings happen inside Saarthi."],
+] as const;
+
 const AUDIENCES = [
   { icon: HeartHandshake, title: "For clients", points: ["Therapists verified by our team", "Sessions in English and Hindi", "Exercises approved by your therapist", "A crisis line (Tele-MANAS 14416) on every page"], cta: ["Find a therapist", "/directory"] },
   { icon: UserCheck, title: "For therapists", points: ["A morning briefing for every client on your day", "Risk alerts pinned first, with the exact words that triggered them", "Every suggestion cites its source and is marked as inferred", "You approve anything before it reaches a client"], cta: ["Join as a therapist", "/signup?role=therapist"] },
@@ -52,6 +60,22 @@ export default function Home() {
               <CardTitle className="text-lg">{t}</CardTitle></CardHeader><CardContent className="text-sm text-muted-foreground">{d}</CardContent></Card></li>
           ))}
         </ol>
+      </section>
+
+      <section aria-labelledby="launch" className="space-y-4">
+        <h2 id="launch" className="text-2xl font-semibold">How Saarthi launches your practice</h2>
+        <ol className="grid gap-3 md:grid-cols-5">
+          {LAUNCH.map(([t, d], i) => (
+            <li key={t}><Card className="h-full"><CardHeader>
+              <span className="mb-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">{i + 1}</span>
+              <CardTitle className="text-base">{t}</CardTitle></CardHeader><CardContent className="text-sm text-muted-foreground">{d}</CardContent></Card></li>
+          ))}
+        </ol>
+        <div className="rounded-md border p-4 text-sm">
+          <h3 className="font-medium">Built with Claude and GoDaddy</h3>
+          <p className="text-muted-foreground">Claude drafts and proposes; nothing is applied without a human. GoDaddy provides the domain, DNS, hosting and business email. Owners who want their own domain are guided to register it on GoDaddy and get the exact DNS records to add.</p>
+        </div>
+        <p className="text-sm text-muted-foreground"><span className="font-medium text-foreground">Built for solo practitioners.</span> Hindi support, a mobile-first design and a free pilot.</p>
       </section>
 
       <section aria-label="Who it is for" className="grid gap-3 md:grid-cols-3">
