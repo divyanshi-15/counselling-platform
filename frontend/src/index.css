@@ -1,4 +1,5 @@
 @import "@fontsource-variable/inter";
+@import "@fontsource-variable/fraunces";
 @import "tailwindcss";
 
 @theme inline {
@@ -8,23 +9,61 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
-  --color-input: var(--border);
+  --color-input: var(--input);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
-  --radius-md: 0.5rem;
+}
+
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces Variable", Georgia, "Times New Roman", serif;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --shadow-sm: 0 1px 2px rgb(31 45 43 / 0.05), 0 2px 8px rgb(31 45 43 / 0.04);
+  --shadow-md: 0 2px 4px rgb(31 45 43 / 0.05), 0 8px 24px rgb(31 45 43 / 0.08);
+
+  /* Status palettes remapped to the brand so existing amber/emerald/red/sky/slate utilities inherit it. */
+  --color-slate-50: #f6f4ee; --color-slate-300: #d6d1c4; --color-slate-500: #66726f; --color-slate-800: #1f2d2b;
+  --color-sky-50: #eaf3f2; --color-sky-300: #9cc8c3; --color-sky-900: #1d4b47;
+  --color-emerald-50: #eaf4ee; --color-emerald-400: #5fa886; --color-emerald-500: #3f8f6b; --color-emerald-600: #2f7a58;
+  --color-emerald-700: #276549; --color-emerald-800: #1f5239; --color-emerald-900: #19422f;
+  --color-amber-50: #fbf3e4; --color-amber-100: #f6e4bf; --color-amber-400: #d9a441; --color-amber-700: #8a5a12;
+  --color-amber-800: #75490c; --color-amber-900: #5f3b0a;
+  --color-red-50: #fbeeea; --color-red-300: #e3a99a; --color-red-400: #d4806d; --color-red-500: #c4543c;
+  --color-red-600: #b0402a; --color-red-800: #8a2f1c; --color-red-900: #6f2616;
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #0f172a;
+  --background: #fbfaf7;
+  --foreground: #1f2d2b;
   --card: #ffffff;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --border: #e2e8f0;
-  --primary: #0d9488; /* the one accent */
+  --muted: #f2efe8;
+  --muted-foreground: #55635f;
+  --border: #e4e0d5;
+  --input: #cfcabc;
+  --primary: #2f7f79; /* logo teal */
+  --primary-hover: #286b66;
   --primary-foreground: #ffffff;
-  --destructive: #dc2626;
+  --primary-soft: #e6f1ef;
+  --accent: #d9825b; /* terracotta call to action; ink text keeps AA contrast */
+  --accent-hover: #cc7348;
+  --accent-foreground: #1f2d2b;
+  --destructive: #b0402a;
 }
 
-body { background: var(--background); color: var(--foreground); font-family: "Inter Variable", ui-sans-serif, system-ui, sans-serif; }
+@layer base {
+  body { background: var(--background); color: var(--foreground); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.01em; }
+  table, td, th { font-variant-numeric: tabular-nums; }
+  a, button, summary, input, select, textarea { outline-offset: 2px; }
+  :focus-visible { outline: 2px solid var(--primary); }
+  ::selection { background: var(--primary-soft); }
+}

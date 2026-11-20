@@ -1,6 +1,6 @@
 const PALETTE = [
-  ["#ccfbf1", "#115e59"], ["#e0e7ff", "#3730a3"], ["#fce7f3", "#9d174d"], ["#fef3c7", "#92400e"],
-  ["#dcfce7", "#166534"], ["#e0f2fe", "#075985"], ["#ede9fe", "#5b21b6"], ["#ffedd5", "#9a3412"],
+  ["#DCEDEA", "#1D5753"], ["#F8E3D8", "#8A3F1D"], ["#E8EEDD", "#3F5A1E"], ["#F6EBCB", "#6B4A0C"],
+  ["#E3ECF0", "#2A5163"], ["#F1E2E6", "#7A2E45"], ["#E9E5F2", "#4A3A7A"], ["#EFE9DC", "#5A4A2A"],
 ];
 
 export function initials(name: string): string {

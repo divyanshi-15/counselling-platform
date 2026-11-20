@@ -10,7 +10,7 @@ import { TechnicalDetails } from "@/components/TechnicalDetails";
 import type { Schemas } from "./common";
 
 type Series = NonNullable<Schemas["ScoresOut"]["PHQ9"]>;
-export const WARN = "#b45309";
+export const WARN = "#A8552F";
 
 /** One measure: latest score, change since first reading, count and sparkline. */
 export function ScoreStat({ label, s }: { label: string; s: Series | null | undefined }) {

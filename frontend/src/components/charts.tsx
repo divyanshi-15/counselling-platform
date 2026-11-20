@@ -1,7 +1,7 @@
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-export const ACCENT = "#0d9488";
-export const NEUTRAL = "#64748b";
+export const ACCENT = "#2F7F79";
+export const NEUTRAL = "#5B6A67";
 const tick = { fontSize: 11, fill: NEUTRAL };
 const axisLabel = (value: string, angle = 0) => ({ value, angle, position: angle ? "insideLeft" as const : "insideBottom" as const, offset: angle ? 12 : -2, style: { fontSize: 11, fill: NEUTRAL, textAnchor: "middle" as const } });
 
@@ -21,10 +21,10 @@ export function Bars({ data, x, y, xLabel, yLabel, name }: { data: Row[]; x: str
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} margin={{ top: 8, right: 8, bottom: 22, left: 4 }}>
-        <CartesianGrid vertical={false} stroke="#e2e8f0" />
+        <CartesianGrid vertical={false} stroke="#E4E0D5" />
         <XAxis dataKey={x} tick={tick} interval="preserveStartEnd" minTickGap={14} label={axisLabel(xLabel)} />
         <YAxis tick={tick} width={34} allowDecimals={false} label={axisLabel(yLabel, -90)} />
-        <Tooltip cursor={{ fill: "#f1f5f9" }} />
+        <Tooltip contentStyle={{ borderRadius: 12, borderColor: "#E4E0D5", fontSize: 12 }} cursor={{ fill: "#F2EFE8" }} />
         <Bar dataKey={y} name={name} fill={ACCENT} radius={[3, 3, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
@@ -39,7 +39,7 @@ export function Lines({ data, x, lines, xLabel, yLabel, fmt, domain }: {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data} margin={{ top: 8, right: 12, bottom: 22, left: 4 }}>
-        <CartesianGrid vertical={false} stroke="#e2e8f0" />
+        <CartesianGrid vertical={false} stroke="#E4E0D5" />
         <XAxis dataKey={x} tick={tick} label={axisLabel(xLabel)} />
         <YAxis tick={tick} width={fmt ? 52 : 34} domain={domain} tickFormatter={fmt} allowDecimals={false} label={axisLabel(yLabel, -90)} />
         <Tooltip formatter={(v) => (typeof v === "number" && fmt ? fmt(v) : v)} />

@@ -10,22 +10,22 @@ const COLS: [string, [string, string][]][] = [
 
 export function Footer() {
   return (
-    <footer className="mt-8 border-t bg-muted/40">
-      <div className="mx-auto grid max-w-5xl gap-6 px-4 py-8 sm:grid-cols-2 md:grid-cols-5">
+    <footer className="mt-12 border-t bg-muted">
+      <div className="mx-auto grid max-w-5xl gap-8 px-4 py-10 sm:grid-cols-2 md:grid-cols-5">
         <div className="space-y-2 md:col-span-1">
           <Wordmark />
           <p className="text-sm text-muted-foreground">Counselling that continues between sessions.</p>
         </div>
         {COLS.map(([title, links]) => (
           <nav key={title} aria-label={title} className="space-y-2 text-sm">
-            <h2 className="font-medium">{title}</h2>
+            <h2 className="font-display text-base font-semibold">{title}</h2>
             <ul className="space-y-1.5">{links.map(([l, to]) => <li key={l}><Link className="text-muted-foreground hover:text-foreground hover:underline" to={to}>{l}</Link></li>)}</ul>
           </nav>
         ))}
       </div>
-      <div className="border-t px-4 py-3 text-center text-xs text-muted-foreground">
-        <p>If you are in crisis, call Tele-MANAS 14416. Skill-building support, not a replacement for therapy.</p>
-        <p className="mt-1 text-[11px]">Sample data</p>
+      <div className="border-t bg-primary-soft px-4 py-4 text-center text-sm text-foreground">
+        <p className="font-medium">If you are in crisis, call Tele-MANAS 14416. Skill-building support, not a replacement for therapy.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Sample data</p>
       </div>
     </footer>
   );
