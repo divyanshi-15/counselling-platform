@@ -4,7 +4,7 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { homeFor, useAuth } from "@/lib/auth";
 import { Footer } from "@/components/Footer";
-import { Wordmark } from "@/components/Wordmark";
+import { Mark, Wordmark } from "@/components/Wordmark";
 
 export const CRISIS_NOTICE = "If you are in crisis or thinking of harming yourself, call Tele-MANAS 14416 now.";
 export const SUPPORT_NOTICE = "This is skill-building support, not a replacement for therapy.";
@@ -24,7 +24,7 @@ export function Layout() {
     <div className="min-h-screen flex flex-col">
       <header className="border-b">
         <div className="mx-auto max-w-5xl flex items-center justify-between gap-2 px-4 h-14">
-          <Link to="/" aria-label="Saarthi home"><Wordmark /></Link>
+          <Link to="/" aria-label="Saarthi home"><Mark className="sm:hidden" /><Wordmark className="hidden sm:inline-flex" /></Link>
           <nav className="flex items-center gap-2 text-sm">
             {user ? (
               <>
