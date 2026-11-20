@@ -130,7 +130,7 @@ def test_validation_retry_then_success(world, monkeypatch) -> None:
     model = Model("not json at all", GOOD)
     monkeypatch.setattr(copilot, "call_model", model)
     assert _post(client, w["ca"]).json()["status"] == "shared" and len(model.calls) == 2
-    assert "invalid" in model.calls[1][1][-1][0]
+    assert "not valid JSON for this schema" in model.calls[1][1][-1][0]
     assert _actions(w["ca"].id)[0].payload["draft"]["themes"] == GOOD["themes"]
 
 

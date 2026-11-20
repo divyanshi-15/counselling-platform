@@ -31,19 +31,33 @@ def _balanced_end(text: str, start: int) -> int | None:
 
 
 def _scan(text: str) -> Any | None:
-    tried = 0
-    for m in re.finditer(r"[{\[]", text):
-        if tried >= _MAX_STARTS:
-            break
+    """First complete JSON value. A structure that never closes (truncated reply) ends the scan: anything after
+    its opening brace is a fragment of it, and returning a nested piece would hand back the wrong shape."""
+    pos, tried = 0, 0
+    while tried < _MAX_STARTS and (m := re.compile(r"[{\[]").search(text, pos)):
         tried += 1
         end = _balanced_end(text, m.start())
         if end is None:
-            continue
+            return None
         try:
             return json.loads(text[m.start():end])
         except json.JSONDecodeError:
-            continue
+            pos = end
     return None
+
+
+class ModelText(str):
+    """Model reply text that remembers why generation stopped (e.g. 'max_tokens' = truncated)."""
+    stop_reason: str | None = None
+
+    def __new__(cls, text: str, stop_reason: str | None = None) -> "ModelText":
+        obj = super().__new__(cls, text)
+        obj.stop_reason = stop_reason
+        return obj
+
+
+def was_truncated(raw: Any) -> bool:
+    return getattr(raw, "stop_reason", None) == "max_tokens"
 
 
 def extract_json(text: str | None) -> Any | None:

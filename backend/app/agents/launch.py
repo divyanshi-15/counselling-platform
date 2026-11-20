@@ -11,7 +11,7 @@ from uuid import uuid4
 
 import httpx
 from backend.app import fake_llm
-from backend.app.json_extract import extract_json
+from backend.app.json_extract import ModelText, extract_json, was_truncated
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 MODEL_FAST = os.getenv("MODEL_FAST", "claude-haiku-5-5")
@@ -119,18 +119,25 @@ def _parse_json_payload(text: str | None) -> Any | None:
     return extract_json(text)
 
 
-def _request_page_json(prompt: str, *, max_tokens: int) -> str | None:
+def _request_page_json(prompt: str, *, max_tokens: int, prior: tuple[str, str] | None = None) -> str | None:
+    """`prior` = (previous reply, validation error) for the informed retry. Result carries `.stop_reason`."""
+    full_prompt = prompt if prior is None else prompt + "\n" + json.dumps(prior)
     if fake_llm.enabled():
-        return fake_llm.complete(PAGE_SYSTEM, prompt)
+        return fake_llm.complete(PAGE_SYSTEM, full_prompt)
     api_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("API_KEY")
     if not api_key or _budget_exceeded():
         return None
 
-    cached = _cached_model_output(MODEL_FAST, prompt)
-    if cached is not None and isinstance(cached.get("text"), str):
-        if _parse_json_payload(cached["text"]) is not None:
-            return cached["text"]
+    cache_key = json.dumps({"prompt": full_prompt, "max_tokens": max_tokens})
+    cached = _cached_model_output(MODEL_FAST, cache_key)
+    if cached is not None and isinstance(cached.get("text"), str) and _parse_json_payload(cached["text"]) is not None:
+        return ModelText(cached["text"], "end_turn")
 
+    messages: list[dict[str, str]] = [{"role": "user", "content": prompt}]
+    if prior is not None:
+        messages += [{"role": "assistant", "content": prior[0].strip() or "(empty reply)"},
+                     {"role": "user", "content": f"Your previous reply was not valid JSON for this schema: {prior[1]}. "
+                                                 "Reply with ONLY the JSON object, no prose, no code fences."}]
     try:
         response = httpx.post(
             "https://api.anthropic.com/v1/messages",
@@ -140,7 +147,7 @@ def _request_page_json(prompt: str, *, max_tokens: int) -> str | None:
                 "max_tokens": max_tokens,
                 "thinking": {"type": "disabled"},
                 "system": [{"type": "text", "text": PAGE_SYSTEM, "cache_control": {"type": "ephemeral"}}],
-                "messages": [{"role": "user", "content": prompt}],
+                "messages": messages,
             },
             timeout=30.0,
         )
@@ -149,8 +156,10 @@ def _request_page_json(prompt: str, *, max_tokens: int) -> str | None:
         text = "".join(block.get("text", "") for block in payload.get("content", []) if isinstance(block, dict) and block.get("type") == "text")
         usage = payload.get("usage", {})
         _record_token_usage(int(usage.get("input_tokens", 0)) + int(usage.get("output_tokens", 0)))
-        _write_cache(MODEL_FAST, prompt, {"text": text})
-        return text
+        reply = ModelText(text, payload.get("stop_reason"))
+        if not was_truncated(reply) and _parse_json_payload(text) is not None:  # never cache a truncated or unparseable reply
+            _write_cache(MODEL_FAST, cache_key, {"text": text})
+        return reply
     except Exception:
         return None
 
@@ -193,24 +202,24 @@ def _normalize_page_payload(payload: Any) -> dict[str, Any]:
 
 
 def _generate_validated_page(prompt: str, fallback: dict[str, Any], *, max_tokens: int) -> dict[str, Any]:
-    retry_prompt = prompt
+    prior: tuple[str, str] | None = None
+    limit = max_tokens
     for attempt in range(2):
-        response_text = _request_page_json(retry_prompt, max_tokens=max_tokens)
+        response_text = _request_page_json(prompt, max_tokens=limit, **({"prior": prior} if prior else {}))
         if response_text is None:
             return PracticePage.model_validate(fallback).model_dump()
-        payload = _parse_json_payload(response_text)
-        if payload is None:
-            if attempt == 1:
-                raise ValueError("Practice page generation returned invalid JSON after one retry.")
-            retry_prompt = f"{prompt}\nReturn corrected JSON only. The previous response failed page-schema validation."
-            continue
         try:
-            normalized = _normalize_page_payload(payload)
-            return PracticePage.model_validate(normalized).model_dump()
-        except ValidationError as exc:
+            payload = _parse_json_payload(response_text)
+            if payload is None:
+                raise ValueError("the reply was cut off before the JSON was complete" if was_truncated(response_text)
+                                 else "no JSON object found in the reply")
+            return PracticePage.model_validate(_normalize_page_payload(payload)).model_dump()
+        except (ValidationError, ValueError) as exc:
             if attempt == 1:
                 raise ValueError("Practice page generation returned invalid JSON after one retry.") from exc
-            retry_prompt = f"{prompt}\nReturn corrected JSON only. The previous response failed page-schema validation."
+            prior = (str(response_text), str(exc)[:300])
+            if was_truncated(response_text):
+                limit = min(limit * 2, 4000)
     raise ValueError("Practice page generation failed validation.")
 
 

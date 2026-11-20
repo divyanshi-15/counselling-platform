@@ -230,7 +230,8 @@ def test_fabricated_chunk_id_rejected_then_retry_succeeds(world, monkeypatch) ->
     monkeypatch.setattr(copilot, "call_model", model)
     item = client.post("/therapists/me/prepare-my-day", headers=_h(w["ta"])).json()["items"][0]
     assert item["status"] == "ok" and model.briefing_calls == 2
-    assert "not retrieved" in model.calls[-1][1][0]  # retry carried the rejection reason
+    last = model.calls[-1][-1]  # the retry sends the rejection reason and the model's own previous reply
+    assert "not retrieved" in last[0] and "Reply with ONLY the JSON object" in last[0] and "999" in last.previous
 
 
 def test_fabricated_chunk_id_twice_gives_visible_error_and_no_action(world, monkeypatch) -> None:

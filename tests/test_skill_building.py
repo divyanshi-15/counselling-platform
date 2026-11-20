@@ -303,7 +303,7 @@ def test_ai_draft_postcheck_retry_and_unavailable(world, monkeypatch) -> None:
     model = Model(bad, PROGRAMME)  # first draft is rejected by the post-check, the retry passes
     monkeypatch.setattr(copilot, "call_model", model)
     assert client.post(url, headers=_h(w["ta"]) | _key(), json={"focus": "worry"}).json()["status"] == "drafted"
-    assert len(model.calls) == 2 and "invalid" in model.calls[1][1][-1][0]
+    assert len(model.calls) == 2 and "not valid JSON for this schema" in model.calls[1][1][-1][0]
     monkeypatch.setattr(copilot, "call_model", Model(bad, bad))
     r = client.post(url, headers=_h(w["ta"]) | _key(), json={"focus": "worry"})
     assert r.json()["status"] == "error" and r.json()["pending_action_id"] is None
