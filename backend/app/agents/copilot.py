@@ -19,7 +19,9 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from backend.app import fake_llm, rag
+from backend.app import fake_llm
+from backend.app import rag
+from backend.app.json_extract import extract_json
 from backend.app.agents.launch import _budget_exceeded, _cached_model_output, _record_token_usage, _write_cache
 from backend.app.citations import CitationError, Suggestion, validate_suggestions
 from backend.app.clinical import mood_trend, phq9_item9_positive, scan_client_text
@@ -124,8 +126,10 @@ def call_model(system: str, blocks: list[tuple[str, bool]], *, max_tokens: int) 
 
 
 def _parse_json(text: str) -> Any:
-    match = re.search(r"\{.*\}", text, re.S)
-    return json.loads(match.group(0) if match else text)
+    found = extract_json(text)
+    if found is None:
+        raise json.JSONDecodeError("not valid JSON", text or "", 0)
+    return found
 
 
 # ---------- tools ----------
