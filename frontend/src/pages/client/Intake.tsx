@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PageHeader } from "@/components/PageHeader";
 import { Link, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -31,7 +32,7 @@ function Body() {
   if (!form.data?.fields.length) return <Empty>Your therapist has not set an intake form.</Empty>;
   return (
     <form onSubmit={(e) => void submit(e)} className="space-y-4">
-      <h1 className="text-2xl font-semibold">Intake form</h1>
+      <PageHeader title="Intake form" />
       {form.data.fields.map((f) => (
         <div key={f.id} className="space-y-1">
           <Label htmlFor={f.id}>{f.label}</Label>

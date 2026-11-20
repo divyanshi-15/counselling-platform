@@ -1,4 +1,5 @@
 import { Bot } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Empty, ErrorMsg, Loading } from "@/components/states";
 import { useFetch } from "@/lib/useFetch";
@@ -24,7 +25,7 @@ function Body() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold">Agent activity</h1>
+        <PageHeader title="Agent activity" />
         <p className="text-sm text-muted-foreground">Every step the assistant took on your behalf. It never acts on its own: results land in your approval inbox.</p>
       </div>
       {runs.size === 0 ? <Empty>No agent runs yet.</Empty> : (

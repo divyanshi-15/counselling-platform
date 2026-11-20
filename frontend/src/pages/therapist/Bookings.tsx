@@ -1,4 +1,5 @@
 import { NameWithAvatar } from "@/components/Avatar";
+import { PageHeader } from "@/components/PageHeader";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +13,7 @@ function Body() {
   if (error != null || !data) return <ErrorMsg error={error} />;
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Bookings</h1>
+      <PageHeader title="Bookings" />
       {data.items.length === 0 ? <Empty>No bookings yet.</Empty> : (
         <ul className="space-y-2">
           {data.items.map((b) => (

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PageHeader } from "@/components/PageHeader";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,14 +29,14 @@ function Body() {
 
   if (booking) return (
     <div className="space-y-3">
-      <h1 className="text-2xl font-semibold">Booking confirmed</h1>
+      <PageHeader title="Booking confirmed" />
       <p>{slot && fmt(slot.starts_at)}</p>
       <Button asChild><Link to={`/client/intake/${booking.id}`}>Fill in intake form</Link></Button>
     </div>
   );
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Book a session</h1>
+      <PageHeader title="Book a session" />
       {slots.loading && <Loading />}
       {slots.error != null && <ErrorMsg error={slots.error} />}
       {slots.data?.items.length === 0 && <Empty>No open slots right now.</Empty>}

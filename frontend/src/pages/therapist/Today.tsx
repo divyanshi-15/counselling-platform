@@ -1,4 +1,5 @@
 import { Avatar } from "@/components/Avatar";
+import { PageHeader } from "@/components/PageHeader";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Moon, Sparkles } from "lucide-react";
@@ -125,7 +126,7 @@ function Body() {
       <TherapistAnalytics />
 
       <section className="rounded-lg border bg-gradient-to-br from-primary/10 to-transparent p-4 sm:p-6">
-        <h1 className="text-2xl font-semibold">Prepare my day</h1>
+        <PageHeader title="Prepare my day" />
         <p className="mt-1 text-sm text-muted-foreground">Briefings for sessions in the next 24 hours. Everything here is a draft for you to check; nothing is sent to clients.</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button disabled={busy !== null} onClick={() => void run("day")}><Sparkles className="mr-2 h-4 w-4" />{busy === "day" ? "Preparing…" : "Prepare my day"}</Button>

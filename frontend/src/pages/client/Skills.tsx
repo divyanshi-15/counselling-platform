@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { PageHeader } from "@/components/PageHeader";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +20,7 @@ function Page({ title, hint, children }: { title: string; hint?: string; childre
   return (
     <div className="space-y-4">
       <Link to="/client" className="text-sm underline">{t("back")}</Link>
-      <div><h1 className="text-2xl font-semibold">{title}</h1>{hint && <p className="text-sm text-muted-foreground">{hint}</p>}</div>
+      <div><PageHeader title={title} />{hint && <p className="text-sm text-muted-foreground">{hint}</p>}</div>
       {children}
     </div>
   );

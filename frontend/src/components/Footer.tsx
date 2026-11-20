@@ -8,10 +8,11 @@ const COLS: [string, [string, string][]][] = [
   ["Safety and legal", [["Safety and crisis resources", "/safety"], ["Privacy", "/privacy"], ["Terms", "/terms"], ["Contact", "/contact"]]],
 ];
 
-export function Footer() {
+export function Footer({ wide = false }: { wide?: boolean }) {
+  const box = wide ? "max-w-6xl" : "max-w-5xl";
   return (
     <footer className="mt-12 border-t bg-muted">
-      <div className="mx-auto grid max-w-5xl gap-8 px-4 py-10 sm:grid-cols-2 md:grid-cols-5">
+      <div className={`mx-auto grid ${box} gap-8 px-4 py-10 sm:px-6 sm:grid-cols-2 md:grid-cols-5`}>
         <div className="space-y-2 md:col-span-1">
           <Wordmark />
           <p className="text-sm text-muted-foreground">Counselling that continues between sessions.</p>

@@ -1,4 +1,5 @@
 import { useParams } from "react-router-dom";
+import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { ErrorMsg, Loading } from "@/components/states";
 import { useFetch } from "@/lib/useFetch";
@@ -11,7 +12,7 @@ function Body() {
   if (error != null || !data) return <ErrorMsg error={error} />;
   return (
     <div className="space-y-3">
-      <h1 className="text-2xl font-semibold">Your session</h1>
+      <PageHeader title="Your session" />
       <p className="text-muted-foreground">Your session opens in a new tab.</p>
       <Button asChild><a href={`https://meet.jit.si/${encodeURIComponent(data.room_name)}`} target="_blank" rel="noopener noreferrer">Open session room</a></Button>
     </div>

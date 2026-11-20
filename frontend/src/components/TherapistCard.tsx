@@ -8,13 +8,13 @@ import type { TherapistItem } from "@/lib/api";
 export function TherapistCard({ t, showPractice = false }: { t: TherapistItem; showPractice?: boolean }) {
   const { user } = useAuth();
   return (
-    <Card>
+    <Card className="flex h-full flex-col transition-shadow hover:shadow-md">
       <CardHeader><TherapistHeader t={t} /></CardHeader>
-      <CardContent className="space-y-1 text-sm">
+      <CardContent className="flex flex-1 flex-col space-y-1 text-sm">
         <p className="line-clamp-3">{t.bio}</p>
         <p className="text-muted-foreground">{(t.approaches ?? []).join(", ")}</p>
         {showPractice && t.practice && <Link className="text-primary underline" to={`/p/${t.practice.slug}`}>{t.practice.name}</Link>}
-        <div className="flex flex-wrap gap-2 pt-2">
+        <div className="mt-auto flex flex-wrap gap-2 pt-3">
           <Button asChild variant="outline"><Link to={`/therapists/${t.id}`}>View profile</Link></Button>
           <Button asChild><Link to={user?.role === "client" ? `/client/book/${t.id}` : "/signup"}>Book a session</Link></Button>
         </div>

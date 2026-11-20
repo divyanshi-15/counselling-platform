@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { PageHeader } from "@/components/PageHeader";
 import { CheckCircle2, Circle, FileText, Trash2 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { Badge } from "@/components/ui/badge";
@@ -275,7 +276,7 @@ function Body() {
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <Avatar name={user?.name} size={48} />
-        <div><h1 className="text-2xl font-semibold">Profile and verification</h1>
+        <div><PageHeader title="Profile and verification" />
           <p className="text-sm text-muted-foreground">{user?.name}</p></div>
       </div>
       {(verification.loading && !v) || (profile.loading && !p) ? <Loading /> :

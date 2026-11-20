@@ -18,8 +18,7 @@ export function Wordmark({ className = "", compact = false, onDark = false }: { 
   return (
     <span role="img" aria-label="Saarthi" className={`inline-flex items-center gap-2 ${className}`}>
       <svg aria-hidden="true" viewBox="0 0 48 48" className="h-8 w-8 shrink-0">{MARK}</svg>
-      <span aria-hidden="true" className="text-[1.4rem] font-semibold leading-none tracking-tight"
-        style={{ fontFamily: 'Georgia, "Times New Roman", serif', color: onDark ? "#fff" : "#1F2D2B" }}>Saarthi</span>
+      <span aria-hidden="true" className={`font-display text-[1.4rem] font-semibold leading-none tracking-tight ${onDark ? "text-white" : "text-foreground"}`}>Saarthi</span>
     </span>
   );
 }

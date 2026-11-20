@@ -29,9 +29,9 @@ export default function PracticePage() {
         <h1 className="text-2xl font-semibold">{practice.name} <Badge className="ml-2 border-primary text-primary">Verified</Badge></h1>
         <p className="text-muted-foreground">{pg.tagline}</p>
       </section>
-      <section><h2 className="mb-2 text-lg font-semibold">About</h2><RichText text={pg.about} /></section>
+      <section><h2 className="mb-3 text-xl font-semibold">About</h2><RichText text={pg.about} /></section>
       <section>
-        <h2 className="mb-2 text-lg font-semibold">Services</h2>
+        <h2 className="mb-3 text-xl font-semibold">Services</h2>
         {pg.services?.length ? (
           <div className="grid gap-3 md:grid-cols-2">
             {pg.services.map((s) => <Card key={s.title}><CardHeader><CardTitle>{s.title}</CardTitle></CardHeader><CardContent className="text-sm">{s.description}</CardContent></Card>)}
@@ -39,21 +39,21 @@ export default function PracticePage() {
         ) : <Empty>No services listed yet.</Empty>}
       </section>
       <section>
-        <h2 className="mb-2 text-lg font-semibold">What to expect</h2>
+        <h2 className="mb-3 text-xl font-semibold">What to expect</h2>
         {pg.what_to_expect?.length ? <ul className="list-disc pl-5 space-y-1">{pg.what_to_expect.map((w) => <li key={w}>{w}</li>)}</ul> : <Empty>Nothing listed yet.</Empty>}
       </section>
       <section>
-        <h2 className="mb-2 text-lg font-semibold">FAQ</h2>
+        <h2 className="mb-3 text-xl font-semibold">FAQ</h2>
         {pg.faq?.length ? pg.faq.map((q) => (
-          <details key={q.question} className="border-b py-2"><summary className="cursor-pointer font-medium">{q.question}</summary><p className="pt-1 text-sm">{q.answer}</p></details>
+          <details key={q.question} className="mb-2 rounded-2xl border bg-card px-5 py-3 shadow-sm"><summary className="cursor-pointer font-medium">{q.question}</summary><p className="pt-1 text-sm">{q.answer}</p></details>
         )) : <Empty>No questions yet.</Empty>}
       </section>
       <section>
-        <h2 className="mb-2 text-lg font-semibold">Verified therapists</h2>
+        <h2 className="mb-3 text-xl font-semibold">Verified therapists</h2>
         {therapists.loading && <Loading />}
         {therapists.error != null && <ErrorMsg error={therapists.error} />}
         {therapists.data && therapists.data.items.length === 0 && <Empty>No verified therapists yet.</Empty>}
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {therapists.data?.items.map((t) => <TherapistCard key={t.id} t={t} />)}
         </div>
       </section>
@@ -78,7 +78,7 @@ function ContactForm({ practiceName }: { practiceName: string }) {
 
   return (
     <section>
-      <h2 className="mb-2 text-lg font-semibold">Contact</h2>
+      <h2 className="mb-3 text-xl font-semibold">Contact</h2>
       {result ? (
         <p role="status" className={result.status === "crisis" ? "rounded-md border-2 border-destructive p-4 font-semibold" : "rounded-md border p-4"}>{result.message}</p>
       ) : (

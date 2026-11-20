@@ -1,4 +1,5 @@
 import { ArrowLeft, FileText } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { Avatar } from "@/components/Avatar";
@@ -176,7 +177,7 @@ function Body({ subject, id }: { subject: Subject; id: number }) {
           <div className="flex flex-wrap items-center gap-3">
             <Avatar name={data.name} size={44} />
             <div>
-              <h1 className="text-2xl font-semibold">{data.name}</h1>
+              <PageHeader title={data.name} />
               <p className="text-sm text-muted-foreground">{subject === "therapist" ? "Therapist" : "Practice"} · {STATUS_LABEL[status ?? ""] ?? status}{data.submitted_at ? ` · submitted ${fmt(data.submitted_at)}` : ""}</p>
             </div>
           </div>

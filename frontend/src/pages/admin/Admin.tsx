@@ -1,4 +1,5 @@
 import { CheckCircle2, Circle } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { Avatar } from "@/components/Avatar";
@@ -34,7 +35,7 @@ function Queue() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold">Verification queue</h1>
+        <PageHeader title="Verification queue" />
         <p className="text-sm text-muted-foreground">Only published and verified practices, and verified therapists, appear publicly. <Link className="text-primary hover:underline" to="/admin/contact-messages">Contact messages</Link></p>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3">

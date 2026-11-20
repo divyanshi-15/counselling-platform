@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,7 +34,7 @@ function Body() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Availability</h1>
+      <PageHeader title="Availability" />
       <form onSubmit={(e) => void add(e)} className="flex flex-wrap items-end gap-2">
         <div className="space-y-1">
           <Label htmlFor="slot-start">New slot starts ({SLOT_MINUTES} minutes)</Label>

@@ -1,4 +1,5 @@
 import { Avatar } from "@/components/Avatar";
+import { PageHeader } from "@/components/PageHeader";
 import { useState } from "react";
 import { Check, Eye, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -179,7 +180,7 @@ function Body() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold">Approval inbox</h1>
+        <PageHeader title="Approval inbox" />
         <p className="text-sm text-muted-foreground">The AI only proposes. Nothing happens until you approve it here.</p>
       </div>
       {pending.length === 0 ? <Empty>Nothing waiting for approval.</Empty> : <div className="space-y-4">{pending.map((a) => <Row key={a.id} a={a} onDone={reload} />)}</div>}

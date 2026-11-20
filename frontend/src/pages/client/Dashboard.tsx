@@ -1,4 +1,5 @@
 import { NameWithAvatar } from "@/components/Avatar";
+import { PageHeader } from "@/components/PageHeader";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +41,7 @@ function Body() {
   if (error != null || !data) return <ErrorMsg error={error} />;
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">My dashboard</h1>
+      <PageHeader title="My dashboard" />
       <div className="grid gap-3 md:grid-cols-2">
         <Card><CardHeader><CardTitle>My practice</CardTitle></CardHeader><CardContent className="text-sm">
           {data.practice ? <Link className="underline" to={`/p/${data.practice.slug}`}>{data.practice.name}</Link>

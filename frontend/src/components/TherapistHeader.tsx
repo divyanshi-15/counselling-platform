@@ -13,12 +13,12 @@ export function TherapistHeader({ t, size = 48 }: { t: TherapistItem; size?: num
     <div className="flex items-start gap-3">
       <Avatar name={t.name} size={size} />
       <div className="min-w-0 space-y-1">
-        <p className="font-semibold leading-tight">{t.name}</p>
+        <p className="font-display text-lg font-semibold leading-tight">{t.name}</p>
         {t.rating != null && (t.review_count ?? 0) > 0 && (
           <p className="flex items-center gap-1 text-sm"><Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />{t.rating.toFixed(1)} <span className="text-muted-foreground">({t.review_count} reviews)</span></p>
         )}
         {facts.length > 0 && <p className="text-sm text-muted-foreground">{facts.join(" · ")}</p>}
-        {t.specialisations?.length ? <p className="flex flex-wrap gap-1 pt-0.5">{t.specialisations.map((s) => <span key={s} className="rounded-full bg-muted px-2 py-0.5 text-xs">{s}</span>)}</p> : null}
+        {t.specialisations?.length ? <p className="flex flex-wrap gap-1 pt-0.5">{t.specialisations.map((s) => <span key={s} className="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-medium text-primary-hover">{s}</span>)}</p> : null}
       </div>
     </div>
   );

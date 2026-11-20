@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { PageHeader } from "@/components/PageHeader";
 import { Empty, ErrorMsg, Loading } from "@/components/states";
 import { Badge } from "@/components/ui/badge";
 import { useFetch } from "@/lib/useFetch";
@@ -13,7 +14,7 @@ function List() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold">Contact messages</h1>
+        <PageHeader title="Contact messages" />
         <p className="text-sm text-muted-foreground">Messages from the public contact form. High-priority messages matched the safety check and are listed first. <Link className="text-primary hover:underline" to="/admin">Back to verification queue</Link></p>
       </div>
       {loading && !data ? <Loading /> : error != null ? <ErrorMsg error={error} /> : !data?.length ? <Empty>No messages yet.</Empty> : (

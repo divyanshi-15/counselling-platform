@@ -22,11 +22,13 @@ export function Layout() {
   }, [pathname]);
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const wide = pathname === "/" || pathname.startsWith("/directory") || pathname.startsWith("/p/");
+  const box = wide ? "max-w-6xl" : "max-w-5xl";
   useEffect(() => setOpen(false), [pathname]);
   return (
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-2 px-4">
+        <div className={`mx-auto flex h-16 ${box} items-center justify-between gap-2 px-4 sm:px-6`}>
           <Link to="/" aria-label="Saarthi home"><Mark className="sm:hidden" /><Wordmark className="hidden sm:inline-flex" /></Link>
           {user ? (
             <nav className="flex items-center gap-2 text-sm">
@@ -47,7 +49,7 @@ export function Layout() {
           )}
         </div>
         {!user && open && (
-          <nav id="mobile-nav" className="mx-auto flex max-w-5xl flex-col gap-1 border-t px-4 py-3 text-sm md:hidden">
+          <nav id="mobile-nav" className={`mx-auto flex ${box} flex-col gap-1 border-t px-4 py-3 text-sm sm:px-6 md:hidden`}>
             <Button variant="ghost" className="justify-start" asChild><Link to="/directory">Find a therapist</Link></Button>
             <Button variant="ghost" className="justify-start" asChild><Link to="/login">Log in</Link></Button>
             <Button variant="accent" asChild><Link to="/signup">Sign up</Link></Button>
@@ -60,10 +62,10 @@ export function Layout() {
           <p className="text-muted-foreground">{user.language === "hi" ? SUPPORT_NOTICE_HI : SUPPORT_NOTICE}</p>
         </div>
       )}
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+      <main className={`mx-auto w-full ${box} flex-1 px-4 py-6 sm:px-6`}>
         <Outlet />
       </main>
-      <Footer />
+      <Footer wide={wide} />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PageHeader } from "@/components/PageHeader";
 import { Link, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -32,7 +33,7 @@ function Body() {
   if (ex.error != null || !ex.data) return <ErrorMsg error={ex.error} />;
   return (
     <form onSubmit={(e) => void save(e)} className="space-y-4">
-      <h1 className="text-2xl font-semibold">{ex.data.title}</h1>
+      <PageHeader title={ex.data.title} />
       {ex.data.template.fields.map((f) => (
         <div key={f.id} className="space-y-1">
           <Label htmlFor={f.id}>{f.label}{f.required ? " *" : ""}</Label>

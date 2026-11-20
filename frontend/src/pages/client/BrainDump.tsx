@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { PageHeader } from "@/components/PageHeader";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -33,7 +34,7 @@ function Body() {
   );
   return (
     <form onSubmit={(e) => void submit(e)} className="space-y-4">
-      <h1 className="text-2xl font-semibold">Brain dump</h1>
+      <PageHeader title="Brain dump" />
       <p className="text-sm text-muted-foreground">Write whatever is on your mind. Your therapist will see it.</p>
       <div className="space-y-1">
         <Label htmlFor="text">What is on your mind?</Label>

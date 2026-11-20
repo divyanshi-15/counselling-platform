@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PageHeader } from "@/components/PageHeader";
 import { Link, Navigate } from "react-router-dom";
 import { Bot, Check, Rocket, Settings2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -109,7 +110,7 @@ function Body() {
   const pending = actions.data?.items.filter((a) => a.type === "publish_page" && a.status === "pending") ?? [];
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Practice owner</h1>
+      <PageHeader title="Practice owner" />
       <PracticeAnalytics />
       <NewPractice />
       <section className="space-y-3">
