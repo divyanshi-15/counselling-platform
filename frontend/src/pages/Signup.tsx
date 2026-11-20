@@ -5,7 +5,7 @@ import { Input, Select } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ErrorMsg } from "@/components/states";
 import { api } from "@/lib/api";
-import { homeFor, useAuth } from "@/lib/auth";
+import { landingFor, useAuth } from "@/lib/auth";
 import { pendingInvite } from "@/lib/invite";
 
 export default function Signup() {
@@ -24,7 +24,7 @@ export default function Signup() {
     try {
       await api("/auth/register", { method: "POST", json: f });
       const role = (await login(f.email, f.password)).role;
-      nav(role === "therapist" && pendingInvite() ? "/invitation" : homeFor(role));
+      nav(role === "therapist" && pendingInvite() ? "/invitation" : await landingFor(role));
     } catch (err) { setError(err); } finally { setBusy(false); }
   }
 

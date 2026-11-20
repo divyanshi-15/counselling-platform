@@ -15,6 +15,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from backend.app.auth import get_current_user, require_roles
@@ -172,19 +173,47 @@ class AdminVerificationOut(VerificationOut):
 
 # ---------- helpers ----------
 
-def own_profile(db: Session, user: User) -> TherapistProfile:
+def ensure_profile(db: Session, user: User) -> TherapistProfile:
+    """Get or create the therapist's draft profile: no practice, unverified, never listed. Idempotent (user_id is unique)."""
     profile = db.query(TherapistProfile).filter(TherapistProfile.user_id == user.id).first()
     if profile is None:
-        raise HTTPException(status_code=404, detail="Therapist profile not found")
+        try:
+            with db.begin_nested():
+                profile = TherapistProfile(user_id=user.id, bio="", approaches=[], languages=[], specialisations=[],
+                                           verified=False, verification_status="draft")
+                db.add(profile)
+        except IntegrityError:  # concurrent request created it first
+            profile = db.query(TherapistProfile).filter(TherapistProfile.user_id == user.id).one()
     return profile
 
 
-def profile_dict(profile: TherapistProfile) -> dict[str, object]:
-    return {"id": profile.id, "practice_id": profile.practice_id, "bio": profile.bio, "approaches": profile.approaches,
+def backfill_draft_profiles(db: Session) -> int:
+    """Draft profiles for therapist users that have none; safe to run repeatedly."""
+    users = db.query(User).filter(User.role == UserRole.therapist,
+                                  ~db.query(TherapistProfile.id).filter(TherapistProfile.user_id == User.id).exists()).all()
+    for u in users:
+        ensure_profile(db, u)
+    db.commit()
+    return len(users)
+
+
+def own_profile(db: Session, user: User) -> TherapistProfile:
+    profile = ensure_profile(db, user)
+    db.commit()
+    return profile
+
+
+def profile_dict(profile: TherapistProfile, practice_name: str | None = None) -> dict[str, object]:
+    return {"id": profile.id, "practice_id": profile.practice_id, "practice_name": practice_name, "bio": profile.bio, "approaches": profile.approaches,
             "languages": profile.languages, "fee": profile.fee, "verified": profile.verified,
             "specialisations": profile.specialisations, "years_experience": profile.years_experience,
             "verification_status": profile.verification_status, "reviewer_note": profile.reviewer_note,
             "submitted_at": profile.submitted_at, "reviewed_at": profile.reviewed_at}
+
+
+def _practice_name(db: Session, profile: TherapistProfile) -> str | None:
+    practice = db.get(Practice, profile.practice_id) if profile.practice_id else None
+    return practice.name if practice and profile.left_practice_at is None else None
 
 
 def set_status(profile: TherapistProfile, status: str, note: str | None = None, *, reviewed: bool = False) -> None:
@@ -294,7 +323,7 @@ def update_profile(payload: ProfileUpdateIn, db: Session = Depends(get_db),
         setattr(profile, field, value)
     db.commit()
     db.refresh(profile)
-    return profile_dict(profile)
+    return profile_dict(profile, _practice_name(db, profile))
 
 
 @router.get("/therapists/me/verification", response_model=VerificationOut)
@@ -487,7 +516,7 @@ def admin_verification(therapist_id: int, db: Session = Depends(get_db), _: User
     if profile is None:
         raise HTTPException(status_code=404, detail="Therapist profile not found")
     owner = db.get(User, profile.user_id)
-    practice = db.get(Practice, profile.practice_id)
+    practice = db.get(Practice, profile.practice_id) if profile.practice_id else None
     return {"id": profile.id, "name": owner.name if owner else None,
             "practice_name": practice.name if practice else None, "city": practice.city if practice else None,
             "bio": profile.bio, "approaches": profile.approaches or [], "languages": profile.languages or [],

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ErrorMsg } from "@/components/states";
-import { homeFor, useAuth } from "@/lib/auth";
+import { homeFor, landingFor, useAuth } from "@/lib/auth";
 import { pendingInvite } from "@/lib/invite";
 
 export default function Login() {
@@ -19,7 +19,7 @@ export default function Login() {
 
   async function run(fn: () => Promise<{ role: string }>) {
     setBusy(true); setError(null);
-    try { const role = (await fn()).role; const home = homeFor(role); nav(role === "therapist" && pendingInvite() ? "/invitation" : next === home ? next : home); } catch (e) { setError(e); } finally { setBusy(false); }
+    try { const role = (await fn()).role; const home = homeFor(role); nav(role === "therapist" && pendingInvite() ? "/invitation" : next === home ? next : await landingFor(role)); } catch (e) { setError(e); } finally { setBusy(false); }
   }
 
   return (

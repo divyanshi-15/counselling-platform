@@ -1869,9 +1869,9 @@ export interface components {
             /** Name */
             name?: string | null;
             /** Practice Id */
-            practice_id: number;
+            practice_id?: number | null;
             /** Practice Name */
-            practice_name: string;
+            practice_name?: string | null;
             /** Verified */
             verified: boolean;
             /**
@@ -3943,7 +3943,9 @@ export interface components {
             /** Id */
             id: number;
             /** Practice Id */
-            practice_id: number;
+            practice_id?: number | null;
+            /** Practice Name */
+            practice_name?: string | null;
             /** Bio */
             bio?: string | null;
             /** Approaches */

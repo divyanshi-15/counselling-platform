@@ -52,10 +52,12 @@ def scenario():
 
         def make_profile(user: str, practice: Practice, verified: bool = True) -> TherapistProfile:
             with SessionLocal() as db:
-                row = TherapistProfile(user_id=identities[user]["id"], practice_id=practice.id,
-                                       bio="Demo therapist", approaches=["CBT"], languages=["en"],
-                                       fee=2000, verified=verified)
-                db.add(row)
+                row = db.query(TherapistProfile).filter(TherapistProfile.user_id == identities[user]["id"]).first()
+                if row is None:  # therapist signup already created a draft profile
+                    row = TherapistProfile(user_id=identities[user]["id"])
+                    db.add(row)
+                row.practice_id, row.bio, row.approaches, row.languages = practice.id, "Demo therapist", ["CBT"], ["en"]
+                row.fee, row.verified = 2000, verified
                 db.commit()
                 db.refresh(row)
                 return row

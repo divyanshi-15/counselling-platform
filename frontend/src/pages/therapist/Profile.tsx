@@ -17,11 +17,11 @@ type Verification = Schemas["VerificationOut"];
 type ProfileData = Schemas["TherapistProfileOut"];
 
 const STATUS: Record<string, { label: string; tone: string; text: string }> = {
-  draft: { label: "Draft", tone: "border-slate-300 bg-slate-50 text-slate-800", text: "Complete your credentials and submit them for verification. Your profile is not listed publicly until it is verified." },
-  submitted: { label: "Submitted", tone: "border-sky-300 bg-sky-50 text-sky-900", text: "Your credentials are with our reviewer. Documents and credentials are locked until a decision is made." },
-  changes_requested: { label: "Changes requested", tone: "border-amber-400 bg-amber-50 text-amber-900", text: "Please address the reviewer's note, then submit again." },
-  verified: { label: "Verified", tone: "border-emerald-400 bg-emerald-50 text-emerald-900", text: "Your profile is verified. Editing a licence sends it back for review and removes it from public listings until approved." },
-  rejected: { label: "Not verified", tone: "border-red-400 bg-red-50 text-red-900", text: "We could not verify these credentials. Contact the platform team if you think this is a mistake." },
+  draft: { label: "Draft", tone: "border-slate-300 bg-slate-50 text-slate-800", text: "Complete your profile to submit for verification." },
+  submitted: { label: "Submitted", tone: "border-sky-300 bg-sky-50 text-sky-900", text: "Under review by Saarthi. You'll be notified when it's decided." },
+  changes_requested: { label: "Changes requested", tone: "border-amber-400 bg-amber-50 text-amber-900", text: "Changes were requested. Address the reviewer's note below, then submit again." },
+  verified: { label: "Verified", tone: "border-emerald-400 bg-emerald-50 text-emerald-900", text: "Your profile is verified. Editing a licence sends it back for review." },
+  rejected: { label: "Not verified", tone: "border-red-400 bg-red-50 text-red-900", text: "We could not verify these credentials. See the reviewer's note below." },
 };
 const DOC_TYPES = [["degree_certificate", "Degree certificate"], ["registration_certificate", "Registration certificate"], ["identity_proof", "Identity proof"], ["other", "Other"]] as const;
 const docLabel = (t: string) => DOC_TYPES.find(([v]) => v === t)?.[1] ?? t;
@@ -43,6 +43,16 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
       <CardHeader><CardTitle className="text-lg">{title}</CardTitle>{hint && <p className="text-sm text-muted-foreground">{hint}</p>}</CardHeader>
       <CardContent className="space-y-3">{children}</CardContent>
     </Card>
+  );
+}
+
+function PracticeNote({ p, v }: { p: ProfileData; v: Verification }) {
+  return (
+    <p className="rounded-md border bg-muted/40 p-3 text-sm">
+      {p.practice_id
+        ? <>Practice: <span className="font-medium">{p.practice_name ?? "linked"}</span>.{v.status !== "verified" && " You are listed publicly once verified and your practice is published."}</>
+        : <>Join a practice by accepting an invitation from a practice owner. Until then, and until you are verified, you are not listed publicly.</>}
+    </p>
   );
 }
 
@@ -221,24 +231,35 @@ function DocumentSection({ v, reload }: { v: Verification; reload: () => void })
   );
 }
 
-const CHECKS: [string, string][] = [["education", "At least one education entry"], ["license", "At least one licence"], ["document", "At least one document"]];
-
-function SubmitSection({ v, reload }: { v: Verification; reload: () => void }) {
+function SubmitSection({ v, p, reload }: { v: Verification; p: ProfileData; reload: () => void }) {
   const { busy, error, run } = useAction();
   const canSubmit = v.status === "draft" || v.status === "changes_requested";
+  const steps: [string, boolean][] = [
+    ["Profile details (about you, language, fee)", !!p.bio?.trim() && (p.languages?.length ?? 0) > 0 && (p.fee ?? 0) > 0],
+    ["At least one education entry", !v.missing.includes("education")],
+    ["At least one licence", !v.missing.includes("license")],
+    ["At least one document", !v.missing.includes("document")],
+  ];
+  const todo = steps.filter(([, ok]) => !ok).map(([l]) => l);
+  const done = steps.length - todo.length + (v.status === "draft" || v.status === "changes_requested" ? 0 : 1);
+  const total = steps.length + 1;
   return (
     <Section title="Submit for verification">
+      <p className="text-sm font-medium" aria-live="polite">{done} of {total} steps complete</p>
+      <div className="h-2 overflow-hidden rounded bg-muted" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={done}>
+        <div className="h-full bg-primary" style={{ width: `${(done / total) * 100}%` }} />
+      </div>
       <ul className="space-y-1 text-sm" aria-label="Submission checklist">
-        {CHECKS.map(([key, label]) => {
-          const done = !v.missing.includes(key);
-          return <li key={key} className="flex items-center gap-2">{done ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
-            <span className={done ? "" : "text-muted-foreground"}>{label}</span></li>;
-        })}
+        {[...steps, ["Submit for verification", !canSubmit] as [string, boolean]].map(([label, ok]) => (
+          <li key={label} className="flex items-center gap-2">{ok ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
+            <span className={ok ? "" : "text-muted-foreground"}>{label}</span></li>
+        ))}
       </ul>
       {error != null && <ErrorMsg error={error} />}
-      <Button disabled={!canSubmit || v.missing.length > 0 || busy} onClick={() => void run(() => api("/therapists/me/verification/submit", { method: "POST" }), reload)}>
+      <Button disabled={!canSubmit || todo.length > 0 || busy} onClick={() => void run(() => api("/therapists/me/verification/submit", { method: "POST" }), reload)}>
         {busy ? "Submitting…" : v.status === "changes_requested" ? "Resubmit for verification" : "Submit for verification"}
       </Button>
+      {canSubmit && todo.length > 0 && <p className="text-sm text-muted-foreground">To submit: {todo.join("; ")}.</p>}
       {!canSubmit && <p className="text-sm text-muted-foreground">{v.status === "submitted" ? "Already submitted." : v.status === "verified" ? "You are verified." : "This profile can no longer be submitted."}</p>}
     </Section>
   );
@@ -261,11 +282,12 @@ function Body() {
         verification.error != null || profile.error != null || !v || !p ? <ErrorMsg error={verification.error ?? profile.error} /> : (
           <>
             <StatusBanner v={v} />
+            <PracticeNote p={p} v={v} />
             <Section title="Profile" hint="Shown on your public profile once you are verified."><ProfileForm key={JSON.stringify([p.bio, p.fee])} profile={p} onSaved={reload} /></Section>
             <EducationSection v={v} locked={v.status === "submitted" || v.status === "rejected"} reload={reload} />
             <LicenseSection v={v} locked={v.status === "submitted" || v.status === "rejected"} reload={reload} />
             <DocumentSection v={v} reload={reload} />
-            <SubmitSection v={v} reload={reload} />
+            <SubmitSection v={v} p={p} reload={reload} />
           </>
         )}
     </div>

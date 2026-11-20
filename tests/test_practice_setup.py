@@ -613,13 +613,14 @@ def test_therapist_cannot_link_to_any_practice_without_an_invite(world) -> None:
     pid = _ready(world)
     _verify(world, pid)
     assert client.post(f"/owner/practices/{pid}/publish", headers=world["h"]["owner"]).status_code == 200
-    h = world["h"]["invitee"]  # a therapist with no profile at all
+    h = world["h"]["invitee"]  # a therapist with a draft profile and no practice
     for body in ({"fee": 1000}, {"practice_id": pid, "fee": 1000}, {"practice_id": world["other_practice"], "fee": 1000}):
-        assert client.post("/therapists/me/profile", headers=h, json=body).status_code in (403, 422)
-    assert client.patch("/therapists/me/profile", headers=h, json={"practice_id": pid}).status_code in (403, 404, 422)
+        assert client.post("/therapists/me/profile", headers=h, json=body).status_code in (200, 422)
+    assert client.patch("/therapists/me/profile", headers=h, json={"practice_id": pid}).status_code == 422
     with SessionLocal() as db:
-        assert db.scalar(select(func.count()).select_from(TherapistProfile).join(User, User.id == TherapistProfile.user_id)
-                         .where(User.email == world["emails"]["invitee"])) == 0
+        rows = db.scalars(select(TherapistProfile).join(User, User.id == TherapistProfile.user_id)
+                          .where(User.email == world["emails"]["invitee"])).all()
+        assert all(r.practice_id is None and not r.verified for r in rows)
     # a therapist already on another practice cannot move themselves, nor onto a verified practice's page
     other = world["h"]["other_ther"]
     for body in ({"practice_id": pid, "fee": 1000}, {"practice_id": pid}):

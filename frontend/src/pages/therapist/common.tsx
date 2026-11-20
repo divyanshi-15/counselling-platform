@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate, NavLink } from "react-router-dom";
+import { Navigate, NavLink, useLocation } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { ErrorMsg, Loading } from "@/components/states";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { useFetch } from "@/lib/useFetch";
 import type { Schemas } from "../client/common";
 
 export { fmt } from "../client/common";
@@ -23,6 +24,18 @@ export function RequireTherapist({ children }: { children: React.ReactNode }) {
 const tabs = [["/therapist", "Today", true], ["/therapist/inbox", "Approval inbox", false],
   ["/therapist/bookings", "Bookings", false], ["/therapist/availability", "Availability", false], ["/therapist/profile", "Profile and verification", false], ["/therapist/activity", "Agent activity", false]] as const;
 
+function PendingNotice() {
+  const { pathname } = useLocation();
+  const { data } = useFetch<Schemas["TherapistProfileOut"]>("/therapists/me/profile");
+  if (!data || data.verified || pathname === "/therapist/profile") return null;
+  return (
+    <p role="status" className="rounded-md border border-amber-400 bg-amber-50 p-3 text-sm text-amber-900">
+      <span className="font-medium">Verification pending.</span> You are not listed publicly until you are verified and linked to a practice.{" "}
+      <NavLink to="/therapist/profile" className="underline">Open profile and verification</NavLink>
+    </p>
+  );
+}
+
 export function Shell({ children }: { children: React.ReactNode }) {
   return (
     <RequireTherapist>
@@ -35,6 +48,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </NavLink>
           ))}
         </nav>
+        <PendingNotice />
         {children}
       </div>
     </RequireTherapist>

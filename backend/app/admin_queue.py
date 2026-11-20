@@ -76,7 +76,7 @@ def verification_queue(subject: Literal["therapist", "practice"] = "therapist", 
     items: list[dict] = []
     if subject == "therapist":
         rows = db.execute(select(TherapistProfile, User, Practice).join(User, User.id == TherapistProfile.user_id)
-                          .join(Practice, Practice.id == TherapistProfile.practice_id)
+                          .outerjoin(Practice, Practice.id == TherapistProfile.practice_id)
                           .where(TherapistProfile.verification_status == status).order_by(order, TherapistProfile.id)).all()
         ids = [p.id for p, _, _ in rows]
         edu = _counts(db, TherapistEducation, TherapistEducation.therapist_id, ids)
@@ -84,7 +84,7 @@ def verification_queue(subject: Literal["therapist", "practice"] = "therapist", 
         docs = _counts(db, VerificationDocument, VerificationDocument.owner_id, ids, VerificationDocument.owner_type == OWNER_TYPE)
         for p, u, pr in rows:
             comp = [("Education", edu.get(p.id, 0)), ("Licences", lic.get(p.id, 0)), ("Documents", docs.get(p.id, 0))]
-            items.append({"id": p.id, "name": u.name, "city": pr.city, "verification_status": p.verification_status,
+            items.append({"id": p.id, "name": u.name, "city": pr.city if pr else None, "verification_status": p.verification_status,
                           "submitted_at": p.submitted_at,
                           "completeness": [{"label": label, "ok": n > 0, "count": n} for label, n in comp]})
     else:

@@ -56,7 +56,7 @@ from backend.app.analytics import router as analytics_router
 from backend.app.admin_queue import router as admin_queue_router
 from backend.app.contact import router as contact_router
 from backend.app.launch_flow import apply_launch_plan, router as launch_router
-from backend.app.verification import profile_dict, router as verification_router
+from backend.app.verification import _practice_name, ensure_profile, profile_dict, router as verification_router
 from backend.app.practice_setup import generate_unique_slug as _generate_unique_slug, router as practice_setup_router
 from backend.app.braindump import DraftEdit, router as braindump_router
 from backend.app.journeys import approve_journey_draft, router as journeys_router
@@ -439,6 +439,9 @@ def register(payload: UserCreate, db: Session = Depends(get_db)) -> User:
         is_verified=False,
     )
     db.add(user)
+    db.flush()
+    if user.role == UserRole.therapist:
+        ensure_profile(db, user)
     db.commit()
     db.refresh(user)
     return user
@@ -623,9 +626,7 @@ def save_therapist_profile(
     current_user: User = Depends(require_roles(UserRole.therapist)),
 ) -> dict[str, object]:
     # Practice membership is never set here: it comes only from accepting an invitation (or the seed).
-    profile = db.query(TherapistProfile).filter(TherapistProfile.user_id == current_user.id).first()
-    if profile is None:
-        raise HTTPException(status_code=403, detail="Join a practice by accepting an invitation first.")
+    profile = ensure_profile(db, current_user)
     if profile.left_practice_at is not None:
         raise HTTPException(status_code=409, detail="You were removed from your practice. Ask a practice to invite you.")
     profile.bio = payload.bio
@@ -634,7 +635,7 @@ def save_therapist_profile(
     profile.fee = payload.fee
     db.commit()
     db.refresh(profile)
-    return profile_dict(profile)
+    return profile_dict(profile, _practice_name(db, profile))
 
 
 @app.get("/therapists/me/profile", response_model=TherapistProfileOut)
@@ -642,10 +643,9 @@ def get_therapist_profile(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.therapist)),
 ) -> dict[str, object]:
-    profile = db.query(TherapistProfile).filter(TherapistProfile.user_id == current_user.id).first()
-    if profile is None:
-        raise HTTPException(status_code=404, detail="Therapist profile not found")
-    return profile_dict(profile)
+    profile = ensure_profile(db, current_user)
+    db.commit()
+    return profile_dict(profile, _practice_name(db, profile))
 
 
 @app.get("/therapists/public", response_model=PublicTherapistsOut)
@@ -958,8 +958,8 @@ def admin_therapists(
     _: User = Depends(require_roles(UserRole.admin)),
 ) -> dict[str, object]:
     rows = (db.query(TherapistProfile, User, Practice).join(User, User.id == TherapistProfile.user_id)
-            .join(Practice, Practice.id == TherapistProfile.practice_id).order_by(TherapistProfile.id).all())
-    return {"items": [{"id": p.id, "name": u.name, "practice_id": pr.id, "practice_name": pr.name, "verified": p.verified,
+            .outerjoin(Practice, Practice.id == TherapistProfile.practice_id).order_by(TherapistProfile.id).all())
+    return {"items": [{"id": p.id, "name": u.name, "practice_id": pr.id if pr else None, "practice_name": pr.name if pr else None, "verified": p.verified,
                        "verification_status": p.verification_status}
                       for p, u, pr in rows]}
 

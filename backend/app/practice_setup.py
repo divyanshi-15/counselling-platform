@@ -594,6 +594,8 @@ def accept_invitation(payload: TokenIn, db: Session = Depends(get_db), user: Use
         db.add(profile)
     else:
         profile.practice_id, profile.left_practice_at = practice.id, None
+        profile.fee = profile.fee or practice.fee_min or 1000
+        profile.languages = profile.languages or practice.languages or ["en"]
     row.status, row.decided_at, row.accepted_user_id = "accepted", _now(), user.id
     db.flush()
     _audit(db, user, "practice.invite_accept", practice, invite_id=row.id, therapist_id=profile.id)

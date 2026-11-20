@@ -98,11 +98,11 @@ class TherapistProfile(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
-    practice_id: Mapped[int] = mapped_column(ForeignKey("practices.id", ondelete="CASCADE"), nullable=False, index=True)
+    practice_id: Mapped[int | None] = mapped_column(ForeignKey("practices.id", ondelete="CASCADE"), nullable=True, index=True)
     bio: Mapped[str] = mapped_column(Text, nullable=False, default="")
     approaches: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     languages: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
-    fee: Mapped[int] = mapped_column(Integer, nullable=False)
+    fee: Mapped[int | None] = mapped_column(Integer, nullable=True)
     verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     credentials: Mapped[str] = mapped_column(String(255), nullable=False, default="", server_default="")
     years_experience: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")

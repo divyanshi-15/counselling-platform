@@ -265,7 +265,8 @@ class RoomOut(_Out):
 
 class TherapistProfileOut(_Out):
     id: int
-    practice_id: int
+    practice_id: int | None = None
+    practice_name: str | None = None
     bio: str | None = None
     approaches: list[str] | None = None
     languages: list[str] | None = None
@@ -520,8 +521,8 @@ class PracticeDraftOut(_Out):
 class AdminTherapistItem(_Out):
     id: int
     name: str | None = None
-    practice_id: int
-    practice_name: str
+    practice_id: int | None = None
+    practice_name: str | None = None
     verified: bool
     verification_status: str = "draft"
 
