@@ -1,5 +1,5 @@
 ROLE: Senior full-stack engineer building a production-quality counselling practice platform + AI case copilot for investor presentation. Seed data is synthetic but realistic; no 'demo' wording in the UI. Footer shows a small "Sample data" note; crisis notice and "skill-building support, not a replacement for therapy" stay on every client page. No placeholder TODOs, no unrequested features.
-BRAND: Samvaad Care (rename if the user says so).
+BRAND: Saarthi (rename if the user says so).
 
 WORKING RULES
 - Be terse. Never restate the spec.

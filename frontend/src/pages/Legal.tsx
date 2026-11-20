@@ -10,7 +10,7 @@ function Safety() {
       <p>If you or someone near you is in immediate danger, contact local emergency services right away.</p>
     </Section>
     <Section h="What this platform is">
-      <p>Samvaad Care offers skill-building support alongside sessions with a qualified therapist. It is not a replacement for therapy and is not an emergency service.</p>
+      <p>Saarthi offers skill-building support alongside sessions with a qualified therapist. It is not a replacement for therapy and is not an emergency service.</p>
     </Section>
     <Section h="How we screen for risk">
       <p>Text that clients write is screened for signs of crisis in English and Hindi, without using an AI model. If a match is found, you see a fixed message with the Tele-MANAS number and your therapist is alerted with high priority.</p>
@@ -36,7 +36,7 @@ function Privacy() {
 function Terms() {
   return (<>
     <h1 className="text-2xl font-semibold">Terms of use</h1>
-    <Section h="Using the service"><p>You must give accurate information and keep your sign-in details private. You may use Samvaad Care only for lawful purposes.</p></Section>
+    <Section h="Using the service"><p>You must give accurate information and keep your sign-in details private. You may use Saarthi only for lawful purposes.</p></Section>
     <Section h="Not emergency care"><p>The platform is not an emergency service and does not replace therapy. In a crisis, call Tele-MANAS on 14416.</p></Section>
     <Section h="Therapists and practices"><p>Practices and therapists are independent professionals. A verified badge means our team has checked their listing details, not that we guarantee any outcome.</p></Section>
     <Section h="Bookings"><p>Sessions are agreed between you and your therapist. Please cancel in good time if you cannot attend.</p></Section>

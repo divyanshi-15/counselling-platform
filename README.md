@@ -1,4 +1,4 @@
-# Samvaad Care
+# Saarthi
 
 A therapist-in-the-loop AI copilot for counselling practices. Practices publish a verified public page; clients book, check in, journal and do assigned exercises; therapists get a pre-session briefing, overnight monitoring and drafted plan updates. **The AI only proposes: every output is a draft or pending action that an authenticated human must approve before anything is published, released, applied or sent.** Crisis detection runs without any LLM and always returns a fixed message with Tele-MANAS 14416.
 

@@ -47,7 +47,7 @@ export default function Invitation() {
   if (!user) {
     return (
       <Frame>
-        <p>You have been invited to join a practice on Samvaad Care. Log in or sign up with the email address the invitation was sent to, then come back here to accept.</p>
+        <p>You have been invited to join a practice on Saarthi. Log in or sign up with the email address the invitation was sent to, then come back here to accept.</p>
         <div className="flex gap-2"><Button asChild><Link to="/login">Log in</Link></Button><Button variant="outline" asChild><Link to="/signup?role=therapist">Sign up</Link></Button></div>
       </Frame>
     );

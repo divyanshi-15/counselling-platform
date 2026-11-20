@@ -477,7 +477,7 @@ def _send_invite_email(to: str, owner: User, practice: Practice, link: str) -> s
     if not host or not user or not password:
         return "not_configured"
     message = EmailMessage()
-    message["Subject"] = f"{practice.name} invited you to join their team on Samvaad Care"
+    message["Subject"] = f"{practice.name} invited you to join their team on Saarthi"
     message["From"] = os.getenv("SMTP_FROM", user)
     message["To"] = to
     message.set_content(

@@ -23,7 +23,7 @@ const TRUST = [
 ] as const;
 
 const FAQ = [
-  ["Is this a replacement for therapy?", "No. Samvaad Care offers skill-building support alongside sessions with a qualified therapist. It is not a replacement for therapy."],
+  ["Is this a replacement for therapy?", "No. Saarthi offers skill-building support alongside sessions with a qualified therapist. It is not a replacement for therapy."],
   ["What if I am in crisis?", "Call Tele-MANAS on 14416 right away. If you are in immediate danger, contact local emergency services."],
   ["Who can see what I write?", "Your therapist can see your intake, check-ins and notes. Practice owners and other therapists cannot."],
   ["Does AI talk to me or diagnose me?", "No. AI never messages clients directly, and its drafts are checked so they never include diagnoses or medication advice."],
@@ -35,7 +35,7 @@ export default function Home() {
     <div className="space-y-16">
       <section className="space-y-5 pt-4 text-center md:pt-10">
         <h1 className="mx-auto max-w-3xl text-3xl font-semibold tracking-tight md:text-5xl">Counselling that continues between sessions</h1>
-        <p className="mx-auto max-w-2xl text-muted-foreground md:text-lg">Samvaad Care connects you with verified therapists in your language, and gives them the tools to prepare well, follow up carefully and keep you safe.</p>
+        <p className="mx-auto max-w-2xl text-muted-foreground md:text-lg">Saarthi connects you with verified therapists in your language, and gives them the tools to prepare well, follow up carefully and keep you safe.</p>
         <div className="flex flex-wrap justify-center gap-3">
           <Button asChild><Link to="/directory">Find a therapist</Link></Button>
           <Button asChild variant="outline"><Link to="/signup?role=therapist">I'm a therapist or practice</Link></Button>

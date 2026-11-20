@@ -17,14 +17,14 @@ export function Layout() {
   const { pathname } = useLocation();
   useEffect(() => {
     const hit = TITLES.find(([p]) => pathname.startsWith(p));
-    document.title = hit ? `${hit[1]} · Samvaad Care` : "Samvaad Care";
+    document.title = hit ? `${hit[1]} · Saarthi` : "Saarthi";
   }, [pathname]);
   const { user, logout } = useAuth();
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b">
         <div className="mx-auto max-w-5xl flex items-center justify-between gap-2 px-4 h-14">
-          <Link to="/" aria-label="Samvaad Care home"><Wordmark /></Link>
+          <Link to="/" aria-label="Saarthi home"><Wordmark /></Link>
           <nav className="flex items-center gap-2 text-sm">
             {user ? (
               <>
