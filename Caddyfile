@@ -20,3 +20,9 @@
         file_server
     }
 }
+
+# www -> apex redirect. WWW_HOST is "www.<domain>, " only when WWW_REDIRECT=1; otherwise only
+# the http-only placeholder address remains, so no certificate is ever requested for www.
+{$WWW_HOST}http://www.redirect-disabled.invalid {
+    redir https://{$DOMAIN:localhost}{uri} permanent
+}

@@ -9,3 +9,4 @@ Server: `/opt/app` (user `deploy`), Docker Compose, Caddy terminates HTTPS. Secr
 - **Rotate the API key:** edit `ANTHROPIC_API_KEY` in `/opt/app/.env`, then `docker compose up -d api`. Revoke the old key in the Anthropic console.
 - **Switch to a real domain:** point its A record at the server, set `DOMAIN` and `PUBLIC_BASE_URL` in `.env`, then `docker compose up -d`. Caddy issues the certificate automatically (ports 80/443 must be open).
 - **Seeded accounts:** `python -m backend.scripts.rotate_seed_passwords` rotates any account still on a seeded default password.
+- **www:** with `WWW_REDIRECT=1` in `.env` (set on the server only), `www.$DOMAIN` gets its own certificate and 301-redirects to the bare domain; leave it unset for domains without a www record (e.g. DuckDNS).
