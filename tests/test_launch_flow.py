@@ -301,3 +301,17 @@ def test_budget_exceeded_falls_back_to_manual(world, monkeypatch):
         run = _run(world)
     assert run["status"] == "unavailable" and run["message"] == "AI unavailable, manual workflow open." and run["action"] is None
     post.assert_not_called()
+
+
+def test_published_practice_keeps_slug_on_approval(world):
+    with _llm(SLUGS, DRAFT, {"names": NAMES}), _godaddy()[1]:
+        action = _run(world)["action"]
+    with SessionLocal() as db:
+        p = db.get(Practice, world["pid"])
+        p.status, old = "published", p.slug
+        db.commit()
+    assert client.get(f"/owner/practices/{world['pid']}/launch", headers=world["h"]["owner"]).json()["slug_locked"] is True
+    assert _approve(world, action).status_code == 200
+    with SessionLocal() as db:
+        p = db.get(Practice, world["pid"])
+        assert p.slug == old and p.page_tagline == DRAFT["page"]["tagline"]

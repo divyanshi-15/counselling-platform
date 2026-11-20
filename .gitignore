@@ -27,3 +27,4 @@ htmlcov/
 
 .ai_cache/
 .ai_token_usage.json
+review-shots/

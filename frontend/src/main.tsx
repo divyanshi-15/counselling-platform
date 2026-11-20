@@ -18,6 +18,8 @@ import PracticeSetup from "@/pages/owner/Setup";
 import Launch from "@/pages/owner/Launch";
 import Invitation from "@/pages/therapist/Invitation";
 import Admin from "@/pages/admin/Admin";
+import Contact from "@/pages/Contact";
+import AdminContacts from "@/pages/admin/Contacts";
 import AdminReview from "@/pages/admin/Review";
 import ClientDashboard from "@/pages/client/Dashboard";
 import Book from "@/pages/client/Book";
@@ -43,6 +45,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="/privacy" element={<Legal />} />
             <Route path="/terms" element={<Legal />} />
             <Route path="/safety" element={<Legal />} />
+            <Route path="/contact" element={<Contact />} />
             <Route path="/directory" element={<Directory />} />
             <Route path="/therapists/:id" element={<TherapistProfile />} />
             <Route path="/p/:slug" element={<PracticePage />} />
@@ -72,6 +75,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="/owner/launch/:id" element={<Launch />} />
             <Route path="/invitation" element={<Invitation />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/contact-messages" element={<AdminContacts />} />
             <Route path="/admin/review/:subject/:id" element={<AdminReview />} />
             <Route path="*" element={<p>Page not found.</p>} />
           </Route>

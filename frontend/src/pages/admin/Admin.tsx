@@ -35,7 +35,7 @@ function Queue() {
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-semibold">Verification queue</h1>
-        <p className="text-sm text-muted-foreground">Only published and verified practices, and verified therapists, appear publicly.</p>
+        <p className="text-sm text-muted-foreground">Only published and verified practices, and verified therapists, appear publicly. <Link className="text-primary hover:underline" to="/admin/contact-messages">Contact messages</Link></p>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div role="tablist" aria-label="Subject" className="inline-flex rounded-md border p-0.5">

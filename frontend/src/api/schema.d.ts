@@ -1006,6 +1006,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Contact */
+        post: operations["submit_contact_contact_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/contact-messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Contact Messages */
+        get: operations["list_contact_messages_admin_contact_messages_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/": {
         parameters: {
             query?: never;
@@ -2330,6 +2364,56 @@ export interface components {
             /** Count */
             count?: number | null;
         };
+        /** ContactIn */
+        ContactIn: {
+            /** Name */
+            name: string;
+            /** Email */
+            email: string;
+            /** Message */
+            message: string;
+            /**
+             * Website
+             * @default
+             */
+            website: string;
+            /**
+             * Language
+             * @default en
+             * @enum {string}
+             */
+            language: "en" | "hi";
+        };
+        /** ContactMessageOut */
+        ContactMessageOut: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Email */
+            email: string;
+            /** Message */
+            message: string;
+            /** High Priority */
+            high_priority: boolean;
+            /** Email Status */
+            email_status: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ContactOut */
+        ContactOut: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "received" | "crisis";
+            /** Message */
+            message: string;
+        };
         /** CreatePracticeIn */
         CreatePracticeIn: {
             /** Name */
@@ -2837,6 +2921,10 @@ export interface components {
         };
         /** LaunchStateOut */
         LaunchStateOut: {
+            /** Slug Locked */
+            slug_locked: boolean;
+            /** Current Slug */
+            current_slug: string;
             /** Custom Domain */
             custom_domain: string | null;
             /** Domain Confirmed At */
@@ -2934,13 +3022,6 @@ export interface components {
         MessageResponse: {
             /** Message */
             message: string;
-        };
-        /** ModelLaunchDraft */
-        ModelLaunchDraft: {
-            page: components["schemas"]["LaunchPage"];
-            welcome_email: components["schemas"]["WelcomeEmail"];
-            /** Checklist */
-            checklist: string[];
         };
         /** MonthPoint */
         MonthPoint: {
@@ -3153,7 +3234,7 @@ export interface components {
             /** Tokens Out */
             tokens_out: number;
             /** Cost Usd */
-            cost_usd: number;
+            cost_usd: number | null;
         };
         /**
          * PlanDiff
@@ -3169,6 +3250,15 @@ export interface components {
              * @default false
              */
             stale: boolean;
+        };
+        /** PlanEditIn */
+        PlanEditIn: {
+            page: components["schemas"]["LaunchPage"];
+            welcome_email: components["schemas"]["WelcomeEmail"];
+            /** Checklist */
+            checklist: string[];
+            /** Slug */
+            slug?: string | null;
         };
         /** PlanSnapshot */
         PlanSnapshot: {
@@ -5976,7 +6066,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ModelLaunchDraft"];
+                "application/json": components["schemas"]["PlanEditIn"];
             };
         };
         responses: {
@@ -6064,6 +6154,61 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_contact_contact_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_contact_messages_admin_contact_messages_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactMessageOut"][];
                 };
             };
         };

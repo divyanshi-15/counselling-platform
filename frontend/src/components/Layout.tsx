@@ -11,7 +11,7 @@ export const SUPPORT_NOTICE = "This is skill-building support, not a replacement
 const CRISIS_NOTICE_HI = "अगर आप संकट में हैं या खुद को नुकसान पहुँचाने के बारे में सोच रहे हैं, तो अभी Tele-MANAS 14416 पर कॉल करें।";
 const SUPPORT_NOTICE_HI = "यह कौशल-निर्माण सहायता है, थेरेपी का विकल्प नहीं।";
 
-const TITLES: [string, string][] = [["/login", "Log in"], ["/signup", "Sign up"], ["/p/", "Practice"], ["/client", "My space"], ["/therapist", "Therapist"], ["/owner", "Practice owner"], ["/admin", "Admin"], ["/directory", "Find a therapist"], ["/therapists/", "Therapist profile"], ["/privacy", "Privacy"], ["/terms", "Terms"], ["/safety", "Safety"]];
+const TITLES: [string, string][] = [["/login", "Log in"], ["/signup", "Sign up"], ["/p/", "Practice"], ["/client", "My space"], ["/therapist", "Therapist"], ["/owner", "Practice owner"], ["/admin", "Admin"], ["/directory", "Find a therapist"], ["/therapists/", "Therapist profile"], ["/privacy", "Privacy"], ["/terms", "Terms"], ["/safety", "Safety"], ["/contact", "Contact"]];
 
 export function Layout() {
   const { pathname } = useLocation();

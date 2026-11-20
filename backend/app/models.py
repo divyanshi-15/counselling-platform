@@ -246,6 +246,19 @@ class AuditLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, nullable=False)
 
 
+class ContactMessage(Base):
+    __tablename__ = "contact_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    high_priority: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    email_status: Mapped[str] = mapped_column(String(24), nullable=False, default="pending")  # pending | sent | failed | not_configured | skipped
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, nullable=False)
+
+
 EMBEDDING_DIM = 384
 
 

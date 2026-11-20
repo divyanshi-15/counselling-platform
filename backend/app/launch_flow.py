@@ -72,6 +72,8 @@ class RunOut(BaseModel):
 
 
 class LaunchStateOut(BaseModel):
+    slug_locked: bool
+    current_slug: str
     custom_domain: str | None
     domain_confirmed_at: str | None
     dns_write_enabled: bool
@@ -173,7 +175,7 @@ def get_run(practice_id: int, run_id: str, db: Session = Depends(get_db), user: 
 def launch_state(practice_id: int, db: Session = Depends(get_db), user: User = Depends(owner_only)):
     practice = _practice(db, practice_id, user)
     latest = next(iter(_plan_actions(db, practice_id)), None)
-    return {"custom_domain": practice.custom_domain,
+    return {"slug_locked": practice.status == "published", "current_slug": practice.slug, "custom_domain": practice.custom_domain,
             "domain_confirmed_at": practice.domain_confirmed_at.isoformat() if practice.domain_confirmed_at else None,
             "dns_write_enabled": domains.dns_write_enabled(),
             "dns_plan": domains.dns_plan(practice.custom_domain) if practice.custom_domain else None,
@@ -212,7 +214,7 @@ def apply_launch_plan(db: Session, action: PendingAction, user: User) -> None:
     if launch.launch_violations(plan):
         raise HTTPException(status_code=422, detail="This plan contains claims that cannot be published")
     chosen = action.payload["plan"].get("chosen_slug")
-    if chosen and chosen != practice.slug:
+    if chosen and chosen != practice.slug and practice.status != "published":  # a published page keeps its address; the choice stays a suggestion
         if not launch.SLUG_RE.match(chosen) or db.query(Practice.id).filter(Practice.slug == chosen, Practice.id != practice.id).first():
             raise HTTPException(status_code=409, detail="That page address is no longer available; choose another and approve again")
         practice.slug = chosen

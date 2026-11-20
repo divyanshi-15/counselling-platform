@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { CalendarCheck, HeartHandshake, Lock, ShieldCheck, UserCheck, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ContactForm } from "@/components/ContactForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const STEPS = [
@@ -76,6 +77,12 @@ export default function Home() {
       <section aria-labelledby="faq" className="space-y-2">
         <h2 id="faq" className="text-2xl font-semibold">Frequently asked questions</h2>
         {FAQ.map(([q, a]) => <details key={q} className="border-b py-2"><summary className="cursor-pointer font-medium">{q}</summary><p className="pt-1 text-sm text-muted-foreground">{a}</p></details>)}
+      </section>
+
+      <section aria-labelledby="contact" className="mx-auto w-full max-w-xl space-y-3">
+        <h2 id="contact" className="text-2xl font-semibold">Contact us</h2>
+        <p className="text-sm text-muted-foreground">Write to us and we will reply by email. If you are in crisis, call Tele-MANAS 14416 now; this form is not monitored around the clock.</p>
+        <ContactForm />
       </section>
     </div>
   );

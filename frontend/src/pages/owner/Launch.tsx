@@ -100,17 +100,17 @@ function PlanView({ action, state, onChange }: { action: Action; state: State; o
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader><CardTitle className="text-lg">{t("launchSlug")}</CardTitle><p className="text-sm text-muted-foreground">{t("launchSlugHint")}</p></CardHeader>
+        <CardHeader><CardTitle className="text-lg">{t("launchSlug")}</CardTitle><p className="text-sm text-muted-foreground">{state.slug_locked ? t("launchSlugLocked") : t("launchSlugHint")}</p>{state.slug_locked && <p className="font-mono text-sm break-all">{origin}/p/{state.current_slug}</p>}</CardHeader>
         <CardContent><ul className="space-y-2">
           {plan.slugs.map((o) => (
             <li key={o.slug} className="flex flex-wrap items-center gap-2 rounded-md border p-2 text-sm">
               <span className="font-mono break-all">{origin}/p/{o.slug}</span>
               <Badge className={o.available ? "border-emerald-400 text-emerald-800" : "border-red-300 text-red-800"}>{o.available ? t("launchAvailable") : t("launchTaken")}</Badge>
-              {o.slug === plan.chosen_slug ? <Badge className="ml-auto">{t("launchChosen")}</Badge>
-                : pending && o.available && <Button className="ml-auto" variant="outline" disabled={busy} onClick={() => void useSlug(o.slug)}>{t("launchUseSlug")}</Button>}
+              {o.slug === plan.chosen_slug ? <Badge className="ml-auto">{state.slug_locked ? t("launchSuggested") : t("launchChosen")}</Badge>
+                : pending && o.available && !state.slug_locked && <Button className="ml-auto" variant="outline" disabled={busy} onClick={() => void useSlug(o.slug)}>{t("launchUseSlug")}</Button>}
             </li>
           ))}
-          {!plan.slugs.some((o) => o.slug === plan.chosen_slug) && <li className="rounded-md border p-2 font-mono text-sm break-all">{origin}/p/{plan.chosen_slug} <Badge className="ml-2">{t("launchChosen")}</Badge></li>}
+          {!plan.slugs.some((o) => o.slug === plan.chosen_slug) && <li className="rounded-md border p-2 font-mono text-sm break-all">{origin}/p/{plan.chosen_slug} <Badge className="ml-2">{state.slug_locked ? t("launchSuggested") : t("launchChosen")}</Badge></li>}
         </ul></CardContent>
       </Card>
       <Card>
