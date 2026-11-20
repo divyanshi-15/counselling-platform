@@ -69,6 +69,9 @@ class Practice(Base):
     page_source: Mapped[str | None] = mapped_column(String(16), nullable=True)  # ai | edited | manual
     page_inputs: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     page_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # custom domain the owner confirmed (pointed at the Saarthi server; booking stays inside Saarthi)
+    custom_domain: Mapped[str | None] = mapped_column(String(253), nullable=True, unique=True, index=True)
+    domain_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class PracticeInvite(Base):
@@ -226,6 +229,8 @@ class AgentRun(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, nullable=False)
     agent: Mapped[str] = mapped_column(String(32), nullable=False, default="launch", server_default="launch")
     actor_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    input_short: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
 
 
 class AuditLog(Base):

@@ -54,6 +54,7 @@ from backend.app.models import (
 )
 from backend.app.analytics import router as analytics_router
 from backend.app.admin_queue import router as admin_queue_router
+from backend.app.launch_flow import apply_launch_plan, router as launch_router
 from backend.app.verification import profile_dict, router as verification_router
 from backend.app.practice_setup import generate_unique_slug as _generate_unique_slug, router as practice_setup_router
 from backend.app.braindump import DraftEdit, router as braindump_router
@@ -114,6 +115,7 @@ app.include_router(analytics_router)
 app.include_router(verification_router)
 app.include_router(admin_queue_router)
 app.include_router(practice_setup_router)
+app.include_router(launch_router)
 
 
 def _create_publish_action(db: Session, practice: Practice, page: dict[str, object], run_id: str | None = None) -> PendingAction:
@@ -208,7 +210,7 @@ def _pending_action_result(action: PendingAction) -> dict[str, object]:
     }
 
 
-OWNER_ACTION_TYPES = {"publish_page"}
+OWNER_ACTION_TYPES = {"publish_page", "launch_plan"}
 THERAPIST_ACTION_TYPES = {"copilot_briefing", "release_exercise", "apply_plan_update", "brain_dump", "journey_draft"}
 
 
@@ -1004,6 +1006,10 @@ def approve_pending_action(
     elif action.status == "pending" and action.type == "journey_draft":
         _check_action_key(action, idempotency_key)
         approve_journey_draft(db, action, current_user)
+        replay = False
+    elif action.status == "pending" and action.type == "launch_plan":
+        _check_action_key(action, idempotency_key)
+        apply_launch_plan(db, action, current_user)
         replay = False
     elif action.status == "pending":
         _check_action_key(action, idempotency_key)

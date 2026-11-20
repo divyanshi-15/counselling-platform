@@ -21,6 +21,14 @@ const en = {
   exercisesAssigned: "Exercises assigned", noData: "No check-ins yet. Your charts will appear here.", date: "Date",
   remDaily: "Daily check-in reminder", remNudge: "Reminders about exercises from my therapist",
   remOff: "Off", remOn: "On", remNote: "Sent by email at most once a day. You can switch these off at any time.",
+  launchTitle: "Launch with Saarthi", launchIntro: "Describe your practice idea. The assistant drafts a domain shortlist, DNS plan, page text, welcome email and checklist. It only proposes: nothing is bought, changed or published until you approve.",
+  launchIdea: "Your practice idea", launchStart: "Draft my launch plan", launchWorking: "Working…", launchSteps: "Agent steps",
+  launchDomains: "Domain options", launchAvailable: "Available", launchTaken: "Taken", launchUnknown: "Availability unknown", launchNotChecked: "Not checked",
+  launchUseDomain: "Use this domain", launchConfirmed: "Confirmed domain", launchDns: "DNS plan", launchDnsHint: "Point the domain at the Saarthi server. Booking stays inside Saarthi.",
+  launchDnsManual: "Add these records at your domain registrar. Automatic changes are turned off on this server.", launchDnsApply: "Apply DNS records", launchDnsDone: "DNS records applied.",
+  launchPage: "Draft page", launchEmail: "Welcome email", launchChecklist: "Launch checklist", launchApprove: "Approve", launchEdit: "Edit", launchReject: "Reject",
+  launchSaveEdit: "Save changes", launchCancel: "Cancel", launchTokens: "Tokens used", launchCost: "Estimated cost", launchApproved: "Approved. The page text is saved as your page draft; publishing and domain steps stay separate.",
+  launchRejected: "Rejected. Nothing was changed.", launchManual: "Set up manually", launchTagline: "Tagline", launchAbout: "About", launchSubject: "Subject", launchBody: "Body", launchOnePerLine: "One step per line",
 } as const;
 export type Key = keyof typeof en;
 
@@ -45,6 +53,14 @@ const hi: Record<Key, string> = {
   exercisesAssigned: "दिए गए अभ्यास", noData: "अभी कोई चेक-इन नहीं। आपके चार्ट यहाँ दिखेंगे।", date: "तारीख",
   remDaily: "दैनिक चेक-इन रिमाइंडर", remNudge: "थेरेपिस्ट के दिए अभ्यासों के रिमाइंडर",
   remOff: "बंद", remOn: "चालू", remNote: "ईमेल से दिन में अधिकतम एक बार। आप इन्हें कभी भी बंद कर सकते हैं।",
+  launchTitle: "सारथी के साथ लॉन्च करें", launchIntro: "अपने प्रैक्टिस का विचार लिखें। सहायक डोमेन सूची, DNS योजना, पेज टेक्स्ट, स्वागत ईमेल और चेकलिस्ट का मसौदा बनाता है। यह केवल सुझाव देता है: आपकी मंज़ूरी के बिना कुछ भी खरीदा, बदला या प्रकाशित नहीं होता।",
+  launchIdea: "आपके प्रैक्टिस का विचार", launchStart: "मेरी लॉन्च योजना बनाएँ", launchWorking: "काम चल रहा है…", launchSteps: "एजेंट के चरण",
+  launchDomains: "डोमेन विकल्प", launchAvailable: "उपलब्ध", launchTaken: "लिया जा चुका", launchUnknown: "उपलब्धता अज्ञात", launchNotChecked: "जाँचा नहीं गया",
+  launchUseDomain: "यह डोमेन चुनें", launchConfirmed: "पुष्ट डोमेन", launchDns: "DNS योजना", launchDnsHint: "डोमेन को सारथी सर्वर की ओर इंगित करें। बुकिंग सारथी के भीतर ही रहती है।",
+  launchDnsManual: "ये रिकॉर्ड अपने डोमेन रजिस्ट्रार पर जोड़ें। इस सर्वर पर स्वचालित बदलाव बंद हैं।", launchDnsApply: "DNS रिकॉर्ड लागू करें", launchDnsDone: "DNS रिकॉर्ड लागू हो गए।",
+  launchPage: "पेज का मसौदा", launchEmail: "स्वागत ईमेल", launchChecklist: "लॉन्च चेकलिस्ट", launchApprove: "मंज़ूर करें", launchEdit: "संपादित करें", launchReject: "अस्वीकार करें",
+  launchSaveEdit: "बदलाव सहेजें", launchCancel: "रद्द करें", launchTokens: "उपयोग किए गए टोकन", launchCost: "अनुमानित लागत", launchApproved: "मंज़ूर। पेज टेक्स्ट आपके पेज मसौदे के रूप में सहेजा गया; प्रकाशन और डोमेन के चरण अलग रहते हैं।",
+  launchRejected: "अस्वीकृत। कुछ भी नहीं बदला।", launchManual: "हाथ से सेट अप करें", launchTagline: "टैगलाइन", launchAbout: "परिचय", launchSubject: "विषय", launchBody: "संदेश", launchOnePerLine: "हर पंक्ति में एक चरण",
 };
 
 export const STRINGS = { en, hi };

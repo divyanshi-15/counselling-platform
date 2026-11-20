@@ -904,6 +904,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/owner/practices/{practice_id}/launch/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Run */
+        post: operations["start_run_owner_practices__practice_id__launch_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/practices/{practice_id}/launch/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Run */
+        get: operations["get_run_owner_practices__practice_id__launch_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/practices/{practice_id}/launch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Launch State */
+        get: operations["launch_state_owner_practices__practice_id__launch_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/practices/{practice_id}/launch/plans/{action_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Edit Plan */
+        put: operations["edit_plan_owner_practices__practice_id__launch_plans__action_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/practices/{practice_id}/launch/domain/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Domain */
+        post: operations["confirm_domain_owner_practices__practice_id__launch_domain_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/practices/{practice_id}/launch/domain/apply-dns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply Dns */
+        post: operations["apply_dns_owner_practices__practice_id__launch_domain_apply_dns_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/": {
         parameters: {
             query?: never;
@@ -2310,6 +2412,17 @@ export interface components {
             /** Years Operating */
             years_operating?: number | null;
         };
+        /** DnsApplyOut */
+        DnsApplyOut: {
+            /** Domain */
+            domain: string;
+            /** Applied */
+            applied: boolean;
+            /** Records */
+            records: {
+                [key: string]: unknown;
+            }[];
+        };
         /** DocumentOut */
         DocumentOut: {
             /** Id */
@@ -2327,6 +2440,11 @@ export interface components {
              * Format: date-time
              */
             uploaded_at: string;
+        };
+        /** DomainIn */
+        DomainIn: {
+            /** Domain */
+            domain: string;
         };
         /**
          * DraftEdit
@@ -2430,6 +2548,11 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** IdeaIn */
+        IdeaIn: {
+            /** Idea */
+            idea: string;
         };
         /** InsightDay */
         InsightDay: {
@@ -2691,9 +2814,40 @@ export interface components {
             /** Started On */
             started_on: string;
             /** Current Steps */
-            current_steps: components["schemas"]["StepOut"][];
+            current_steps: components["schemas"]["backend__app__journeys__StepOut"][];
             /** Weeks Progress */
             weeks_progress: components["schemas"]["WeekProgress"][];
+        };
+        /** LaunchPage */
+        LaunchPage: {
+            /** Tagline */
+            tagline: string;
+            /** About */
+            about: string;
+            /** Services */
+            services?: {
+                [key: string]: string;
+            }[];
+            /** Faq */
+            faq?: {
+                [key: string]: string;
+            }[];
+            /** What To Expect */
+            what_to_expect?: string[];
+        };
+        /** LaunchStateOut */
+        LaunchStateOut: {
+            /** Custom Domain */
+            custom_domain: string | null;
+            /** Domain Confirmed At */
+            domain_confirmed_at: string | null;
+            /** Dns Write Enabled */
+            dns_write_enabled: boolean;
+            /** Dns Plan */
+            dns_plan: {
+                [key: string]: unknown;
+            } | null;
+            latest: components["schemas"]["PlanActionOut"] | null;
         };
         /** LibraryJourney */
         LibraryJourney: {
@@ -2780,6 +2934,13 @@ export interface components {
         MessageResponse: {
             /** Message */
             message: string;
+        };
+        /** ModelLaunchDraft */
+        ModelLaunchDraft: {
+            page: components["schemas"]["LaunchPage"];
+            welcome_email: components["schemas"]["WelcomeEmail"];
+            /** Checklist */
+            checklist: string[];
         };
         /** MonthPoint */
         MonthPoint: {
@@ -2970,6 +3131,29 @@ export interface components {
             id: number;
             /** Name */
             name?: string | null;
+        };
+        /** PlanActionOut */
+        PlanActionOut: {
+            /** Id */
+            id: number;
+            /** Status */
+            status: string;
+            /** Idempotency Key */
+            idempotency_key: string;
+            /** Plan */
+            plan: {
+                [key: string]: unknown;
+            };
+            /** Trace */
+            trace: {
+                [key: string]: unknown;
+            }[];
+            /** Tokens In */
+            tokens_in: number;
+            /** Tokens Out */
+            tokens_out: number;
+            /** Cost Usd */
+            cost_usd: number;
         };
         /**
          * PlanDiff
@@ -3406,6 +3590,20 @@ export interface components {
             /** Room Name */
             room_name: string;
         };
+        /** RunOut */
+        RunOut: {
+            /** Run Id */
+            run_id: string;
+            /** Status */
+            status: string;
+            /** Steps */
+            steps: components["schemas"]["backend__app__launch_flow__StepOut"][];
+            /** Tokens */
+            tokens: number;
+            /** Message */
+            message: string | null;
+            action: components["schemas"]["PlanActionOut"] | null;
+        };
         /** SessionKpi */
         SessionKpi: {
             /** Last 30 Days */
@@ -3539,21 +3737,6 @@ export interface components {
             text_en: string;
             /** Text Hi */
             text_hi?: string | null;
-        };
-        /** StepOut */
-        StepOut: {
-            /** Id */
-            id: number;
-            /** Week */
-            week: number;
-            /** Text */
-            text: string;
-            /** Exercise */
-            exercise: string;
-            /** Exercise Title */
-            exercise_title: string;
-            /** Done */
-            done: boolean;
         };
         /** TemplateField */
         TemplateField: {
@@ -3839,6 +4022,41 @@ export interface components {
             completed: number;
             /** Total */
             total: number;
+        };
+        /** WelcomeEmail */
+        WelcomeEmail: {
+            /** Subject */
+            subject: string;
+            /** Body */
+            body: string;
+        };
+        /** StepOut */
+        backend__app__journeys__StepOut: {
+            /** Id */
+            id: number;
+            /** Week */
+            week: number;
+            /** Text */
+            text: string;
+            /** Exercise */
+            exercise: string;
+            /** Exercise Title */
+            exercise_title: string;
+            /** Done */
+            done: boolean;
+        };
+        /** StepOut */
+        backend__app__launch_flow__StepOut: {
+            /** Step */
+            step: number;
+            /** Tool */
+            tool: string;
+            /** Input */
+            input: string | null;
+            /** Result */
+            result: string;
+            /** Tokens */
+            tokens: number;
         };
     };
     responses: never;
@@ -5635,6 +5853,208 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PracticeReviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_run_owner_practices__practice_id__launch_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                practice_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IdeaIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_run_owner_practices__practice_id__launch_runs__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                practice_id: number;
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    launch_state_owner_practices__practice_id__launch_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                practice_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LaunchStateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_plan_owner_practices__practice_id__launch_plans__action_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                practice_id: number;
+                action_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModelLaunchDraft"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanActionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_domain_owner_practices__practice_id__launch_domain_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                practice_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DomainIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LaunchStateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apply_dns_owner_practices__practice_id__launch_domain_apply_dns_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                practice_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DnsApplyOut"];
                 };
             };
             /** @description Validation Error */

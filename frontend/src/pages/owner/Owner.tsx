@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { Bot, Check, Settings2, X } from "lucide-react";
+import { Bot, Check, Rocket, Settings2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { NewPractice } from "./Setup";
 import { Empty, ErrorMsg, Loading } from "@/components/states";
 import { api, type PracticePage } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { useT } from "@/lib/i18n";
 import { useFetch } from "@/lib/useFetch";
 import type { Schemas } from "../client/common";
 import { PracticeAnalytics } from "./PracticeAnalytics";
@@ -54,6 +55,7 @@ function PublishRow({ a, practice, onDone }: { a: Schemas["OwnerActionItem"]; pr
 }
 
 function PracticeCard({ p }: { p: Schemas["PracticeItemOut"] }) {
+  const t = useT();
   return (
     <li className="space-y-2 rounded-md border p-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -61,6 +63,7 @@ function PracticeCard({ p }: { p: Schemas["PracticeItemOut"] }) {
         <Badge>{p.status}</Badge>
         <Badge className={p.verified ? "border-emerald-400 text-emerald-800" : "text-muted-foreground"}>{p.verified ? "verified" : "not verified"}</Badge>
         <Button className="ml-auto" asChild><Link to={`/owner/setup/${p.id}`}><Settings2 className="h-4 w-4" />Practice setup</Link></Button>
+        <Button variant="outline" asChild><Link to={`/owner/launch/${p.id}`}><Rocket className="h-4 w-4" />{t("launchTitle")}</Link></Button>
       </div>
       {p.status === "published" && !p.verified && <p className="text-xs text-muted-foreground">Published, but not shown publicly until an admin verifies it.</p>}
     </li>
