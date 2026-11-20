@@ -31,6 +31,10 @@ def complete(system: str, text: str) -> str:
             "about": f"{data.get('name', 'This practice')} offers collaborative, skill-building sessions for {topics}.\n\n"
                      f"Our approach: {data.get('approach', 'a warm, structured style')}. "
                      "Between sessions you get small, clear next steps.\n\n- Warm, paced support\n- Clear goals you set together"})
+    if system.startswith("You suggest URL slugs"):
+        data = json.loads(re.search(r"<<<PRACTICE_DATA>>>\n(.*?)\n<<<END_PRACTICE_DATA>>>", text, re.S).group(1))
+        base = re.sub(r"[^a-z0-9]+", "-", str(data.get("name", "practice")).lower()).strip("-")[:30] or "practice"
+        return json.dumps({"slugs": [base, f"{base}-counselling", f"{base}-care"]})
     if system.startswith("You suggest domain names"):
         data = json.loads(re.search(r"<<<PRACTICE_DATA>>>\n(.*?)\n<<<END_PRACTICE_DATA>>>", text, re.S).group(1))
         base = re.sub(r"[^a-z0-9]", "", str(data.get("name", "practice")).lower())[:20] or "practice"

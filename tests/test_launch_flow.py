@@ -10,11 +10,15 @@ from sqlalchemy import delete
 
 from backend.app.auth import create_access_token, hash_password
 from backend.app.db import SessionLocal
+from backend.app import domains
 from backend.app.main import app
 from backend.app.models import AgentRun, AuditLog, PendingAction, Practice, User
 
 client = TestClient(app)
 NAMES = ["northstar.com", "northstarcare.com", "northstar.in", "northstarcounselling.in", "northstar.care"]
+_B = "ns" + uuid4().hex[:8]  # unique per run: other test files leave practices with common slugs behind
+SLUGS = {"slugs": [f"{_B}-a", f"{_B}-b", f"{_B}-c"]}
+S = SLUGS["slugs"]
 IDEA = "A calm online counselling practice for young professionals dealing with work stress."
 DRAFT = {"page": {"tagline": "Calm, practical counselling.", "about": "North Star offers collaborative, skill-building sessions with clear next steps.",
                   "services": [{"title": "Consultation", "description": "A first conversation."}], "faq": [], "what_to_expect": ["A shared plan"]},
@@ -52,6 +56,8 @@ def env(monkeypatch):
     monkeypatch.setenv("SAARTHI_SERVER_IP", "203.0.113.7")
     monkeypatch.delenv("GODADDY_ALLOW_DNS_WRITE", raising=False)
     monkeypatch.setenv("FAKE_LLM", "0")
+    monkeypatch.delenv("LAUNCH_PRICE_IN_PER_MTOK", raising=False)
+    monkeypatch.delenv("LAUNCH_PRICE_OUT_PER_MTOK", raising=False)
 
 
 @pytest.fixture
@@ -104,34 +110,101 @@ def test_unauthenticated_is_rejected(world):
     assert client.get(f"/owner/practices/{world['pid']}/launch").status_code in (401, 403)
 
 
-def test_plan_trace_cost_and_approval_only_proposes(world):
-    calls, gd = _godaddy()
-    with _llm({"names": NAMES}, DRAFT), gd:
+def test_slug_first_plan_trace_and_approval_only_proposes(world, monkeypatch):
+    monkeypatch.setenv("LAUNCH_PRICE_IN_PER_MTOK", "1")
+    monkeypatch.setenv("LAUNCH_PRICE_OUT_PER_MTOK", "5")
+    calls, gd = _godaddy(status=403)
+    with _llm(SLUGS, DRAFT, {"names": NAMES}), gd:
         run = _run(world)
     assert run["status"] == "complete"
     tools = [s["tool"] for s in run["steps"]]
-    assert tools == ["domain_suggest", "domain_check", "domain_check", "domain_check", "dns_plan", "draft_launch_plan"]
-    assert len(tools) <= 8 and run["tokens"] == 60  # 2 model calls x 30 tokens
+    assert tools == ["slug_suggest", "slug_check", "slug_check", "slug_check", "draft_launch_plan", "domain_suggest", "dns_plan"]
+    assert len(tools) <= 8 and run["tokens"] == 90  # 3 model calls x 30 tokens
     action = run["action"]
-    assert action["status"] == "pending" and action["tokens_in"] == 20 and action["tokens_out"] == 40 and action["cost_usd"] > 0
+    assert action["status"] == "pending" and action["tokens_in"] == 30 and action["tokens_out"] == 60 and action["cost_usd"] > 0
     assert [t["tool"] for t in action["trace"]] == tools and all(t["input"] and t["result"] for t in action["trace"])
     plan = action["plan"]
-    assert [d["status"] for d in plan["domains"]] == ["available"] * 3 + ["not_checked"] * 2
-    assert plan["domains"][0]["price"] == 12.99
-    assert {(r["type"], r["name"], r["data"]) for r in plan["dns_plan"]["records"]} == {("A", "@", "203.0.113.7"), ("CNAME", "www", "@")}
-    assert {m for m, _ in calls} == {"GET"}  # only availability reads
+    assert plan["chosen_slug"] == S[0] and [o["available"] for o in plan["slugs"]] == [True] * 3
+    assert {m for m, _ in calls} == {"GET"}  # only availability reads (rejected here); slug checks make no external call
     with SessionLocal() as db:
         rows = db.query(AgentRun).filter(AgentRun.practice_id == world["pid"], AgentRun.agent == "launch_idea").all()
-        assert sum(r.tokens for r in rows) == 60 and any(r.input_short for r in rows)
+        assert sum(r.tokens for r in rows) == 90 and any(r.input_short for r in rows)
         assert db.get(Practice, world["pid"]).page_text is None  # nothing applied before approval
     assert _approve(world, action).status_code == 200
     with SessionLocal() as db:
         p = db.get(Practice, world["pid"])
-        assert p.page_tagline == DRAFT["page"]["tagline"] and p.status == "draft" and p.custom_domain is None
+        assert p.page_tagline == DRAFT["page"]["tagline"] and p.slug == S[0] and p.custom_domain is None
+
+
+def test_cost_only_when_both_prices_are_set(world, monkeypatch):
+    with _llm(SLUGS, DRAFT, {"names": NAMES}), _godaddy()[1]:
+        assert _run(world)["action"]["cost_usd"] is None
+    monkeypatch.setenv("LAUNCH_PRICE_IN_PER_MTOK", "1")
+    with _llm(SLUGS, DRAFT, {"names": NAMES}), _godaddy()[1]:
+        assert _run(world)["action"]["cost_usd"] is None
+
+
+def test_slug_check_uses_own_database_and_skips_taken(world):
+    with SessionLocal() as db:
+        other = Practice(name="Taken", slug=S[0], owner_id=-1, page_json="{}")
+        db.add(other)
+        db.commit()
+        oid = other.id
+    try:
+        calls, gd = _godaddy()
+        with _llm(SLUGS, DRAFT, {"names": NAMES}), gd:
+            plan = _run(world)["action"]["plan"]
+        assert [o["available"] for o in plan["slugs"]] == [False, True, True]
+        assert plan["chosen_slug"] == S[1]
+    finally:
+        with SessionLocal() as db:
+            db.execute(delete(Practice).where(Practice.id == oid))
+            db.commit()
+
+
+def test_slug_edit_and_apply_on_approval(world):
+    with _llm(SLUGS, DRAFT, {"names": NAMES}), _godaddy()[1]:
+        action = _run(world)["action"]
+    url = f"/owner/practices/{world['pid']}/launch/plans/{action['id']}"
+    h = world["h"]["owner"]
+    assert client.put(url, headers=h, json=DRAFT | {"slug": "Bad Slug"}).status_code == 422
+    r = client.put(url, headers=h, json=DRAFT | {"slug": "my-own-page"})
+    assert r.status_code == 200 and r.json()["plan"]["chosen_slug"] == "my-own-page"
+    action["plan"] = r.json()["plan"]
+    assert _approve(world, action).status_code == 200
+    with SessionLocal() as db:
+        assert db.get(Practice, world["pid"]).slug == "my-own-page"
+
+
+def test_domain_section_is_optional_with_links_for_all_five_and_no_prices(world):
+    calls, gd = _godaddy(status=403)
+    with _llm(SLUGS, DRAFT, {"names": NAMES}), gd:
+        plan = _run(world)["action"]["plan"]
+    assert len(plan["domains"]) == 5 and len(calls) == 1  # first 403 stops further provider calls
+    for d in plan["domains"]:
+        assert d["status"] == "unchecked" and d["price"] is None and d["currency"] is None
+        assert d["link_url"] == f"https://www.godaddy.com/domainsearch/find?domainToCheck={d['domain']}"
+    assert plan["dns_plan"]["records"] and plan["chosen_slug"]  # the page itself never depends on the domain section
+
+
+def test_search_link_is_url_encoded():
+    assert domains.search_link("a b&c=d.com") == "https://www.godaddy.com/domainsearch/find?domainToCheck=a%20b%26c%3Dd.com"
+
+
+def test_working_key_returns_real_availability_and_price(world):
+    calls, gd = _godaddy(status=200, available=True)
+    with _llm(SLUGS, DRAFT, {"names": NAMES}), gd:
+        doms = _run(world)["action"]["plan"]["domains"]
+    assert len(calls) == 5 and {d["status"] for d in doms} == {"available"} and {d["price"] for d in doms} == {12.99}
+    assert all(d["link_url"] for d in doms)
+    calls, gd = _godaddy(status=200, available=False)
+    with _llm(SLUGS, DRAFT, {"names": NAMES}), gd:
+        doms = _run(world)["action"]["plan"]["domains"]
+    assert {d["status"] for d in doms} == {"taken"} and {d["price"] for d in doms} == {None}
 
 
 def test_edit_is_post_checked(world):
-    with _llm({"names": NAMES}, DRAFT), _godaddy()[1]:
+    with _llm(SLUGS, DRAFT, {"names": NAMES}), _godaddy()[1]:
         action = _run(world)["action"]
     bad = DRAFT | {"checklist": ["We guarantee results", "b", "c"]}
     assert client.put(f"/owner/practices/{world['pid']}/launch/plans/{action['id']}", headers=world["h"]["owner"], json=bad).status_code == 422
@@ -144,15 +217,17 @@ def test_no_dns_or_purchase_without_approval_confirmation_and_flag(world, monkey
     base = f"/owner/practices/{world['pid']}/launch/domain"
     h = world["h"]["owner"]
     calls, gd = _godaddy()
-    with _llm({"names": NAMES}, DRAFT), gd:
+    with _llm(SLUGS, DRAFT, {"names": NAMES}), gd:
         action = _run(world)["action"]
         assert client.post(f"{base}/confirm", headers=h, json={"domain": "northstar.com"}).status_code == 422  # plan not approved
         assert client.post(f"{base}/apply-dns", headers=h | {"Idempotency-Key": "k1"}).status_code == 403  # flag off
         _approve(world, action)
         assert client.post(f"{base}/confirm", headers=h, json={"domain": "unrelated.com"}).status_code == 422
         assert client.post(f"{base}/confirm", headers=h, json={"domain": "northstar.com"}).status_code == 200
+        state = client.get(f"/owner/practices/{world['pid']}/launch", headers=h).json()
+        assert {(r["type"], r["name"]) for r in state["dns_plan"]["records"]} == {("A", "@"), ("CNAME", "www")}
         assert client.post(f"{base}/apply-dns", headers=h | {"Idempotency-Key": "k1"}).status_code == 403  # confirmed, flag still off
-        assert {m for m, _ in calls} == {"GET"}
+        assert {m for m, _ in calls} <= {"GET"}
         monkeypatch.setenv("GODADDY_ALLOW_DNS_WRITE", "1")
         r1 = client.post(f"{base}/apply-dns", headers=h | {"Idempotency-Key": "k1"})
         r2 = client.post(f"{base}/apply-dns", headers=h | {"Idempotency-Key": "k1"})
@@ -169,33 +244,43 @@ def test_apply_dns_needs_confirmed_domain(world, monkeypatch):
     assert r.status_code == 409
 
 
-def test_missing_credentials_label_unknown_and_make_no_calls(world, monkeypatch):
+def test_missing_credentials_are_unchecked_with_links_and_no_calls(world, monkeypatch):
     monkeypatch.delenv("GODADDY_API_KEY")
     calls, gd = _godaddy()
-    with _llm({"names": NAMES}, DRAFT), gd:
+    with _llm(SLUGS, DRAFT, {"names": NAMES}), gd:
         run = _run(world)
     assert run["status"] == "complete" and calls == []
-    doms = run["action"]["plan"]["domains"][:3]
-    assert {d["status"] for d in doms} == {"unknown"} and all("credentials" in d["reason"] for d in doms) and all(d["price"] is None for d in doms)
+    doms = run["action"]["plan"]["domains"]
+    assert len(doms) == 5 and {d["status"] for d in doms} == {"unchecked"} and all(d["link_url"] and d["price"] is None for d in doms)
 
 
 @pytest.mark.parametrize("code", [401, 403])
-def test_rejected_credentials_are_unknown_not_faked(world, code):
+def test_rejected_credentials_are_unchecked_not_faked(world, code):
     _, gd = _godaddy(status=code)
-    with _llm({"names": NAMES}, DRAFT), gd:
-        doms = _run(world)["action"]["plan"]["domains"][:3]
-    assert {d["status"] for d in doms} == {"unknown"} and all("rejected" in d["reason"] for d in doms)
+    with _llm(SLUGS, DRAFT, {"names": NAMES}), gd:
+        doms = _run(world)["action"]["plan"]["domains"]
+    assert {d["status"] for d in doms} == {"unchecked"} and all(d["price"] is None and d["link_url"] for d in doms)
 
 
-def test_validation_retry_then_success_stays_within_eight_calls(world):
-    with _llm({"names": ["bad"]}, {"names": NAMES}, {"page": {}}, DRAFT), _godaddy()[1]:
+def test_validation_retries_respect_the_eight_call_cap(world):
+    # slug retry (2) + 3 slug checks + draft retry (2) = 7; domain_suggest makes 8; dns_plan would be 9, so the optional section is dropped
+    with _llm({"slugs": ["bad"]}, SLUGS, {"page": {}}, DRAFT, {"names": NAMES}), _godaddy()[1]:
         run = _run(world)
     tools = [s["tool"] for s in run["steps"]]
-    assert run["status"] == "complete" and tools.count("domain_suggest") == 2 and tools.count("draft_launch_plan") == 2 and len(tools) == 8
+    assert run["status"] == "complete" and tools.count("slug_suggest") == 2 and tools.count("draft_launch_plan") == 2 and len(tools) == 8
+    plan = run["action"]["plan"]
+    assert plan["domains"] == [] and plan["domain_note"] and plan["chosen_slug"] == S[0] and plan["checklist"]
+
+
+def test_optional_domain_failure_keeps_page_and_checklist(world):
+    with _llm(SLUGS, DRAFT, {"names": ["bad"]}), _godaddy()[1]:
+        run = _run(world)
+    plan = run["action"]["plan"]
+    assert run["status"] == "complete" and plan["domains"] == [] and plan["domain_note"] and plan["page"]["tagline"]
 
 
 def test_second_invalid_answer_gives_visible_error_and_no_action(world):
-    with _llm({"names": NAMES}, {"page": {}}), _godaddy()[1]:
+    with _llm(SLUGS, {"page": {}}), _godaddy()[1]:
         run = _run(world)
     assert run["status"] == "failed" and "manually" in run["message"] and run["action"] is None
     with SessionLocal() as db:
@@ -205,7 +290,7 @@ def test_second_invalid_answer_gives_visible_error_and_no_action(world):
 def test_claims_and_diagnoses_are_rejected_by_post_check(world):
     bad = json.loads(json.dumps(DRAFT))
     bad["page"]["about"] = "We guarantee results and treat your depression with supplements for everyone."
-    with _llm({"names": NAMES}, bad), _godaddy()[1]:
+    with _llm(SLUGS, bad), _godaddy()[1]:
         run = _run(world)
     assert run["status"] == "failed" and run["action"] is None
 

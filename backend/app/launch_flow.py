@@ -39,6 +39,10 @@ class DomainIn(_In):
     domain: str = Field(min_length=4, max_length=253)
 
 
+class PlanEditIn(launch.ModelLaunchDraft):
+    slug: str | None = Field(default=None, min_length=3, max_length=40)
+
+
 class StepOut(BaseModel):
     step: int
     tool: str
@@ -55,7 +59,7 @@ class PlanActionOut(BaseModel):
     trace: list[dict[str, Any]]
     tokens_in: int
     tokens_out: int
-    cost_usd: float
+    cost_usd: float | None
 
 
 class RunOut(BaseModel):
@@ -107,6 +111,13 @@ def _step_out(row: AgentRun) -> dict[str, Any]:
 
 # ---------- run (background, live steps are polled) ----------
 
+def _slug_taken(practice_id: int):
+    def taken(slug: str) -> bool:  # our own database only; the practice's current slug counts as free for itself
+        with SessionLocal() as db:
+            return db.query(Practice.id).filter(Practice.slug == slug, Practice.id != practice_id).first() is not None
+    return taken
+
+
 def _execute(run_id: str, practice_id: int, user_id: int, idea: str, practice_ctx: dict[str, Any]) -> None:
     def write(step: int, tool: str, summary: str, input_short: str | None = None, tokens: int = 0) -> None:
         with SessionLocal() as db:
@@ -118,7 +129,7 @@ def _execute(run_id: str, practice_id: int, user_id: int, idea: str, practice_ct
         write(e["step"], e["tool"], e["result"], e["input"], e["tokens"])
 
     try:
-        result = launch.run_idea_launch(idea, practice_ctx, on_step=on_step)
+        result = launch.run_idea_launch(idea, practice_ctx, slug_taken=_slug_taken(practice_id), on_step=on_step)
     except Exception:
         write(99, "run_failed", launch.AI_FAILED_MSG)
         return
@@ -170,7 +181,7 @@ def launch_state(practice_id: int, db: Session = Depends(get_db), user: User = D
 
 
 @router.put("/owner/practices/{practice_id}/launch/plans/{action_id}", response_model=PlanActionOut)
-def edit_plan(practice_id: int, action_id: int, payload: launch.ModelLaunchDraft, db: Session = Depends(get_db), user: User = Depends(owner_only)):
+def edit_plan(practice_id: int, action_id: int, payload: PlanEditIn, db: Session = Depends(get_db), user: User = Depends(owner_only)):
     _practice(db, practice_id, user)
     action = db.get(PendingAction, action_id)
     if action is None or action.practice_id != practice_id or action.type != "launch_plan":
@@ -179,7 +190,14 @@ def edit_plan(practice_id: int, action_id: int, payload: launch.ModelLaunchDraft
         raise HTTPException(status_code=409, detail="This plan has already been decided")
     if violations := launch.launch_violations(payload):
         raise HTTPException(status_code=422, detail="This text cannot be saved: " + "; ".join(violations))
-    action.payload = action.payload | {"plan": action.payload["plan"] | payload.model_dump()}
+    plan = action.payload["plan"] | payload.model_dump(exclude={"slug"})
+    if payload.slug is not None:
+        if not launch.SLUG_RE.match(payload.slug):
+            raise HTTPException(status_code=422, detail="Use lowercase letters, digits and single hyphens only")
+        if _slug_taken(practice_id)(payload.slug):
+            raise HTTPException(status_code=409, detail="That address is already in use")
+        plan["chosen_slug"] = payload.slug
+    action.payload = action.payload | {"plan": plan}
     db.add(AuditLog(action="launch.plan_edit", actor_id=user.id, entity_type="pending_action", entity_id=action.id, details={}))
     db.commit()
     return _action_out(action)
@@ -193,6 +211,11 @@ def apply_launch_plan(db: Session, action: PendingAction, user: User) -> None:
     plan = launch.ModelLaunchDraft.model_validate({k: action.payload["plan"][k] for k in ("page", "welcome_email", "checklist")})
     if launch.launch_violations(plan):
         raise HTTPException(status_code=422, detail="This plan contains claims that cannot be published")
+    chosen = action.payload["plan"].get("chosen_slug")
+    if chosen and chosen != practice.slug:
+        if not launch.SLUG_RE.match(chosen) or db.query(Practice.id).filter(Practice.slug == chosen, Practice.id != practice.id).first():
+            raise HTTPException(status_code=409, detail="That page address is no longer available; choose another and approve again")
+        practice.slug = chosen
     page = plan.page
     parts = [page.about]
     if page.services:

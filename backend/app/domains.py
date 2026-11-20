@@ -2,7 +2,8 @@
 
 Read-only by default: availability checks never buy anything, and there is no purchase method at all. DNS writes exist
 only behind `dns_write_enabled()` (GODADDY_ALLOW_DNS_WRITE=1) and are called only from an owner-triggered endpoint.
-Missing credentials or a 401/403 give status "unknown" with a reason; nothing is ever invented.
+Availability is optional: without working credentials (or on any 401/403 or error) status is "unchecked" with no price and
+a GoDaddy search link; availability and prices appear only when GoDaddy actually answered. Nothing is ever invented.
 """
 from __future__ import annotations
 
@@ -12,6 +13,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 import httpx
+from urllib.parse import quote
 
 DOMAIN_RE = re.compile(r"^(?=.{4,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+(com|in|co\.in|org|care|health)$")
 TIMEOUT = 10.0
@@ -20,10 +22,11 @@ TIMEOUT = 10.0
 @dataclass(frozen=True)
 class DomainCheck:
     domain: str
-    status: str  # available | taken | unknown
+    status: str  # available | taken | unchecked
     price: float | None = None
     currency: str | None = None
-    reason: str | None = None  # why availability is unknown
+    reason: str | None = None  # why availability was not checked
+    link_url: str = ""
 
 
 @dataclass(frozen=True)
@@ -40,6 +43,7 @@ class DnsWriteError(Exception):
 
 class DomainProvider(Protocol):
     def check(self, domain: str) -> DomainCheck: ...
+
     def apply_records(self, domain: str, records: list[DnsRecord]) -> None: ...
 
 
@@ -57,6 +61,10 @@ def dns_plan(domain: str) -> dict[str, object]:
             "note": "Nothing is changed until you confirm the domain and apply these records."}
 
 
+def search_link(domain: str) -> str:
+    return f"https://www.godaddy.com/domainsearch/find?domainToCheck={quote(domain, safe='')}"
+
+
 class GoDaddyProvider:
     def __init__(self) -> None:
         self.key = os.getenv("GODADDY_API_KEY", "")
@@ -67,25 +75,30 @@ class GoDaddyProvider:
         return {"Authorization": f"sso-key {self.key}:{self.secret}", "Accept": "application/json"}
 
     def check(self, domain: str) -> DomainCheck:
+        link = search_link(domain)
+
+        def unchecked(reason: str) -> DomainCheck:
+            return DomainCheck(domain, "unchecked", reason=reason, link_url=link)
+
         if not self.key or not self.secret:
-            return DomainCheck(domain, "unknown", reason="GoDaddy credentials are not configured")
+            return unchecked("GoDaddy credentials are not configured")
         try:
             r = httpx.request("GET", f"{self.base}/v1/domains/available", params={"domain": domain, "checkType": "FAST"},
                               headers=self._headers(), timeout=TIMEOUT)
         except httpx.HTTPError:
-            return DomainCheck(domain, "unknown", reason="GoDaddy could not be reached")
+            return unchecked("GoDaddy could not be reached")
         if r.status_code in (401, 403):
-            return DomainCheck(domain, "unknown", reason="GoDaddy rejected the credentials")
+            return unchecked("GoDaddy rejected the credentials")
         if r.status_code != 200:
-            return DomainCheck(domain, "unknown", reason=f"GoDaddy returned status {r.status_code}")
+            return unchecked(f"GoDaddy returned status {r.status_code}")
         try:
             body = r.json()
             available = bool(body["available"])
         except (ValueError, KeyError, TypeError):
-            return DomainCheck(domain, "unknown", reason="GoDaddy returned an unexpected response")
+            return unchecked("GoDaddy returned an unexpected response")
         micros = body.get("price")
         price = round(micros / 1_000_000, 2) if available and isinstance(micros, (int, float)) else None
-        return DomainCheck(domain, "available" if available else "taken", price, body.get("currency") if price is not None else None)
+        return DomainCheck(domain, "available" if available else "taken", price, body.get("currency") if price is not None else None, link_url=link)
 
     def apply_records(self, domain: str, records: list[DnsRecord]) -> None:
         if not self.key or not self.secret:

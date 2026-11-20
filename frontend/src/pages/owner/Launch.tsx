@@ -16,10 +16,10 @@ import type { Schemas } from "../client/common";
 type Run = Schemas["RunOut"];
 type Action = Schemas["PlanActionOut"];
 type State = Schemas["LaunchStateOut"];
-type Domain = { domain: string; status: string; price?: number | null; currency?: string | null; reason?: string | null };
+type Domain = { domain: string; status: string; price?: number | null; currency?: string | null; reason?: string | null; link_url: string };
+type Rec = { type: string; name: string; data: string };
 type Plan = {
-  idea: string; domains: Domain[]; recommended_domain?: string | null; checklist: string[];
-  dns_plan?: { records: { type: string; name: string; data: string }[]; note?: string } | null;
+  idea: string; slugs: { slug: string; available: boolean }[]; chosen_slug: string; domains: Domain[]; domain_note?: string | null; checklist: string[];
   page: { tagline: string; about: string; services: Record<string, string>[]; faq: Record<string, string>[]; what_to_expect: string[] };
   welcome_email: { subject: string; body: string };
 };
@@ -42,18 +42,28 @@ function Steps({ steps, running }: { steps: Run["steps"]; running: boolean }) {
   );
 }
 
-function DomainRow({ d, approved, confirmed, onUse, busy }: { d: Domain; approved: boolean; confirmed: boolean; onUse: () => void; busy: boolean }) {
+function CopyButton({ text }: { text: string }) {
   const t = useT();
-  const label = { available: t("launchAvailable"), taken: t("launchTaken"), unknown: t("launchUnknown"), not_checked: t("launchNotChecked") }[d.status] ?? d.status;
-  const tone = d.status === "available" ? "border-emerald-400 text-emerald-800" : d.status === "taken" ? "border-red-300 text-red-800" : "text-muted-foreground";
+  const [done, setDone] = useState(false);
+  return <Button type="button" variant="outline" className="h-8 px-2 text-xs" onClick={() => { void navigator.clipboard.writeText(text).then(() => { setDone(true); setTimeout(() => setDone(false), 1500); }); }}>{done ? t("launchCopied") : t("launchCopy")}</Button>;
+}
+
+function DomainRow({ d, approved, confirmed, onRegistered, busy }: { d: Domain; approved: boolean; confirmed: boolean; onRegistered: () => void; busy: boolean }) {
+  const t = useT();
+  const label = { available: t("launchAvailable"), taken: t("launchTaken") }[d.status];
   return (
-    <li className="flex flex-wrap items-center gap-2 rounded-md border p-2 text-sm">
-      <span className="font-medium break-all">{d.domain}</span>
-      <Badge className={tone}>{label}</Badge>
-      {d.price != null && <span className="text-xs">{d.price} {d.currency}</span>}
-      {d.reason && <span className="text-xs text-muted-foreground">{d.reason}</span>}
-      {confirmed ? <Badge className="ml-auto border-emerald-400 text-emerald-800">{t("launchConfirmed")}</Badge>
-        : approved && d.status !== "taken" && <Button className="ml-auto" variant="outline" disabled={busy} onClick={onUse}>{t("launchUseDomain")}</Button>}
+    <li className="space-y-2 rounded-md border p-2 text-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-medium break-all">{d.domain}</span>
+        {d.status === "unchecked" ? <Badge className="text-muted-foreground">{t("launchNotCheckedInApp")}</Badge>
+          : <Badge className={d.status === "available" ? "border-emerald-400 text-emerald-800" : "border-red-300 text-red-800"}>{label}</Badge>}
+        {d.price != null && <span className="text-xs">{d.price} {d.currency}</span>}
+        {confirmed && <Badge className="ml-auto border-emerald-400 text-emerald-800">{t("launchConfirmed")}</Badge>}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" asChild><a href={d.link_url} target="_blank" rel="noopener noreferrer">{t("launchCheckGoDaddy")}</a></Button>
+        {approved && !confirmed && d.status !== "taken" && <Button variant="outline" disabled={busy} onClick={onRegistered}>{t("launchRegistered")}</Button>}
+      </div>
     </li>
   );
 }
@@ -69,41 +79,40 @@ function PlanView({ action, state, onChange }: { action: Action; state: State; o
   const pid = useParams().id;
   const approved = action.status === "approved";
   const pending = action.status === "pending";
-  const records = state.custom_domain ? state.dns_plan?.records as { type: string; name: string; data: string }[] | undefined : plan.dns_plan?.records;
+  const records = state.custom_domain ? (state.dns_plan?.records as Rec[] | undefined) : undefined;
+  const origin = window.location.origin;
 
   async function run(fn: () => Promise<unknown>, done?: string) {
     setBusy(true); setError(null); setNote(null);
     try { await fn(); if (done) setNote(done); onChange(); } catch (e) { setError(e); } finally { setBusy(false); }
   }
   const decide = (what: "approve" | "reject") => run(() => api(`/pending-actions/${action.id}/${what}`, { method: "POST", headers: { "Idempotency-Key": action.idempotency_key } }), what === "approve" ? t("launchApproved") : t("launchRejected"));
+  const put = (page: Plan["page"], email: Plan["welcome_email"], checklist: string[], slug?: string) =>
+    api(`/owner/practices/${pid}/launch/plans/${action.id}`, { method: "PUT", json: { page, welcome_email: email, checklist, ...(slug ? { slug } : {}) } });
   const save = () => run(async () => {
-    await api(`/owner/practices/${pid}/launch/plans/${action.id}`, { method: "PUT", json: {
-      page: { ...plan.page, tagline: draft.tagline, about: draft.about }, welcome_email: { subject: draft.subject, body: draft.body },
-      checklist: draft.checklist.split("\n").map((l) => l.trim()).filter(Boolean) } });
+    await put({ ...plan.page, tagline: draft.tagline, about: draft.about }, { subject: draft.subject, body: draft.body }, draft.checklist.split("\n").map((l) => l.trim()).filter(Boolean));
     setEditing(false);
   });
-  const use = (domain: string) => run(() => api(`/owner/practices/${pid}/launch/domain/confirm`, { method: "POST", json: { domain } }));
+  const useSlug = (slug: string) => run(() => put(plan.page, plan.welcome_email, plan.checklist, slug));
+  const registered = (domain: string) => run(() => api(`/owner/practices/${pid}/launch/domain/confirm`, { method: "POST", json: { domain } }));
   const applyDns = () => run(() => api(`/owner/practices/${pid}/launch/domain/apply-dns`, { method: "POST", headers: { "Idempotency-Key": crypto.randomUUID() } }), t("launchDnsDone"));
 
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader><CardTitle className="text-lg">{t("launchDomains")}</CardTitle></CardHeader>
-        <CardContent><ul className="space-y-2">{plan.domains.map((d) => <DomainRow key={d.domain} d={d} approved={approved} confirmed={state.custom_domain === d.domain} busy={busy} onUse={() => void use(d.domain)} />)}</ul></CardContent>
+        <CardHeader><CardTitle className="text-lg">{t("launchSlug")}</CardTitle><p className="text-sm text-muted-foreground">{t("launchSlugHint")}</p></CardHeader>
+        <CardContent><ul className="space-y-2">
+          {plan.slugs.map((o) => (
+            <li key={o.slug} className="flex flex-wrap items-center gap-2 rounded-md border p-2 text-sm">
+              <span className="font-mono break-all">{origin}/p/{o.slug}</span>
+              <Badge className={o.available ? "border-emerald-400 text-emerald-800" : "border-red-300 text-red-800"}>{o.available ? t("launchAvailable") : t("launchTaken")}</Badge>
+              {o.slug === plan.chosen_slug ? <Badge className="ml-auto">{t("launchChosen")}</Badge>
+                : pending && o.available && <Button className="ml-auto" variant="outline" disabled={busy} onClick={() => void useSlug(o.slug)}>{t("launchUseSlug")}</Button>}
+            </li>
+          ))}
+          {!plan.slugs.some((o) => o.slug === plan.chosen_slug) && <li className="rounded-md border p-2 font-mono text-sm break-all">{origin}/p/{plan.chosen_slug} <Badge className="ml-2">{t("launchChosen")}</Badge></li>}
+        </ul></CardContent>
       </Card>
-      {!!records?.length && (
-        <Card>
-          <CardHeader><CardTitle className="text-lg">{t("launchDns")}</CardTitle><p className="text-sm text-muted-foreground">{t("launchDnsHint")}</p></CardHeader>
-          <CardContent className="space-y-3">
-            <div className="overflow-x-auto"><table className="w-full text-sm"><tbody>
-              {records.map((r) => <tr key={r.type + r.name} className="border-b"><td className="py-1 pr-3 font-mono">{r.type}</td><td className="pr-3 font-mono">{r.name}</td><td className="font-mono break-all">{r.data}</td></tr>)}
-            </tbody></table></div>
-            {state.custom_domain && (state.dns_write_enabled
-              ? <Button disabled={busy} onClick={() => void applyDns()}>{t("launchDnsApply")}</Button>
-              : <p className="text-sm text-muted-foreground">{t("launchDnsManual")}</p>)}
-          </CardContent>
-        </Card>
-      )}
       <Card>
         <CardHeader><CardTitle className="text-lg">{t("launchPage")}</CardTitle></CardHeader>
         <CardContent className="space-y-3 text-sm">
@@ -125,13 +134,43 @@ function PlanView({ action, state, onChange }: { action: Action; state: State; o
               <h3 className="pt-2 font-semibold">{t("launchEmail")}</h3>
               <p className="font-medium">{plan.welcome_email.subject}</p>
               <p className="whitespace-pre-line">{plan.welcome_email.body}</p>
-              <h3 className="pt-2 font-semibold">{t("launchChecklist")}</h3>
-              <ul className="list-disc pl-5">{plan.checklist.map((c) => <li key={c}>{c}</li>)}</ul>
             </>
           )}
         </CardContent>
       </Card>
-      <p className="text-sm text-muted-foreground">{t("launchTokens")}: {action.tokens_in + action.tokens_out} · {t("launchCost")}: ≈ ${action.cost_usd.toFixed(4)}</p>
+      {!editing && (
+        <Card>
+          <CardHeader><CardTitle className="text-lg">{t("launchChecklist")}</CardTitle></CardHeader>
+          <CardContent><ul className="list-disc pl-5 text-sm">{plan.checklist.map((c) => <li key={c}>{c}</li>)}</ul></CardContent>
+        </Card>
+      )}
+      <details className="rounded-lg border p-4" open={!!state.custom_domain}>
+        <summary className="cursor-pointer text-lg font-semibold">{t("launchOptional")}</summary>
+        <div className="mt-3 space-y-3">
+          <p className="text-sm text-muted-foreground">{t("launchOptionalHint")}</p>
+          {plan.domain_note && <p className="text-sm text-muted-foreground">{plan.domain_note}</p>}
+          {!!plan.domains.length && (
+            <>
+              <ul className="space-y-2">{plan.domains.map((d) => <DomainRow key={d.domain} d={d} approved={approved} confirmed={state.custom_domain === d.domain} busy={busy} onRegistered={() => void registered(d.domain)} />)}</ul>
+              <p className="text-sm">{t("launchPurchaseNote")}</p>
+            </>
+          )}
+          {!!records?.length && (
+            <div className="space-y-2">
+              <h3 className="font-semibold">{t("launchDns")}: {state.custom_domain}</h3>
+              <p className="text-sm text-muted-foreground">{t("launchRecordsHint")}</p>
+              <ul className="space-y-1">{records.map((r) => (
+                <li key={r.type + r.name} className="flex flex-wrap items-center gap-2 text-sm">
+                  <code className="font-mono">{r.type}</code><code className="font-mono">{r.name}</code><code className="font-mono break-all">{r.data}</code><CopyButton text={r.data} />
+                </li>))}</ul>
+              {state.dns_write_enabled
+                ? <Button disabled={busy} onClick={() => void applyDns()}>{t("launchDnsApply")}</Button>
+                : <p className="text-sm text-muted-foreground">{t("launchDnsManual")}</p>}
+            </div>
+          )}
+        </div>
+      </details>
+      <p className="text-sm text-muted-foreground">{t("launchTokens")}: {action.tokens_in + action.tokens_out}{action.cost_usd != null && <> · {t("launchCost")}: ≈ ${action.cost_usd.toFixed(4)}</>}</p>
       {error != null && <ErrorMsg error={error} />}
       {note && <p role="status" className="text-sm text-emerald-800">{note}</p>}
       {pending && !editing && (
