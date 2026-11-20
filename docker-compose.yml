@@ -35,6 +35,7 @@ services:
         condition: service_healthy
     expose:
       - "8000"
+    restart: unless-stopped
     networks:
       - appnet
 
@@ -48,14 +49,19 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data  # keeps issued certificates across rebuilds
+      - caddy_config:/config
     depends_on:
       - api
+    restart: unless-stopped
     networks:
       - appnet
 
 volumes:
   pgdata:
   uploads:
+  caddy_data:
+  caddy_config:
 
 networks:
   appnet:
