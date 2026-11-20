@@ -260,3 +260,22 @@ def test_risk_flagged_client_never_reaches_model(seeded, model):
     assert model == []
     [action] = _plan_actions()
     assert action.payload["ai_status"] == "manual"
+
+
+def test_overnight_status_is_typed_scoped_and_read_only(seeded, model):
+    for email in ("owner@example.com", "client@example.com", "admin@example.com"):
+        assert client.get("/therapist/overnight-status", headers=_h(email)).status_code == 403
+    assert client.get("/therapist/overnight-status").status_code in (401, 403)
+    before = len(_plan_actions())
+    r = client.get("/therapist/overnight-status", headers=_h("therapist@example.com"))
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["ran_at"] is None and body["clients_checked"] == len(body["clients"]) >= 2
+    alpha = next(c for c in body["clients"] if c["client_id"] == _alpha_id())
+    assert alpha["name"] and {"plateau"} <= set(alpha["findings"])
+    assert alpha["scores"]["PHQ9"]["count"] >= 2 and isinstance(alpha["scores"]["item9_positive"], bool)
+    assert body["needs_attention"] >= 1 and len(_plan_actions()) == before and not model  # no writes, no model call
+    _run()
+    assert client.get("/therapist/overnight-status", headers=_h("therapist@example.com")).json()["ran_at"]
+    other = client.get("/therapist/overnight-status", headers=_h("therapist2@example.com")).json()
+    assert _alpha_id() not in {c["client_id"] for c in other["clients"]}

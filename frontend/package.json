@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "check": "node --experimental-strip-types --no-warnings src/lib/evidence.check.ts",
+    "build": "npm run check && tsc -b && vite build",
     "preview": "vite preview",
     "gen:api": "openapi-typescript openapi.json -o src/api/schema.d.ts"
   },

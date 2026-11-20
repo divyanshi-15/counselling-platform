@@ -11,6 +11,8 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
 import { useFetch } from "@/lib/useFetch";
+import { humanKey, plain } from "@/lib/evidence";
+import { TechnicalDetails } from "@/components/TechnicalDetails";
 import type { Schemas } from "../client/common";
 
 type Run = Schemas["RunOut"];
@@ -24,6 +26,10 @@ type Plan = {
   welcome_email: { subject: string; body: string };
 };
 
+function readableInput(raw: string): string {
+  try { return plain(JSON.parse(raw)); } catch { return ""; }
+}
+
 function Steps({ steps, running }: { steps: Run["steps"]; running: boolean }) {
   const t = useT();
   return (
@@ -32,8 +38,9 @@ function Steps({ steps, running }: { steps: Run["steps"]; running: boolean }) {
       <ol className="space-y-1 border-l pl-4 text-sm">
         {steps.map((s) => (
           <li key={s.step}>
-            <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{s.tool}</code> <span className="text-muted-foreground">{s.input}</span>
+            <span className="rounded bg-muted px-1.5 py-0.5 text-xs">{humanKey(s.tool)}</span> <span className="text-muted-foreground">{readableInput(s.input ?? "")}</span>
             <div>{s.result} <span className="text-xs text-muted-foreground">{s.tokens ? `· ${s.tokens} tok` : ""}</span></div>
+            <TechnicalDetails data={{ tool: s.tool, input: s.input, result: s.result }} />
           </li>
         ))}
         {running && <li className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />{t("launchWorking")}</li>}

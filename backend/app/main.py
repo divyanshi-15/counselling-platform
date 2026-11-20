@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.agents.copilot import CopilotError, prepare_my_day
 from backend.app.agents.launch import run_launch_agent
-from backend.app.agents.monitor import run_overnight_check
+from backend.app.agents.monitor import overnight_status, run_overnight_check
 from backend.app.scheduler import start_scheduler
 from backend.app.auth import (
     therapist_has_client,
@@ -68,7 +68,7 @@ from backend.app.safety import CRISIS_MESSAGE, check_claims, clinical_output_vio
 from backend.app.schemas import (
     PublicPracticeDetailOut, PublicPracticesOut, PublicTherapist, PublicTherapistsOut,
     AdminTherapistsOut, AgentRunsOut, AlertItem, AlertsOut, OwnerActionsOut, PracticeDraftOut, PracticesOut, AssessmentOut, AssessmentsOut, BriefingsOut, CasePlanOut, CasePlansOut,
-    OvernightOut, PendingActionOut, PrepareDayOut, SessionNotesOut, TherapistActionsOut,
+    OvernightOut, OvernightStatusOut, PendingActionOut, PrepareDayOut, SessionNotesOut, TherapistActionsOut,
     TherapistBookingsOut, TherapistProfileOut,
     MessageResponse,
     AssessmentIn,
@@ -1373,6 +1373,17 @@ def overnight_check(
 ) -> dict[str, object]:
     try:
         return run_overnight_check(db, current_user)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.get("/therapist/overnight-status", response_model=OvernightStatusOut)
+def overnight_status_view(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.therapist)),
+) -> dict[str, object]:
+    try:
+        return overnight_status(db, current_user)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 

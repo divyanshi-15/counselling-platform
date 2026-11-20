@@ -361,6 +361,26 @@ class RetrievedRef(_Out):
     similarity: float | None = None
 
 
+class ScorePoint(_Out):
+    taken_at: str
+    total: int
+
+
+class ScoreSeries(_Out):
+    latest: int
+    first: int
+    count: int
+    change: int
+    series: list[ScorePoint] = []
+
+
+class ScoresOut(_Out):
+    ids: list[int] = []
+    item9_positive: bool = False
+    PHQ9: ScoreSeries | None = None
+    GAD7: ScoreSeries | None = None
+
+
 class BriefingBody(_Out):
     client_id: int
     session_starts_at: str
@@ -368,7 +388,7 @@ class BriefingBody(_Out):
     summary: str
     summary_label: str | None = None
     risk_flags: list[str] = []
-    scores: dict[str, object] = {}
+    scores: ScoresOut = ScoresOut()
     plan: dict[str, object] | None = None
     retrieved: list[RetrievedRef] = []
     suggestions: list[BriefingSuggestion] = []
@@ -412,6 +432,22 @@ class OvernightOut(_Out):
     clients_checked: int
     flagged: list[OvernightFlag]
     drafted: int
+
+
+class OvernightClient(_Out):
+    client_id: int
+    name: str | None = None
+    scores: ScoresOut
+    findings: list[str] = []
+    evidence: dict[str, object] = {}
+
+
+class OvernightStatusOut(_Out):
+    ran_at: str | None = None
+    last_summary: str | None = None
+    clients_checked: int
+    needs_attention: int
+    clients: list[OvernightClient]
 
 
 class PendingActionOut(_Out):

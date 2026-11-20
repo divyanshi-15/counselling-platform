@@ -11,6 +11,8 @@ import { useFetch } from "@/lib/useFetch";
 import { AckButton, AiBadge, InferredBadge, RiskAlerts, Shell, SupportedBadge, fmt, type Schemas } from "./common";
 import { TherapistAnalytics } from "./Analytics";
 import { MoodTrend } from "./Skills";
+import { Item9Chip, OvernightPanel, ScoresPair } from "./Overnight";
+import { formatAlert, formatScoreChange } from "@/lib/evidence";
 
 type Briefing = Schemas["BriefingItem"];
 
@@ -35,7 +37,8 @@ function Suggestion({ s, retrieved }: { s: Schemas["BriefingSuggestion"]; retrie
 
 function BriefingCard({ b, name }: { b: Briefing; name: string }) {
   const d = b.briefing;
-  const scores = Object.entries(d.scores ?? {});
+  const hasScores = !!(d.scores?.PHQ9 || d.scores?.GAD7);
+  const change = formatScoreChange(d.scores);
   return (
     <Card className="overflow-hidden border-l-4 border-l-primary">
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
@@ -58,10 +61,12 @@ function BriefingCard({ b, name }: { b: Briefing; name: string }) {
               {d.status === "manual" && <p className="mt-1 text-sm font-medium">AI unavailable, manual workflow open. Showing knowledge entries to review yourself.</p>}
             </div>
             {d.status === "risk_stop" && <p role="alert" className="rounded-md border border-red-400 bg-red-50 p-2 text-sm text-red-800">Risk flag on this client: no AI content was generated. Review your notes directly.</p>}
-            {scores.length > 0 && (
-              <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                {scores.map(([k, v]) => <span key={k}>{k}: <span className="font-medium text-foreground">{typeof v === "object" ? JSON.stringify(v) : String(v)}</span></span>)}
-              </p>
+            {hasScores && (
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2"><h3 className="text-sm font-medium">Scores</h3>{d.scores.item9_positive && <Item9Chip />}</div>
+                {change && <p className="text-sm text-muted-foreground">{change}</p>}
+                <ScoresPair scores={d.scores} />
+              </div>
             )}
             {d.mood_trend && d.mood_trend.count ? (
               <div className="space-y-1"><h3 className="text-sm font-medium">Mood and sleep, last 14 days</h3><MoodTrend trend={d.mood_trend as never} /></div>
@@ -87,6 +92,7 @@ function Body() {
   const alerts = useFetch<Schemas["AlertsOut"]>("/therapists/me/alerts");
   const briefings = useFetch<Schemas["BriefingsOut"]>("/therapists/me/briefings");
   const bookings = useFetch<Schemas["TherapistBookingsOut"]>("/therapists/me/bookings");
+  const overnight = useFetch<Schemas["OvernightStatusOut"]>("/therapist/overnight-status");
   const [busy, setBusy] = useState<"day" | "night" | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -105,7 +111,7 @@ function Body() {
         const r = await api<Schemas["OvernightOut"]>("/therapist/overnight-check", { method: "POST" });
         setMsg(r.summary);
       }
-      alerts.reload(); briefings.reload();
+      alerts.reload(); briefings.reload(); overnight.reload();
     } catch (e) { setError(e); } finally { setBusy(null); }
   }
 
@@ -136,16 +142,17 @@ function Body() {
           </div>
         )}
 
+      {overnight.loading && !overnight.data ? <Loading /> : overnight.error != null ? <ErrorMsg error={overnight.error} /> : overnight.data && <OvernightPanel status={overnight.data} />}
+
       {alerts.data && alerts.data.items.some((a) => a.type !== "risk") && (
         <section className="space-y-2">
           <h2 className="font-semibold">Monitoring alerts</h2>
           <ul className="space-y-2">
             {alerts.data.items.filter((a) => a.type !== "risk").map((a) => (
               <li key={a.id} className="rounded-md border p-3 text-sm">
-                <span className="inline-flex items-center gap-1.5 align-middle"><Avatar name={nm(a.client_id)} size={22} /><span className="font-medium">{nm(a.client_id)}</span></span> · {String(a.payload.finding ?? a.type)}
-                {a.payload.detail != null && <span className="text-muted-foreground"> — {String(a.payload.detail)}</span>}
+                <span className="inline-flex items-center gap-1.5 align-middle"><Avatar name={nm(a.client_id)} size={22} /><span className="font-medium">{nm(a.client_id)}</span></span> · {formatAlert(a.type, a.payload)}
                 {a.acknowledged
-                  ? <p className="mt-1 text-xs text-muted-foreground">Acknowledged{a.acknowledged_at ? ` ${new Date(a.acknowledged_at).toLocaleString()}` : ""}</p>
+                  ? <p className="mt-1 text-xs text-muted-foreground">Acknowledged{a.acknowledged_at ? ` ${fmt(a.acknowledged_at)}` : ""}</p>
                   : <AckButton id={a.id} onDone={alerts.reload} />}
               </li>
             ))}

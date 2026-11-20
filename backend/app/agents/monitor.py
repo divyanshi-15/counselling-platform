@@ -245,6 +245,26 @@ def run_overnight_check(db: Session, therapist: User, *, now: datetime | None = 
             "drafted": drafted}
 
 
+def overnight_status(db: Session, therapist: User, *, now: datetime | None = None) -> dict[str, Any]:
+    """Read-only view for the overnight-check screen: per-client scores + current findings. Writes nothing."""
+    from backend.app.agents.copilot import get_scores
+    profile = db.scalars(select(TherapistProfile).where(TherapistProfile.user_id == therapist.id)).first()
+    if profile is None:
+        raise ValueError("Therapist profile not found")
+    now = now or datetime.now(timezone.utc)
+    clients = []
+    for client_id in _client_ids(db, profile, therapist.id):
+        evidence = detect(db, therapist.id, client_id, now)
+        user = db.get(User, client_id)
+        clients.append({"client_id": client_id, "name": user.name if user else None, "scores": get_scores(db, client_id),
+                        "findings": sorted(evidence), "evidence": evidence})
+    last = db.scalars(select(AgentRun).where(AgentRun.actor_user_id == therapist.id, AgentRun.agent == "monitor",
+                                             AgentRun.tool == "summary").order_by(AgentRun.created_at.desc()).limit(1)).first()
+    ran_at = last.created_at.replace(tzinfo=last.created_at.tzinfo or timezone.utc).isoformat() if last else None
+    return {"ran_at": ran_at, "last_summary": last.summary if last else None, "clients_checked": len(clients),
+            "needs_attention": sum(1 for c in clients if c["findings"] or c["scores"]["item9_positive"]), "clients": clients}
+
+
 def run_all_therapists(db: Session) -> list[dict[str, Any]]:
     out = []
     for user in db.scalars(select(User).join(TherapistProfile, TherapistProfile.user_id == User.id)).all():

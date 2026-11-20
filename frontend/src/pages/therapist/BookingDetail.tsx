@@ -1,3 +1,4 @@
+import { humanKey, plain } from "@/lib/evidence";
 import { Avatar } from "@/components/Avatar";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -21,7 +22,7 @@ function Intake({ bookingId }: { bookingId: string }) {
   return (
     <dl className="space-y-2 text-sm">
       {Object.entries(resp.data.answers).map(([k, v]) => (
-        <div key={k}><dt className="text-muted-foreground">{labels.get(k) ?? k}</dt><dd className="whitespace-pre-wrap">{String(v)}</dd></div>
+        <div key={k}><dt className="text-muted-foreground">{labels.get(k) ?? humanKey(k)}</dt><dd className="whitespace-pre-wrap">{plain(v) || "–"}</dd></div>
       ))}
     </dl>
   );

@@ -9,6 +9,9 @@ import { Empty, ErrorMsg, Loading } from "@/components/states";
 import { api } from "@/lib/api";
 import { useFetch } from "@/lib/useFetch";
 import { Shell, fmt, type Schemas } from "./common";
+import { Avatar } from "@/components/Avatar";
+import { formatAlert, formatEvidence, formatScoreChange } from "@/lib/evidence";
+import { Item9Chip, ScoresPair } from "./Overnight";
 import { Journeys, MoodTrendCard, SharedJournal } from "./Skills";
 
 const ITEMS = { PHQ9: 9, GAD7: 7 } as const;
@@ -96,11 +99,38 @@ function CasePlan({ clientId }: { clientId: string }) {
   );
 }
 
+function Overview({ clientId }: { clientId: string }) {
+  const status = useFetch<Schemas["OvernightStatusOut"]>("/therapist/overnight-status");
+  const alerts = useFetch<Schemas["AlertsOut"]>("/therapists/me/alerts");
+  const c = status.data?.clients.find((x) => String(x.client_id) === clientId);
+  if (status.loading && !status.data) return <Loading />;
+  if (status.error != null) return <ErrorMsg error={status.error} />;
+  if (!c) return <Empty>No monitoring data for this client yet.</Empty>;
+  const evidence = formatEvidence(c.evidence);
+  const open = (alerts.data?.items ?? []).filter((a) => String(a.client_id) === clientId && a.type !== "risk" && !a.acknowledged);
+  const change = formatScoreChange(c.scores);
+  return (
+    <div className="space-y-3">
+      {c.scores.item9_positive && <Item9Chip />}
+      {change && <p className="text-sm text-muted-foreground">{change}</p>}
+      <ScoresPair scores={c.scores} />
+      {evidence.length > 0 && <ul className="list-disc space-y-0.5 pl-5 text-sm">{evidence.map((t, i) => <li key={i}>{t}</li>)}</ul>}
+      {open.length > 0 && (
+        <div className="space-y-1"><h3 className="text-sm font-medium">Open monitoring alerts</h3>
+          <ul className="list-disc space-y-0.5 pl-5 text-sm">{open.map((a) => <li key={a.id}>{formatAlert(a.type, a.payload)}</li>)}</ul></div>
+      )}
+    </div>
+  );
+}
+
 function Body() {
   const { clientId = "" } = useParams();
+  const status = useFetch<Schemas["OvernightStatusOut"]>("/therapist/overnight-status");
+  const name = status.data?.clients.find((x) => String(x.client_id) === clientId)?.name;
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Client file #{clientId}</h1>
+      <h1 className="flex items-center gap-3 text-2xl font-semibold">{name ? <><Avatar name={name} size={40} />{name}</> : `Client file #${clientId}`}</h1>
+      <Card><CardHeader><CardTitle>Overview</CardTitle></CardHeader><CardContent><Overview clientId={clientId} /></CardContent></Card>
       <Card><CardHeader><CardTitle>PHQ-9 / GAD-7</CardTitle></CardHeader><CardContent><Assessments clientId={clientId} /></CardContent></Card>
       <Card><CardHeader><CardTitle>Mood and sleep, last 14 days</CardTitle></CardHeader><CardContent><MoodTrendCard clientId={clientId} /></CardContent></Card>
       <Card><CardHeader><CardTitle>Journeys</CardTitle></CardHeader><CardContent><Journeys clientId={clientId} /></CardContent></Card>

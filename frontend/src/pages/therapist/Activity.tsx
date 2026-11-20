@@ -2,10 +2,21 @@ import { Bot } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Empty, ErrorMsg, Loading } from "@/components/states";
 import { useFetch } from "@/lib/useFetch";
+import { TechnicalDetails } from "@/components/TechnicalDetails";
+import { humanKey } from "@/lib/evidence";
 import { Shell, fmt, type Schemas } from "./common";
+
+const TOOLS: Record<string, string> = {
+  get_intake: "Read intake", get_scores: "Read scores", structure_notes: "Structure notes", compare_to_plan: "Compare to plan",
+  retrieve_knowledge: "Find knowledge entries", draft_exercises: "Draft exercises", check_client: "Check client", summary: "Summary",
+};
 
 function Body() {
   const { data, error, loading } = useFetch<Schemas["AgentRunsOut"]>("/therapists/me/agent-runs");
+  const bookings = useFetch<Schemas["TherapistBookingsOut"]>("/therapists/me/bookings");
+  const names = new Map<number, string>();
+  bookings.data?.items.forEach((b) => { if (b.client.name) names.set(b.client.id, b.client.name); });
+  const readable = (t: string) => t.replace(/^Client (\d+)/, (m, id: string) => names.get(Number(id)) ?? m);
   if (loading) return <Loading />;
   if (error != null || !data) return <ErrorMsg error={error} />;
   const runs = new Map<string, Schemas["AgentRunItem"][]>();
@@ -33,10 +44,11 @@ function Body() {
                   {steps_.map((s) => (
                     <li key={s.step} className="text-sm">
                       <span className="absolute -ml-[21px] mt-1.5 h-2.5 w-2.5 rounded-full border-2 border-primary bg-background" />
-                      <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{s.tool}</code> {s.summary}
+                      <span className="mr-1 rounded bg-muted px-1.5 py-0.5 text-xs">{TOOLS[s.tool] ?? humanKey(s.tool)}</span>{readable(s.summary)}
                     </li>
                   ))}
                 </ol>
+                <div className="mt-2"><TechnicalDetails data={steps_.map((x) => ({ step: x.step, tool: x.tool, summary: x.summary, at: x.created_at }))} /></div>
               </li>
             );
           })}

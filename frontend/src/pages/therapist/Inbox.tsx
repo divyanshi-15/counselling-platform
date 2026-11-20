@@ -7,7 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, ErrorMsg, Loading } from "@/components/states";
 import { api } from "@/lib/api";
 import { useFetch } from "@/lib/useFetch";
-import { AiBadge, InferredBadge, Shell, type Schemas } from "./common";
+import { AiBadge, InferredBadge, Shell, fmt, type Schemas } from "./common";
+import { formatEvidence } from "@/lib/evidence";
+import { TechnicalDetails } from "@/components/TechnicalDetails";
 import { JourneyDraftDetail, type Programme } from "./Skills";
 
 type Item = Schemas["TherapistActionItem"];
@@ -101,14 +103,19 @@ function Detail({ a, onSaved }: { a: Item; onSaved: () => void }) {
   if (a.type === "journey_draft") return <JourneyDraftDetail id={a.id} status={a.status} draft={p.draft as Programme} onSaved={onSaved} />;
   if (a.type === "apply_plan_update") {
     const findings = (p.findings ?? {}) as Record<string, unknown>;
+    const evidence = formatEvidence(findings);
     return (
       <div className="space-y-2 text-sm">
         <p className="font-medium">Text that would be appended to the case-plan formulation (new version):</p>
         <blockquote className="whitespace-pre-wrap rounded border-l-4 border-primary bg-muted p-3">{String(p.update_text ?? "")}</blockquote>
-        <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          {p.ai_status === "ok" ? <InferredBadge /> : <Badge>manual text</Badge>}
-          Based on: {Object.entries(findings).map(([k, v]) => `${k.replace(/_/g, " ")} (${String(v)})`).join("; ") || "monitoring findings"}
-        </p>
+        <div className="space-y-1">
+          <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            {p.ai_status === "ok" ? <InferredBadge /> : <Badge>manual text</Badge>}
+            Based on:
+          </p>
+          {evidence.length ? <ul className="list-disc space-y-0.5 pl-5 text-sm">{evidence.map((t, i) => <li key={i}>{t}</li>)}</ul> : <p className="text-sm text-muted-foreground">Monitoring findings.</p>}
+          <TechnicalDetails data={findings} />
+        </div>
       </div>
     );
   }
@@ -157,7 +164,7 @@ function Row({ a, onDone }: { a: Item; onDone: () => void }) {
             <Button disabled={busy} onClick={() => void decide("approve")}><Check className="mr-1 h-4 w-4" />Approve</Button>
             <Button variant="outline" disabled={busy} onClick={() => void decide("reject")}><X className="mr-1 h-4 w-4" />Reject</Button>
           </div>
-        ) : <p className="text-xs text-muted-foreground">Decided{a.decided_at ? ` ${new Date(a.decided_at).toLocaleString()}` : ""}.</p>}
+        ) : <p className="text-xs text-muted-foreground">Decided{a.decided_at ? ` ${fmt(a.decided_at)}` : ""}.</p>}
       </CardContent>
     </Card>
   );

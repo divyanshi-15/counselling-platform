@@ -1,3 +1,4 @@
+import { plain } from "@/lib/evidence";
 import { useRef, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Circle, Copy, FileText, Mail, Sparkles, Trash2, Upload } from "lucide-react";
@@ -251,7 +252,7 @@ function TeamStep({ s, reload }: { s: Setup; reload: () => void }) {
 
 const INPUT_LABELS: [keyof Details, string][] = [["name", "Name"], ["city", "City"], ["approach", "Approach"], ["specialisations", "Specialisations"],
   ["languages", "Languages"], ["session_formats", "Session formats"], ["fee_min", "Fee from (INR)"], ["fee_max", "Fee up to (INR)"], ["hours", "Hours"], ["years_operating", "Years operating"]];
-const show = (v: unknown) => (Array.isArray(v) ? v.join(", ") : v == null || v === "" ? "–" : String(v));
+const show = (v: unknown) => (Array.isArray(v) ? v.map((x) => plain(x)).filter(Boolean).join(", ") || "–" : plain(v) || "–");
 
 function PreviewCard({ s, tagline, text }: { s: Setup; tagline: string; text: string }) {
   const p = s.preview;

@@ -51,3 +51,19 @@ export function Lines({ data, x, lines, xLabel, yLabel, fmt, domain }: {
     </ResponsiveContainer>
   );
 }
+
+export type SparkPoint = { label: string; value: number };
+
+/** Small axis-free trend line with a date + score tooltip. */
+export function Spark({ data, name, color = ACCENT }: { data: SparkPoint[]; name: string; color?: string }) {
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <LineChart data={data} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
+        <YAxis hide domain={["dataMin - 1", "dataMax + 1"]} />
+        <Tooltip formatter={(v) => [String(v), name]} labelFormatter={(l) => String(l)} contentStyle={{ fontSize: 12 }} />
+        <Line dataKey="value" name={name} type="monotone" stroke={color} strokeWidth={2} dot={{ r: 2 }} isAnimationActive={false} />
+        <XAxis dataKey="label" hide />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}

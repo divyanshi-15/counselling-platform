@@ -1748,6 +1748,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/therapist/overnight-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Overnight Status View */
+        get: operations["overnight_status_view_therapist_overnight_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/therapists/me/briefings": {
         parameters: {
             query?: never;
@@ -2162,12 +2179,12 @@ export interface components {
              */
             risk_flags: string[];
             /**
-             * Scores
-             * @default {}
+             * @default {
+             *       "ids": [],
+             *       "item9_positive": false
+             *     }
              */
-            scores: {
-                [key: string]: unknown;
-            };
+            scores: components["schemas"]["ScoresOut"];
             /** Plan */
             plan?: {
                 [key: string]: unknown;
@@ -3114,6 +3131,26 @@ export interface components {
             /** Items */
             items: components["schemas"]["MySlotOut"][];
         };
+        /** OvernightClient */
+        OvernightClient: {
+            /** Client Id */
+            client_id: number;
+            /** Name */
+            name?: string | null;
+            scores: components["schemas"]["ScoresOut"];
+            /**
+             * Findings
+             * @default []
+             */
+            findings: string[];
+            /**
+             * Evidence
+             * @default {}
+             */
+            evidence: {
+                [key: string]: unknown;
+            };
+        };
         /** OvernightFlag */
         OvernightFlag: {
             /** Client Id */
@@ -3133,6 +3170,19 @@ export interface components {
             flagged: components["schemas"]["OvernightFlag"][];
             /** Drafted */
             drafted: number;
+        };
+        /** OvernightStatusOut */
+        OvernightStatusOut: {
+            /** Ran At */
+            ran_at?: string | null;
+            /** Last Summary */
+            last_summary?: string | null;
+            /** Clients Checked */
+            clients_checked: number;
+            /** Needs Attention */
+            needs_attention: number;
+            /** Clients */
+            clients: components["schemas"]["OvernightClient"][];
         };
         /** OwnerActionItem */
         OwnerActionItem: {
@@ -3693,6 +3743,44 @@ export interface components {
             /** Message */
             message: string | null;
             action: components["schemas"]["PlanActionOut"] | null;
+        };
+        /** ScorePoint */
+        ScorePoint: {
+            /** Taken At */
+            taken_at: string;
+            /** Total */
+            total: number;
+        };
+        /** ScoreSeries */
+        ScoreSeries: {
+            /** Latest */
+            latest: number;
+            /** First */
+            first: number;
+            /** Count */
+            count: number;
+            /** Change */
+            change: number;
+            /**
+             * Series
+             * @default []
+             */
+            series: components["schemas"]["ScorePoint"][];
+        };
+        /** ScoresOut */
+        ScoresOut: {
+            /**
+             * Ids
+             * @default []
+             */
+            ids: number[];
+            /**
+             * Item9 Positive
+             * @default false
+             */
+            item9_positive: boolean;
+            PHQ9?: components["schemas"]["ScoreSeries"] | null;
+            GAD7?: components["schemas"]["ScoreSeries"] | null;
         };
         /** SessionKpi */
         SessionKpi: {
@@ -7571,6 +7659,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OvernightOut"];
+                };
+            };
+        };
+    };
+    overnight_status_view_therapist_overnight_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OvernightStatusOut"];
                 };
             };
         };
