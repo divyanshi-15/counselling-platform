@@ -20,12 +20,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from backend.app import fake_llm, rag
-from backend.app.agents.launch import (
-    _budget_exceeded,
-    _cached_model_output,
-    _record_token_usage,
-    _write_cache,
-)
+from backend.app.agents.launch import _budget_exceeded, _cached_model_output, _record_token_usage, _write_cache
 from backend.app.citations import CitationError, Suggestion, validate_suggestions
 from backend.app.clinical import mood_trend, phq9_item9_positive, scan_client_text
 from backend.app.json_extract import ModelText, extract_json, was_truncated

@@ -17,16 +17,7 @@ from backend.app.braindump import client_therapist
 from backend.app.clinical import mood_trend, raise_risk_alert, scan_client_text
 from backend.app.db import get_db
 from backend.app.exercises import with_notice
-from backend.app.models import (
-    Alert,
-    Assignment,
-    Checkin,
-    JournalEntry,
-    MoodCheckin,
-    ReminderPreference,
-    User,
-    UserRole,
-)
+from backend.app.models import Alert, Assignment, Checkin, JournalEntry, MoodCheckin, ReminderPreference, User, UserRole
 from backend.app.ratelimit import client_rate_limit
 from backend.app.safety import crisis_message
 

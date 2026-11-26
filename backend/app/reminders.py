@@ -12,13 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from backend.app.models import (
-    Assignment,
-    MoodCheckin,
-    ReminderLog,
-    ReminderPreference,
-    User,
-)
+from backend.app.models import Assignment, MoodCheckin, ReminderLog, ReminderPreference, User
 
 COPY = {
     "checkin": {

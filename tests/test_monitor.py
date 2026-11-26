@@ -14,17 +14,7 @@ from backend.app.auth import create_access_token
 from backend.app.clinical import raise_risk_alert, scan_client_text
 from backend.app.db import SessionLocal
 from backend.app.main import app
-from backend.app.models import (
-    AgentRun,
-    Alert,
-    Assessment,
-    Booking,
-    CasePlan,
-    PendingAction,
-    Practice,
-    TherapySession,
-    User,
-)
+from backend.app.models import AgentRun, Alert, Assessment, Booking, CasePlan, PendingAction, Practice, TherapySession, User
 from backend.scripts import seed as seed_mod
 
 client = TestClient(app)

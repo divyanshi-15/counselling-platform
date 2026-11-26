@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import delete
 
 from backend.app.db import SessionLocal
 from backend.app.main import app
+from backend.app.models import User
 from backend.scripts import seed as seed_mod
 
 client = TestClient(app)

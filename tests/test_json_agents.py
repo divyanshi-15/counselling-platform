@@ -9,7 +9,7 @@ import pytest
 from test_braindump import GOOD as DUMP
 from test_braindump import TEXT, _actions, _post
 from test_copilot import GOOD as BRIEF  # noqa: F401  (world is a fixture)
-from test_copilot import FakeModel, _h, _setup_case
+from test_copilot import FakeModel, _h, _setup_case, world
 
 from backend.app.agents import copilot, monitor
 from backend.app.agents.copilot import RetryBlock, ask_json, call_model

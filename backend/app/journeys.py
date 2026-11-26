@@ -6,24 +6,13 @@ from datetime import date, datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    ValidationError,
-    field_validator,
-    model_validator,
-)
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from backend.app.agents import copilot
-from backend.app.auth import (
-    require_roles,
-    require_therapist_of_client,
-    therapist_has_client,
-)
+from backend.app.auth import require_roles, require_therapist_of_client, therapist_has_client
 from backend.app.clinical import scan_client_text
 from backend.app.db import get_db
 from backend.app.exercises import with_notice

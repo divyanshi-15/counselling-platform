@@ -16,24 +16,8 @@ from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from typing import Annotated, Any, Literal
 
-from fastapi import (
-    APIRouter,
-    Depends,
-    File,
-    Form,
-    Header,
-    HTTPException,
-    Request,
-    Response,
-    UploadFile,
-)
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    EmailStr,
-    Field,
-    field_validator,
-)
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Request, Response, UploadFile
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, ValidationError, field_validator, model_validator
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -42,27 +26,12 @@ from backend.app.agents import copilot
 from backend.app.agents.launch import _regex_claim_check
 from backend.app.auth import require_roles
 from backend.app.db import get_db
-from backend.app.models import (
-    AuditLog,
-    Practice,
-    PracticeInvite,
-    TherapistProfile,
-    User,
-    UserRole,
-    VerificationDocument,
-)
+from backend.app.models import AuditLog, Practice, PracticeInvite, TherapistProfile, User, UserRole, VerificationDocument
 from backend.app.ratelimit import client_rate_limit, rate_limit
 from backend.app.safety import clinical_output_violations
 from backend.app.schemas import PublicPracticePage
 from backend.app.verification import MAX_DOCS_PER_THERAPIST as MAX_DOCS
-from backend.app.verification import (
-    PRACTICE_OWNER_TYPE,
-    DocumentOut,
-    ReviewIn,
-    read_upload,
-    store_file,
-    upload_dir,
-)
+from backend.app.verification import PRACTICE_OWNER_TYPE, DocumentOut, ReviewIn, read_upload, store_file, upload_dir
 
 router = APIRouter(tags=["practice-setup"])
 owner_only = require_roles(UserRole.practice_owner)

@@ -12,14 +12,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.config import settings
 from backend.app.db import get_db
-from backend.app.models import (
-    AvailabilitySlot,
-    Booking,
-    CasePlan,
-    TherapistProfile,
-    User,
-    UserRole,
-)
+from backend.app.models import AvailabilitySlot, Booking, CasePlan, TherapistProfile, User, UserRole
 
 pwd_context = PasswordHasher()
 security = HTTPBearer(auto_error=False)

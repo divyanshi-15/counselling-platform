@@ -12,22 +12,13 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Annotated, Literal
 
-from fastapi import (
-    APIRouter,
-    Depends,
-    File,
-    Form,
-    HTTPException,
-    Request,
-    Response,
-    UploadFile,
-)
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from backend.app.auth import require_roles
+from backend.app.auth import get_current_user, require_roles
 from backend.app.db import get_db
 from backend.app.models import (
     AuditLog,

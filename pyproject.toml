@@ -44,6 +44,9 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E9", "F", "I"]
+# F401: several modules re-export names that tests and scripts import (e.g. seed.PRACTICE_SLUGS), so unused-import
+# removal is not safe to automate. Review per module before enabling.
+ignore = ["F401"]
 
 [tool.ruff.lint.per-file-ignores]
 # pytest fixtures imported from conftest-style modules are "redefined" by test arguments.

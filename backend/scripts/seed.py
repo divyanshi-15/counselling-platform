@@ -54,6 +54,7 @@ from backend.scripts.seed_data import (
     LOGINS,
     PENDING_THERAPIST,
     PRACTICE_DETAILS,
+    PRACTICE_SLUGS,
     PRACTICES,
     SETUP_INVITE,
     SETUP_PRACTICE,

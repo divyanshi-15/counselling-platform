@@ -1,10 +1,6 @@
 from types import SimpleNamespace
 
-from app.auth import (
-    can_access_client_data,
-    can_access_practice_owner_data,
-    can_access_therapist_data,
-)
+from app.auth import can_access_client_data, can_access_practice_owner_data, can_access_therapist_data
 
 
 def test_client_access_is_self_only() -> None:

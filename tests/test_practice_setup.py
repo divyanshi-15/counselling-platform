@@ -13,13 +13,7 @@ from backend.app import practice_setup
 from backend.app.auth import create_access_token, hash_password
 from backend.app.db import SessionLocal
 from backend.app.main import app
-from backend.app.models import (
-    Practice,
-    PracticeInvite,
-    TherapistProfile,
-    User,
-    VerificationDocument,
-)
+from backend.app.models import Practice, PracticeInvite, TherapistProfile, User, VerificationDocument
 from backend.scripts import seed as seed_mod
 
 client = TestClient(app)

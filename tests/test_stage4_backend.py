@@ -11,7 +11,7 @@ from backend.app.agents import copilot, launch, monitor
 from backend.app.auth import create_access_token
 from backend.app.db import SessionLocal
 from backend.app.main import app
-from backend.app.models import Alert, AuditLog, CasePlan, Practice, User
+from backend.app.models import Alert, AuditLog, CasePlan, PendingAction, Practice, User
 from backend.scripts import seed as seed_mod
 
 client = TestClient(app)

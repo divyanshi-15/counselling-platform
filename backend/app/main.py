@@ -33,12 +33,7 @@ from backend.app.auth import (
 )
 from backend.app.braindump import DraftEdit
 from backend.app.braindump import router as braindump_router
-from backend.app.clinical import (
-    assessment_total,
-    phq9_item9_positive,
-    raise_risk_alert,
-    scan_client_text,
-)
+from backend.app.clinical import assessment_total, phq9_item9_positive, raise_risk_alert, scan_client_text
 from backend.app.contact import router as contact_router
 from backend.app.db import engine, get_db
 from backend.app.exercises import approved_exercises, template_for, with_notice
@@ -71,14 +66,7 @@ from backend.app.practice_setup import generate_unique_slug as _generate_unique_
 from backend.app.practice_setup import router as practice_setup_router
 from backend.app.rag import index_session_notes
 from backend.app.ratelimit import client_rate_limit, contact_rate_limit
-from backend.app.safety import (
-    CRISIS_MESSAGE,
-    check_claims,
-    clinical_output_violations,
-    render_prompt_data,
-    risk_scan,
-    validate_ai_output,
-)
+from backend.app.safety import CRISIS_MESSAGE, check_claims, clinical_output_violations, render_prompt_data, risk_scan, validate_ai_output
 from backend.app.scheduler import start_scheduler
 from backend.app.schemas import (
     AdminTherapistsOut,
@@ -112,6 +100,7 @@ from backend.app.schemas import (
     PracticeContact,
     PracticeDraft,
     PracticeDraftOut,
+    PracticeOut,
     PracticesOut,
     PrepareDayOut,
     PublicPracticeDetailOut,

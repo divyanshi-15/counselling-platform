@@ -10,7 +10,7 @@ from sqlalchemy import delete
 from backend.app.auth import create_access_token, hash_password
 from backend.app.db import SessionLocal
 from backend.app.main import app
-from backend.app.models import ContactMessage, User
+from backend.app.models import ContactMessage, Practice, User
 from backend.app.safety import CRISIS_MESSAGE
 
 client = TestClient(app)
