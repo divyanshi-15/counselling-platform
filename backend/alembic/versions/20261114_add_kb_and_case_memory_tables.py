@@ -5,11 +5,10 @@ Revises: 20261114_003
 Create Date: 2026-11-14 00:00:00.000000
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from pgvector.sqlalchemy import Vector
 from sqlalchemy.dialects import postgresql
-
 
 revision = "20261114_004"
 down_revision = "20261114_003"

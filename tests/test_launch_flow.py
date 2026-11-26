@@ -8,10 +8,10 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import delete
 
-from backend.app.auth import create_access_token, hash_password
-from backend.app.db import SessionLocal
 from backend.app import domains
 from backend.app.agents.launch import LlmReply, _display
+from backend.app.auth import create_access_token, hash_password
+from backend.app.db import SessionLocal
 from backend.app.json_extract import extract_json
 from backend.app.main import app
 from backend.app.models import AgentRun, AuditLog, PendingAction, Practice, User

@@ -5,8 +5,8 @@ import os
 import re
 import smtplib
 from contextlib import asynccontextmanager
-from email.message import EmailMessage
 from datetime import datetime, timezone
+from email.message import EmailMessage
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Response
@@ -15,86 +15,124 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from backend.app import fake_llm
+from backend.app.admin_queue import router as admin_queue_router
 from backend.app.agents.copilot import CopilotError, prepare_my_day
 from backend.app.agents.launch import run_launch_agent
 from backend.app.agents.monitor import overnight_status, run_overnight_check
-from backend.app.scheduler import start_scheduler
+from backend.app.analytics import router as analytics_router
 from backend.app.auth import (
-    therapist_has_client,
     create_access_token,
     get_current_user,
     get_optional_current_user,
     hash_password,
     require_roles,
     require_therapist_of_client,
+    therapist_has_client,
     verify_password,
 )
-from backend.app import fake_llm
+from backend.app.braindump import DraftEdit
+from backend.app.braindump import router as braindump_router
+from backend.app.clinical import (
+    assessment_total,
+    phq9_item9_positive,
+    raise_risk_alert,
+    scan_client_text,
+)
+from backend.app.contact import router as contact_router
 from backend.app.db import engine, get_db
-from backend.app.clinical import assessment_total, phq9_item9_positive, raise_risk_alert, scan_client_text
+from backend.app.exercises import approved_exercises, template_for, with_notice
+from backend.app.exercises import router as exercises_router
+from backend.app.journeys import approve_journey_draft
+from backend.app.journeys import router as journeys_router
+from backend.app.launch_flow import apply_launch_plan
+from backend.app.launch_flow import router as launch_router
 from backend.app.models import (
     AgentRun,
     Alert,
     Assessment,
     Assignment,
-    Exercise,
-    CasePlan,
-    CopilotBriefing,
-    TherapySession,
     AuditLog,
     AvailabilitySlot,
     Booking,
+    CasePlan,
+    CopilotBriefing,
+    Exercise,
     IntakeForm,
     IntakeResponse,
     PendingAction,
     Practice,
     TherapistProfile,
+    TherapySession,
     User,
     UserRole,
 )
-from backend.app.analytics import router as analytics_router
-from backend.app.admin_queue import router as admin_queue_router
-from backend.app.contact import router as contact_router
-from backend.app.launch_flow import apply_launch_plan, router as launch_router
-from backend.app.verification import _practice_name, ensure_profile, profile_dict, router as verification_router
-from backend.app.practice_setup import generate_unique_slug as _generate_unique_slug, router as practice_setup_router
-from backend.app.braindump import DraftEdit, router as braindump_router
-from backend.app.journeys import approve_journey_draft, router as journeys_router
-from backend.app.skills import router as skills_router
-from backend.app.exercises import approved_exercises, template_for, router as exercises_router, with_notice
-from backend.app.ratelimit import client_rate_limit, contact_rate_limit
+from backend.app.practice_setup import generate_unique_slug as _generate_unique_slug
+from backend.app.practice_setup import router as practice_setup_router
 from backend.app.rag import index_session_notes
-from backend.app.safety import CRISIS_MESSAGE, check_claims, clinical_output_violations, render_prompt_data, risk_scan, validate_ai_output
+from backend.app.ratelimit import client_rate_limit, contact_rate_limit
+from backend.app.safety import (
+    CRISIS_MESSAGE,
+    check_claims,
+    clinical_output_violations,
+    render_prompt_data,
+    risk_scan,
+    validate_ai_output,
+)
+from backend.app.scheduler import start_scheduler
 from backend.app.schemas import (
-    PublicPracticeDetailOut, PublicPracticesOut, PublicTherapist, PublicTherapistsOut,
-    AdminTherapistsOut, AgentRunsOut, AlertItem, AlertsOut, OwnerActionsOut, PracticeDraftOut, PracticesOut, AssessmentOut, AssessmentsOut, BriefingsOut, CasePlanOut, CasePlansOut,
-    OvernightOut, OvernightStatusOut, PendingActionOut, PrepareDayOut, SessionNotesOut, TherapistActionsOut,
-    TherapistBookingsOut, TherapistProfileOut,
-    MessageResponse,
+    AdminTherapistsOut,
+    AgentRunsOut,
+    AlertItem,
+    AlertsOut,
     AssessmentIn,
+    AssessmentOut,
+    AssessmentsOut,
     AvailabilityOut,
-    MySlotOut,
-    MySlotsOut,
     AvailabilitySlotIn,
+    BookingIn,
     BookingOut,
+    BriefingsOut,
     CasePlanIn,
+    CasePlanOut,
+    CasePlansOut,
     ClientDashboardOut,
+    IntakeFormIn,
     IntakeFormOut,
+    IntakeResponseIn,
     IntakeResponseOut,
     IntakeSubmitOut,
-    RoomOut,
-    SessionNotesIn,
-    BookingIn,
-    IntakeFormIn,
-    IntakeResponseIn,
+    MessageResponse,
+    MySlotOut,
+    MySlotsOut,
+    OvernightOut,
+    OvernightStatusOut,
+    OwnerActionsOut,
+    PendingActionOut,
     PracticeContact,
     PracticeDraft,
-    PracticeOut,
+    PracticeDraftOut,
+    PracticesOut,
+    PrepareDayOut,
+    PublicPracticeDetailOut,
+    PublicPracticesOut,
+    PublicTherapist,
+    PublicTherapistsOut,
+    RoomOut,
+    SessionNotesIn,
+    SessionNotesOut,
+    TherapistActionsOut,
+    TherapistBookingsOut,
     TherapistProfileIn,
+    TherapistProfileOut,
     UserCreate,
     UserLogin,
     UserOut,
 )
+from backend.app.skills import router as skills_router
+from backend.app.verification import _practice_name, ensure_profile, profile_dict
+from backend.app.verification import router as verification_router
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -305,7 +343,7 @@ def _build_practice_page(payload: PracticeDraft) -> dict[str, object]:
             f"{specialty_text} with {tone.lower()} care."
         ),
         "services": [
-            {"title": "Initial consultation", "description": f"A first conversation to understand your needs and goals."},
+            {"title": "Initial consultation", "description": "A first conversation to understand your needs and goals."},
             {"title": "Supportive sessions", "description": f"Gentle, structured support informed by {', '.join(payload.approaches) or 'evidence-based practice'}."},
         ],
         "faq": [

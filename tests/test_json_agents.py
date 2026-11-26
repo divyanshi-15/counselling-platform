@@ -6,12 +6,14 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
+from test_braindump import GOOD as DUMP
+from test_braindump import TEXT, _actions, _post
+from test_copilot import GOOD as BRIEF  # noqa: F401  (world is a fixture)
+from test_copilot import FakeModel, _h, _setup_case
 
 from backend.app.agents import copilot, monitor
 from backend.app.agents.copilot import RetryBlock, ask_json, call_model
 from backend.app.json_extract import ModelText, extract_json
-from test_braindump import GOOD as DUMP, TEXT, _actions, _post
-from test_copilot import GOOD as BRIEF, FakeModel, _h, _setup_case, world  # noqa: F401  (world is a fixture)
 
 PLAN = {"update_text": "Scores have held steady, so consider whether the evening goals still fit."}
 FENCED = lambda d: "```json\n" + json.dumps(d) + "\n```"  # noqa: E731

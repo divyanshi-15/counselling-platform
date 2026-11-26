@@ -6,7 +6,7 @@ import re
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -15,11 +15,24 @@ from backend.app.agents import copilot
 from backend.app.auth import require_roles
 from backend.app.clinical import raise_risk_alert, scan_client_text
 from backend.app.db import get_db
-from backend.app.exercises import CRISIS_LINE, NOTICE, with_notice
-from backend.app.models import (Alert, AvailabilitySlot, Booking, CasePlan, Exercise, PendingAction, TherapistProfile,
-                                User, UserRole)
+from backend.app.exercises import with_notice
+from backend.app.models import (
+    Alert,
+    AvailabilitySlot,
+    Booking,
+    CasePlan,
+    Exercise,
+    PendingAction,
+    TherapistProfile,
+    User,
+    UserRole,
+)
 from backend.app.ratelimit import client_rate_limit
-from backend.app.safety import CRISIS_MESSAGE, clinical_output_violations, render_prompt_data
+from backend.app.safety import (
+    CRISIS_MESSAGE,
+    clinical_output_violations,
+    render_prompt_data,
+)
 
 router = APIRouter()
 client_only = require_roles(UserRole.client)

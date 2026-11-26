@@ -10,7 +10,7 @@ import json
 import os
 import re
 from datetime import datetime, timedelta, timezone
-from typing import NamedTuple, Any, Callable
+from typing import Any, Callable, NamedTuple
 from uuid import uuid4
 
 import httpx
@@ -19,15 +19,34 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from backend.app import fake_llm
-from backend.app import rag
-from backend.app.json_extract import ModelText, extract_json, was_truncated
-from backend.app.agents.launch import _budget_exceeded, _cached_model_output, _record_token_usage, _write_cache
+from backend.app import fake_llm, rag
+from backend.app.agents.launch import (
+    _budget_exceeded,
+    _cached_model_output,
+    _record_token_usage,
+    _write_cache,
+)
 from backend.app.citations import CitationError, Suggestion, validate_suggestions
 from backend.app.clinical import mood_trend, phq9_item9_positive, scan_client_text
-from backend.app.models import (AgentRun, Assessment, Assignment, AvailabilitySlot, Booking, CasePlan, CopilotBriefing, Exercise,
-                                IntakeResponse, MoodCheckin, KbChunk, KbDocument, PendingAction, TherapistProfile, TherapySession,
-                                User)
+from backend.app.json_extract import ModelText, extract_json, was_truncated
+from backend.app.models import (
+    AgentRun,
+    Assessment,
+    Assignment,
+    AvailabilitySlot,
+    Booking,
+    CasePlan,
+    CopilotBriefing,
+    Exercise,
+    IntakeResponse,
+    KbChunk,
+    KbDocument,
+    MoodCheckin,
+    PendingAction,
+    TherapistProfile,
+    TherapySession,
+    User,
+)
 from backend.app.safety import clinical_output_violations, render_prompt_data
 
 MODEL = os.getenv("MODEL_FAST", "claude-haiku-5-5")

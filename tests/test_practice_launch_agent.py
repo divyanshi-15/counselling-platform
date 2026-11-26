@@ -7,7 +7,11 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.app.agents.launch import draft_page, evaluate_claims_with_model, run_launch_agent
+from backend.app.agents.launch import (
+    draft_page,
+    evaluate_claims_with_model,
+    run_launch_agent,
+)
 from backend.app.db import SessionLocal
 from backend.app.main import app
 from backend.app.models import AgentRun, AuditLog, PendingAction, Practice, User

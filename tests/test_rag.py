@@ -8,11 +8,30 @@ import pytest
 from sqlalchemy import event, inspect, select, text
 
 from backend.app.auth import hash_password
-from backend.app.citations import NO_SUPPORT, CitationError, Suggestion, validate_suggestions
+from backend.app.citations import (
+    NO_SUPPORT,
+    CitationError,
+    Suggestion,
+    validate_suggestions,
+)
 from backend.app.db import SessionLocal, engine
 from backend.app.embeddings import get_embedder
-from backend.app.models import (AvailabilitySlot, Booking, KbChunk, KbDocument, Practice, TherapistProfile, User)
-from backend.app.rag import add_case_memory, index_session_notes, load_kb, parse_kb_file, retrieve_case_memory, retrieve_knowledge
+from backend.app.models import (
+    AvailabilitySlot,
+    Booking,
+    KbChunk,
+    KbDocument,
+    Practice,
+    TherapistProfile,
+    User,
+)
+from backend.app.rag import (
+    add_case_memory,
+    load_kb,
+    parse_kb_file,
+    retrieve_case_memory,
+    retrieve_knowledge,
+)
 
 KB_DIR = Path(__file__).resolve().parents[1] / "kb"
 
@@ -239,6 +258,7 @@ def test_pizza_query_returns_empty_through_default_pipeline() -> None:
 
 def test_saving_session_notes_indexes_memory_per_client(case_scenario) -> None:
     from fastapi.testclient import TestClient
+
     from backend.app.auth import create_access_token
     from backend.app.main import app
     from backend.app.models import CaseMemoryChunk

@@ -6,19 +6,31 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from backend.app.agents.copilot import AI_UNAVAILABLE, ask_json, call_model
 from backend.app.clinical import phq9_item9_positive
-from backend.app.models import (AgentRun, Alert, Assessment, Assignment, AvailabilitySlot, Booking, CasePlan, Checkin,
-                                PendingAction, TherapistProfile, TherapySession, User)
+from backend.app.models import (
+    AgentRun,
+    Alert,
+    Assessment,
+    Assignment,
+    AvailabilitySlot,
+    Booking,
+    CasePlan,
+    Checkin,
+    PendingAction,
+    TherapistProfile,
+    TherapySession,
+    User,
+)
 from backend.app.safety import clinical_output_violations, render_prompt_data
 
 WINDOW_DAYS = 14

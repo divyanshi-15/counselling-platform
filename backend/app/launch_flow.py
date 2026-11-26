@@ -16,7 +16,14 @@ from backend.app import domains
 from backend.app.agents import launch
 from backend.app.auth import require_roles
 from backend.app.db import SessionLocal, get_db
-from backend.app.models import AgentRun, AuditLog, PendingAction, Practice, User, UserRole
+from backend.app.models import (
+    AgentRun,
+    AuditLog,
+    PendingAction,
+    Practice,
+    User,
+    UserRole,
+)
 from backend.app.ratelimit import rate_limit
 
 router = APIRouter(tags=["launch"])

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import re
 
+from test_copilot import _h, world  # noqa: F401
+
 from backend.app.db import SessionLocal
 from backend.app.exercises import template_for
 from backend.app.models import Exercise
-from test_copilot import _h, world  # noqa: F401
 
 DEVANAGARI = re.compile(r"[ऀ-ॿ]")
 

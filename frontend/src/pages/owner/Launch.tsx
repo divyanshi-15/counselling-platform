@@ -100,7 +100,7 @@ function PlanView({ action, state, onChange }: { action: Action; state: State; o
     await put({ ...plan.page, tagline: draft.tagline, about: draft.about }, { subject: draft.subject, body: draft.body }, draft.checklist.split("\n").map((l) => l.trim()).filter(Boolean));
     setEditing(false);
   });
-  const useSlug = (slug: string) => run(() => put(plan.page, plan.welcome_email, plan.checklist, slug));
+  const chooseSlug = (slug: string) => run(() => put(plan.page, plan.welcome_email, plan.checklist, slug));
   const registered = (domain: string) => run(() => api(`/owner/practices/${pid}/launch/domain/confirm`, { method: "POST", json: { domain } }));
   const applyDns = () => run(() => api(`/owner/practices/${pid}/launch/domain/apply-dns`, { method: "POST", headers: { "Idempotency-Key": crypto.randomUUID() } }), t("launchDnsDone"));
 
@@ -114,7 +114,7 @@ function PlanView({ action, state, onChange }: { action: Action; state: State; o
               <span className="font-mono break-all">{origin}/p/{o.slug}</span>
               <Badge className={o.available ? "border-emerald-400 text-emerald-800" : "border-red-300 text-red-800"}>{o.available ? t("launchAvailable") : t("launchTaken")}</Badge>
               {o.slug === plan.chosen_slug ? <Badge className="ml-auto">{state.slug_locked ? t("launchSuggested") : t("launchChosen")}</Badge>
-                : pending && o.available && !state.slug_locked && <Button className="ml-auto" variant="outline" disabled={busy} onClick={() => void useSlug(o.slug)}>{t("launchUseSlug")}</Button>}
+                : pending && o.available && !state.slug_locked && <Button className="ml-auto" variant="outline" disabled={busy} onClick={() => void chooseSlug(o.slug)}>{t("launchUseSlug")}</Button>}
             </li>
           ))}
           {!plan.slugs.some((o) => o.slug === plan.chosen_slug) && <li className="rounded-md border p-2 font-mono text-sm break-all">{origin}/p/{plan.chosen_slug} <Badge className="ml-2">{state.slug_locked ? t("launchSuggested") : t("launchChosen")}</Badge></li>}

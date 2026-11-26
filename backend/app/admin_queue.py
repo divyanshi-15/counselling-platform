@@ -13,8 +13,16 @@ from sqlalchemy.orm import Session
 
 from backend.app.auth import require_roles
 from backend.app.db import get_db
-from backend.app.models import (AuditLog, Practice, TherapistEducation, TherapistLicense, TherapistProfile, User, UserRole,
-                                VerificationDocument)
+from backend.app.models import (
+    AuditLog,
+    Practice,
+    TherapistEducation,
+    TherapistLicense,
+    TherapistProfile,
+    User,
+    UserRole,
+    VerificationDocument,
+)
 from backend.app.practice_setup import missing_details
 from backend.app.verification import OWNER_TYPE, PRACTICE_OWNER_TYPE
 

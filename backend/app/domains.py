@@ -11,9 +11,9 @@ import os
 import re
 from dataclasses import dataclass
 from typing import Protocol
+from urllib.parse import quote
 
 import httpx
-from urllib.parse import quote
 
 DOMAIN_RE = re.compile(r"^(?=.{4,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+(com|in|co\.in|org|care|health)$")
 TIMEOUT = 10.0

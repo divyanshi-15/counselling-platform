@@ -28,6 +28,7 @@ dev = [
   "pytest-asyncio>=0.23.0",
   "pytest-cov>=5.0.0",
   "ruff>=0.6.0",
+  "mypy>=1.11",
 ]
 
 [tool.pytest.ini_options]
@@ -36,3 +37,46 @@ testpaths = ["tests"]
 
 [tool.setuptools.packages.find]
 include = ["backend*"]
+
+[tool.ruff]
+line-length = 140
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E9", "F", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+# pytest fixtures imported from conftest-style modules are "redefined" by test arguments.
+"tests/*" = ["F811"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+follow_imports = "silent"
+# Gradual typing: modules listed below predate mypy and are exempt. New modules are checked.
+# Remove a module from the list as it is cleaned up; never add one.
+
+[[tool.mypy.overrides]]
+module = [
+  "backend.app.admin_queue",
+  "backend.app.agents.copilot",
+  "backend.app.agents.launch",
+  "backend.app.agents.monitor",
+  "backend.app.analytics",
+  "backend.app.braindump",
+  "backend.app.exercises",
+  "backend.app.fake_llm",
+  "backend.app.journeys",
+  "backend.app.launch_flow",
+  "backend.app.main",
+  "backend.app.practice_setup",
+  "backend.app.rag",
+  "backend.app.safety",
+  "backend.app.skills",
+  "backend.app.verification",
+  "backend.scripts.calibrate_rag",
+  "backend.scripts.create_judge_accounts",
+  "backend.scripts.seed_data",
+  "backend.scripts.seed",
+]
+ignore_errors = true

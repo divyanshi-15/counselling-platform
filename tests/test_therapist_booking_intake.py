@@ -11,7 +11,13 @@ from sqlalchemy.exc import IntegrityError
 
 from backend.app.db import SessionLocal
 from backend.app.main import app
-from backend.app.models import AvailabilitySlot, Booking, Practice, TherapistProfile, User
+from backend.app.models import (
+    AvailabilitySlot,
+    Booking,
+    Practice,
+    TherapistProfile,
+    User,
+)
 
 
 @pytest.fixture

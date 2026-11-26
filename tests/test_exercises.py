@@ -6,19 +6,31 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
+from test_copilot import FakeModel, _h, _setup_case, world  # noqa: F401  (world is a fixture)
 
 from backend.app import embeddings
 from backend.app.agents import copilot
 from backend.app.db import SessionLocal
 from backend.app.exercises import CRISIS_LINE, NOTICE
 from backend.app.main import app
-from backend.app.models import (Alert, Assignment, Checkin, IntakeResponse, KbChunk, KbDocument, PendingAction,
-                                User)
+from backend.app.models import (
+    Alert,
+    Assignment,
+    Checkin,
+    IntakeResponse,
+    KbChunk,
+    KbDocument,
+    PendingAction,
+)
 from backend.app.rag import Retrieved
 from backend.app.risk_data import HARD_NEGATIVES_15
-from backend.app.safety import (CRISIS_MESSAGE, clinical_output_violations, evaluate_classifier, risk_check,
-                                risk_scan)
-from test_copilot import FakeModel, _h, _setup_case, world  # noqa: F401  (world is a fixture)
+from backend.app.safety import (
+    CRISIS_MESSAGE,
+    clinical_output_violations,
+    evaluate_classifier,
+    risk_check,
+    risk_scan,
+)
 
 RISK_30 = [  # synthetic, held out from the classifier's training phrases
     "I want to end it all", "some days I wish I was dead", "I have thoughts of not wanting to be here",
@@ -341,7 +353,9 @@ def test_intake_and_notes_alerts_carry_text_for_therapist(world, monkeypatch) ->
         db.add(IntakeResponse(booking_id=w["booking_a"].id, client_id=w["ca"].id,
                               answers_json={"note": "I keep having thoughts of not wanting to be here"}))
         db.commit()
-    from backend.app.clinical import raise_risk_alert  # direct: text param is stored only when given
+    from backend.app.clinical import (
+        raise_risk_alert,  # direct: text param is stored only when given
+    )
     with SessionLocal() as db:
         a = raise_risk_alert(db, therapist_user_id=w["ta"].id, client_id=w["ca"].id, source="t", source_id=1,
                              match="m", text="hello")

@@ -11,8 +11,18 @@ from sqlalchemy.orm import Session
 
 from backend.app.auth import require_roles
 from backend.app.db import get_db
-from backend.app.models import (Alert, Assessment, Assignment, AvailabilitySlot, Booking, CasePlan, Practice,
-                                TherapistProfile, User, UserRole)
+from backend.app.models import (
+    Alert,
+    Assessment,
+    Assignment,
+    AvailabilitySlot,
+    Booking,
+    CasePlan,
+    Practice,
+    TherapistProfile,
+    User,
+    UserRole,
+)
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 

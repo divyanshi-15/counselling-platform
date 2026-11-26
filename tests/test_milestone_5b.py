@@ -14,7 +14,12 @@ from backend.app.agents import copilot
 from backend.app.db import SessionLocal
 from backend.app.main import app
 from backend.app.models import PendingAction, Practice
-from backend.app.safety import CRISIS_MESSAGE, clinical_output_violations, render_prompt_data, risk_scan
+from backend.app.safety import (
+    CRISIS_MESSAGE,
+    clinical_output_violations,
+    render_prompt_data,
+    risk_scan,
+)
 
 
 def _register_user(client: TestClient) -> tuple[str, int]:

@@ -1,6 +1,6 @@
 /** Collapsed raw payload for debugging; never the primary display. */
 export function TechnicalDetails({ data, label = "Technical details" }: { data: unknown; label?: string }) {
-  let text = "";
+  let text: string;
   try { text = typeof data === "string" ? data : JSON.stringify(data, null, 2) ?? ""; } catch { text = ""; }
   if (!text) return null;
   return (

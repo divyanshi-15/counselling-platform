@@ -1,6 +1,6 @@
 import { Link, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Empty, ErrorMsg, Loading } from "@/components/states";
 import { TherapistHeader } from "@/components/TherapistHeader";
 import type { TherapistItem } from "@/lib/api";

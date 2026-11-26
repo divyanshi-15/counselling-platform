@@ -14,8 +14,17 @@ from backend.app.auth import create_access_token
 from backend.app.clinical import raise_risk_alert, scan_client_text
 from backend.app.db import SessionLocal
 from backend.app.main import app
-from backend.app.models import (AgentRun, Alert, Assessment, Booking, CasePlan, PendingAction, Practice, TherapySession,
-                                User)
+from backend.app.models import (
+    AgentRun,
+    Alert,
+    Assessment,
+    Booking,
+    CasePlan,
+    PendingAction,
+    Practice,
+    TherapySession,
+    User,
+)
 from backend.scripts import seed as seed_mod
 
 client = TestClient(app)
@@ -184,7 +193,7 @@ def test_owner_client_and_other_therapist_denied(seeded, model):
     assert len(_plan_actions()) == 1
     owner_runs = client.get("/therapists/me/agent-runs", headers=_h("owner@example.com"))
     assert owner_runs.status_code == 403
-    with SessionLocal() as db:
+    with SessionLocal():
         assert _plan_actions()[0].status == "pending"
 
 

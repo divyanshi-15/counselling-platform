@@ -11,8 +11,18 @@ from backend.app.agents import copilot
 from backend.app.auth import create_access_token, hash_password
 from backend.app.db import SessionLocal
 from backend.app.main import app
-from backend.app.models import (AgentRun, Alert, AvailabilitySlot, Booking, CopilotBriefing, IntakeResponse,
-                                PendingAction, Practice, TherapistProfile, User)
+from backend.app.models import (
+    AgentRun,
+    Alert,
+    AvailabilitySlot,
+    Booking,
+    CopilotBriefing,
+    IntakeResponse,
+    PendingAction,
+    Practice,
+    TherapistProfile,
+    User,
+)
 from backend.app.rag import Retrieved
 from backend.app.safety import clinical_output_violations
 

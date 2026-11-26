@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { useAuth } from "@/lib/auth";
+import { useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +13,6 @@ import { useFetch } from "@/lib/useFetch";
 
 export default function PracticePage() {
   const { slug } = useParams();
-  const { user } = useAuth();
   const { data, error, loading } = useFetch<{ practice: PracticeItem }>(`/p/${slug}`);
   const practice = data?.practice;
   const therapists = useFetch<{ items: (TherapistItem)[] }>("/therapists/public", practice ? { practice_id: practice.id } : undefined);

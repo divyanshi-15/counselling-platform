@@ -1,6 +1,5 @@
 from app.safety import check_claims, risk_check, validate_ai_output
 
-
 RISK_CASES = [
     "I want to die",
     "I feel like I can't go on",

@@ -12,7 +12,6 @@ from __future__ import annotations
 import json
 import os
 import secrets
-import sys
 from datetime import datetime, timezone
 
 from sqlalchemy import select
@@ -23,7 +22,14 @@ from backend.app.db import SessionLocal
 from backend.app.models import Practice, TherapistProfile, User
 from backend.app.practice_setup import set_practice_status
 from backend.scripts import seed
-from backend.scripts.seed_data import CASES, COMMON_PAGE, PRACTICES, PRACTICE_DETAILS, THERAPISTS, VERIFICATION
+from backend.scripts.seed_data import (
+    CASES,
+    COMMON_PAGE,
+    PRACTICE_DETAILS,
+    PRACTICES,
+    THERAPISTS,
+    VERIFICATION,
+)
 
 MIN_LENGTH = 12
 ENV = {"client": "JUDGE_PASSWORD_CLIENT", "therapist": "JUDGE_PASSWORD_THERAPIST", "owner": "JUDGE_PASSWORD_OWNER"}

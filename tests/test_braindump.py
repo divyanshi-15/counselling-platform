@@ -5,11 +5,11 @@ from uuid import uuid4
 
 import httpx
 import pytest
+from test_copilot import _h, world  # noqa: F401  (world is a fixture)
 
 from backend.app.agents import copilot
 from backend.app.db import SessionLocal
-from backend.app.models import Alert, Assignment, Exercise, PendingAction, User
-from test_copilot import _h, world  # noqa: F401  (world is a fixture)
+from backend.app.models import Alert, Assignment, PendingAction
 
 GOOD = {"themes": ["worry about work", "poor sleep"], "mood_tags": ["anxious", "tired"],
         "exercise_kb_slug": "worry-postponement",

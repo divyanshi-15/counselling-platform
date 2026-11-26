@@ -5,13 +5,23 @@ from datetime import date, datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
+from test_copilot import _h, world  # noqa: F401  (world is a fixture)
 
 from backend.app import reminders
 from backend.app.agents import copilot
 from backend.app.db import SessionLocal
-from backend.app.models import (Alert, Exercise, JournalEntry, Journey, JourneyAssignment, JourneyStep, MoodCheckin, PendingAction, ReminderLog,
-                                User)
-from test_copilot import _h, world  # noqa: F401  (world is a fixture)
+from backend.app.models import (
+    Alert,
+    Exercise,
+    JournalEntry,
+    Journey,
+    JourneyAssignment,
+    JourneyStep,
+    MoodCheckin,
+    PendingAction,
+    ReminderLog,
+    User,
+)
 
 TODAY = datetime.now(timezone.utc).date()
 MOOD = {"mood": 4, "sleep_hours": 7.5, "note": "Felt calmer after a walk."}

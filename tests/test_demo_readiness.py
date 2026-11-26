@@ -12,7 +12,15 @@ from backend.app.auth import create_access_token
 from backend.app.citations import Suggestion
 from backend.app.db import SessionLocal
 from backend.app.main import app
-from backend.app.models import AvailabilitySlot, Booking, KbChunk, KbDocument, Practice, TherapistProfile, User
+from backend.app.models import (
+    AvailabilitySlot,
+    Booking,
+    KbChunk,
+    KbDocument,
+    Practice,
+    TherapistProfile,
+    User,
+)
 from backend.scripts import seed as seed_mod
 
 client = TestClient(app)

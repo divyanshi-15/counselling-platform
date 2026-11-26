@@ -17,13 +17,50 @@ from backend.app import rag
 from backend.app.auth import hash_password
 from backend.app.config import settings
 from backend.app.db import SessionLocal
-from backend.app.models import (Alert, Assessment, Assignment, AvailabilitySlot, Booking, CasePlan, Checkin, Exercise,
-                                IntakeForm, IntakeResponse, Journey, JourneyAssignment, JourneyStep, JourneyStepProgress, MoodCheckin, PendingAction, Practice, PracticeInvite, TherapistEducation, TherapistLicense,
-                                TherapistProfile, TherapySession, User, VerificationDocument)
-from backend.app.practice_setup import _hash_token, INVITE_DAYS, set_practice_status
+from backend.app.models import (
+    Alert,
+    Assessment,
+    Assignment,
+    AvailabilitySlot,
+    Booking,
+    CasePlan,
+    Checkin,
+    Exercise,
+    IntakeForm,
+    IntakeResponse,
+    Journey,
+    JourneyAssignment,
+    JourneyStep,
+    JourneyStepProgress,
+    MoodCheckin,
+    PendingAction,
+    Practice,
+    PracticeInvite,
+    TherapistEducation,
+    TherapistLicense,
+    TherapistProfile,
+    TherapySession,
+    User,
+    VerificationDocument,
+)
+from backend.app.practice_setup import INVITE_DAYS, _hash_token, set_practice_status
 from backend.app.verification import OWNER_TYPE, set_status, store_document, upload_dir
-from backend.scripts.seed_data import (COMMON_PAGE, CASES, INTAKE_FIELDS, JOURNEYS, JOURNEY_ASSIGNMENT, LOGINS, PENDING_THERAPIST, PRACTICE_SLUGS,
-                                       PRACTICES, PRACTICE_DETAILS, SETUP_INVITE, SETUP_PRACTICE, THERAPISTS, VERIFICATION)
+from backend.scripts.seed_data import (
+    CASES,
+    COMMON_PAGE,
+    INTAKE_FIELDS,
+    JOURNEY_ASSIGNMENT,
+    JOURNEYS,
+    LOGINS,
+    PENDING_THERAPIST,
+    PRACTICE_DETAILS,
+    PRACTICES,
+    SETUP_INVITE,
+    SETUP_PRACTICE,
+    THERAPISTS,
+    VERIFICATION,
+)
+
 
 def _items(total: int, n: int) -> list[int]:
     """Spread total over the first n-1 (PHQ-9) or n items, 0-3 each. PHQ-9 item 9 stays 0 (no risk flag in seed)."""

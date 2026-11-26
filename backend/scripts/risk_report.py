@@ -5,7 +5,13 @@ from pathlib import Path
 
 from backend.app.embeddings import get_embedder
 from backend.app.risk_data import HARD_NEGATIVES_15
-from backend.app.safety import _get_classifier, _normalise, risk_check, risk_scan, RISK_THRESHOLD
+from backend.app.safety import (
+    RISK_THRESHOLD,
+    _get_classifier,
+    _normalise,
+    risk_check,
+    risk_scan,
+)
 
 CSV = Path(__file__).resolve().parents[2] / "tests" / "risk_independent.csv"
 
