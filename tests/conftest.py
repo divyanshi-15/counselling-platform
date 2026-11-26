@@ -3,6 +3,9 @@ from __future__ import annotations
 import os
 
 os.environ.setdefault("APP_ENV", "test")
+import tempfile
+
+os.environ.setdefault("UPLOAD_DIR", tempfile.mkdtemp(prefix="saarthi-test-uploads-"))
 os.environ.setdefault("DATABASE_URL", "postgresql+psycopg://postgres:postgres@localhost:5432/counselling_test")
 
 import pytest
