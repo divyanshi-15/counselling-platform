@@ -47,7 +47,8 @@ def test_launch_agent_revises_claims_before_returning_page() -> None:
     assert [entry["step"] for entry in result["agent_runs"]] == [1, 2, 3, 4]
 
 
-def test_claims_model_parses_markdown_wrapped_json() -> None:
+def test_claims_model_parses_markdown_wrapped_json(monkeypatch) -> None:
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test")
     with patch("backend.app.agents.launch.httpx.post") as post:
         post.return_value.raise_for_status.return_value = None
         post.return_value.json.return_value = {
