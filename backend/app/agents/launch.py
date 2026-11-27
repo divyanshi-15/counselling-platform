@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_valida
 
 from backend.app import fake_llm
 from backend.app.json_extract import ModelText, extract_json, was_truncated
+from backend.app.safety import redact_reason
 
 MODEL_FAST = os.getenv("MODEL_FAST", "claude-haiku-5-5")
 CACHE_DIR = Path(__file__).resolve().parents[3] / ".ai_cache"
@@ -369,7 +370,7 @@ def run_launch_agent(payload: dict[str, Any], *, max_calls: int = 8, max_tokens:
     while tool_calls < max_calls:
         tool_calls += 1
         passed, reasons, model_message = check_claims(json.dumps(page), model=MODEL_FAST)
-        agent_runs.append({"run_id": run_id, "step": tool_calls, "tool": "check_claims", "summary": "Checked claims" if passed else f"Claims failed: {'; '.join(reasons) or model_message or 'No reason given'}", "created_at": datetime.now(timezone.utc).isoformat()})
+        agent_runs.append({"run_id": run_id, "step": tool_calls, "tool": "check_claims", "summary": "Checked claims" if passed else f"Claims failed: {redact_reason('; '.join(reasons) or model_message or 'No reason given')}", "created_at": datetime.now(timezone.utc).isoformat()})
         if passed:
             return {"status": "ok", "page": page, "agent_runs": agent_runs, "run_id": run_id}
         if tool_calls >= max_calls:
@@ -609,7 +610,7 @@ def _validated(loop: _LaunchLoop, tool: str, system: str, prompt: str, max_token
                 return ("error", str(exc)[:300], reply.text, truncated)
 
         res = loop.tool(tool, _display(prompt)[:160], attempt,
-                        lambda r: "AI unavailable" if r is None else (summarize(r[1]) if r[0] == "ok" else f"invalid: {r[1][:160]}"))
+                        lambda r: "AI unavailable" if r is None else (summarize(r[1]) if r[0] == "ok" else f"invalid: {redact_reason(r[1], 160)}"))
         if res is None:
             return None
         if res[0] == "ok":

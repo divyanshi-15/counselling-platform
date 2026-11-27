@@ -224,7 +224,7 @@ def test_pending_action_created_with_idempotency_and_agent_runs(world, monkeypat
     assert model.calls[-1][0][1] is True  # retrieved chunks block is prompt-cached
 
     url = f"/pending-actions/{first[0]['pending_action_id']}/approve"
-    assert client.post(url, headers=_h(w["ta"])).status_code == 409  # key required
+    assert client.post(url, headers=_h(w["ta"])).status_code == 422  # key required
     r1 = client.post(url, headers=_h(w["ta"]) | {"Idempotency-Key": key})
     r2 = client.post(url, headers=_h(w["ta"]) | {"Idempotency-Key": key})
     assert r1.json()["status"] == r2.json()["status"] == "approved"

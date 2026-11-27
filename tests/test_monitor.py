@@ -135,7 +135,7 @@ def test_nothing_applied_without_approval(seeded, model):
             return db.scalar(select(func.count()).select_from(CasePlan).where(CasePlan.client_id == _alpha_id()))
 
     assert versions() == 1
-    assert client.post(url, headers=t1).status_code == 409  # key required
+    assert client.post(url, headers=t1).status_code == 422  # key required
     assert client.post(url, headers=t1 | {"Idempotency-Key": "wrong"}).status_code == 409
     assert versions() == 1
     ok = client.post(url, headers=t1 | {"Idempotency-Key": action.idempotency_key})

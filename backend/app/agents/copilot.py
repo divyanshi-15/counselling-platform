@@ -42,7 +42,7 @@ from backend.app.models import (
     TherapySession,
     User,
 )
-from backend.app.safety import clinical_output_violations, render_prompt_data
+from backend.app.safety import clinical_output_violations, redact_reason, render_prompt_data
 
 MODEL = os.getenv("MODEL_FAST", "claude-haiku-5-5")
 MAX_TOOL_CALLS = 8
@@ -194,7 +194,7 @@ def ask_json(system: str, blocks: list[tuple[str, bool]], *, max_tokens: int, bu
             use = retry_blocks(blocks, str(raw), error)
             if was_truncated(raw):
                 limit = min(limit * 2, MAX_RETRY_TOKENS)
-    return "error", error
+    return "error", redact_reason(error)
 
 
 def get_intake(db: Session, client_id: int, therapist_user_id: int) -> dict[str, Any]:
@@ -401,7 +401,7 @@ def _run(db: Session, loop: _Loop, therapist_user_id: int, client_id: int, start
                 status = "ok"
                 violations = clinical_output_violations(" ".join([summary] + [s.text for s in suggestions]))
                 if violations:
-                    raise CopilotError("post-check rejected output: " + "; ".join(violations))
+                    raise CopilotError("post-check rejected output: " + redact_reason("; ".join(violations)))
             validated = validate_suggestions(suggestions, retrieved_ids, notes_text)
             _flag_open_assignments(db, client_id, validated)
             break
@@ -409,7 +409,7 @@ def _run(db: Session, loop: _Loop, therapist_user_id: int, client_id: int, start
             raise
         except (ValidationError, json.JSONDecodeError, CitationError, CopilotError) as exc:
             loop.steps.append({"run_id": loop.run_id, "step": loop.calls, "tool": "validate",
-                               "summary": f"Output rejected: {str(exc)[:200]}"})
+                               "summary": f"Output rejected: {redact_reason(exc)}"})
             if attempt == 1:
                 raise CopilotError(f"draft rejected after one retry: {exc}") from exc
             prior = (getattr(exc, "raw", raw), str(exc)[:500])

@@ -105,7 +105,7 @@ def test_release_only_after_approval_and_only_once(world, real_chunk, monkeypatc
     assert client.get("/client/assignments", headers=_h(w["ca"])).json()["items"] == []
     assert client.get("/client/dashboard", headers=_h(w["ca"])).json()["approved_exercises"] == []
     url, key = f"/pending-actions/{action['id']}/approve", action["idempotency_key"]
-    assert client.post(url, headers=_h(w["ta"])).status_code == 409  # key required
+    assert client.post(url, headers=_h(w["ta"])).status_code == 422  # key required
     assert client.post(url, headers=_h(w["ta"]) | {"Idempotency-Key": "wrong"}).status_code == 409
     for _ in range(3):
         assert client.post(url, headers=_h(w["ta"]) | {"Idempotency-Key": key}).json()["status"] == "approved"

@@ -185,7 +185,7 @@ def test_therapist_can_edit_then_approve_to_release_exercise(world, monkeypatch)
     assert client.put(f"/pending-actions/{action.id}/draft", headers=_h(w["ta"]),
                       json=edit | {"summary": "My diagnosis: generalized anxiety disorder."}).status_code == 422
     assert client.get("/client/assignments", headers=_h(w["ca"])).json()["items"] == []
-    assert client.post(f"/pending-actions/{action.id}/approve", headers=_h(w["ta"])).status_code == 409  # key required
+    assert client.post(f"/pending-actions/{action.id}/approve", headers=_h(w["ta"])).status_code == 422  # key required
     assert _approve(client, w["ta"], action).status_code == 200
     assert _approve(client, w["ta"], action).status_code == 200  # replay: still one assignment
     items = client.get("/client/assignments", headers=_h(w["ca"])).json()["items"]

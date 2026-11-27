@@ -314,6 +314,8 @@ def _apply_plan_update(db: Session, action: PendingAction, user: User) -> None:
 
 
 def _check_action_key(action: PendingAction, idempotency_key: str | None) -> None:
+    if not idempotency_key:
+        raise HTTPException(status_code=422, detail="An Idempotency-Key header is required")
     if idempotency_key != action.idempotency_key:
         raise HTTPException(status_code=409, detail="A matching Idempotency-Key header is required")
 

@@ -278,6 +278,17 @@ def clinical_output_violations(text: str) -> list[str]:
     return found
 
 
+_QUOTED = re.compile(r"'[^']*'" + r'|"[^"]*"')
+_INPUT_ECHO = re.compile(r"input_value=.*?(?=, input_type=|\]|$)")
+
+
+def redact_reason(message: object, limit: int = 200) -> str:
+    """A rejection reason that is safe to store or show: keeps the category, drops anything quoted from the model's
+    output (matched fragments, pydantic input_value echoes, unknown slugs)."""
+    text = _INPUT_ECHO.sub("input_value=…", str(message))
+    return _QUOTED.sub("'…'", text)[:limit]
+
+
 def free_text_values(value: object) -> list[str]:
     if isinstance(value, str):
         return [value]

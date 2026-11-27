@@ -25,3 +25,14 @@ def test_module_that_calls_a_model_has_a_post_check(path: Path) -> None:
     source = path.read_text()
     assert any(check in source for check in POST_CHECKS), (
         f"{path.relative_to(APP.parent.parent)} calls a model but references none of {POST_CHECKS}")
+
+
+def test_redact_reason_drops_quoted_model_text_but_keeps_the_category() -> None:
+    from backend.app.safety import clinical_output_violations, redact_reason
+
+    raw = "; ".join(clinical_output_violations("You have major depressive disorder. Take 5 mg melatonin."))
+    out = redact_reason(raw)
+    assert "diagnostic conclusion" in out and "medication/supplement content" in out
+    assert "depressive" not in out and "melatonin" not in out and "5 mg" not in out
+    pyd = "1 validation error for Draft\nthemes\n  Input should be a valid list [type=list_type, input_value='Take melatonin', input_type=str]"
+    assert "melatonin" not in redact_reason(pyd)
